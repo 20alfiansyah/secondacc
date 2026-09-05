@@ -81,7 +81,7 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
   beforeEach(() => jest.clearAllMocks());
 
   describe('1. openBill', () => {
-    it('membuat order OPEN_BILL + items + menandai meja terisi dalam satu transaksi', async () => {
+    it('membuat order OPEN_BILL + items + menandai meja terisi dalam satu transaksi (dengan customerName)', async () => {
       // Tanggal invoice memakai tanggal lokal hari ini (format INV-YYYYMMDD-XXXX)
       const now = new Date()
       const yyyymmdd = [
@@ -103,6 +103,7 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
         invoiceNumber,
         tableId: 1,
         status: OrderStatus.OPEN_BILL,
+        customerName: 'Budi',
         subtotal: BigInt(56000),
         grandTotal: BigInt(56000),
       });
@@ -110,7 +111,11 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
       tx.cafeTable.update.mockResolvedValue(tableRow({ isOccupied: true }));
 
       const result = await service.openBill(
-        { tableId: 1, items: [{ productId: 10, quantity: 2, notes: 'Pedas sedang' }] },
+        {
+          customerName: 'Budi',
+          tableId: 1,
+          items: [{ productId: 10, quantity: 2, notes: 'Pedas sedang' }],
+        },
         { sub: 1, username: 'kasir1', role: 'CASHIER' },
       );
 
@@ -119,6 +124,7 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
         invoiceNumber,
         tableId: 1,
         status: OrderStatus.OPEN_BILL,
+        customerName: 'Budi',
         subtotal: 56000,
         grandTotal: 56000,
       });
@@ -131,6 +137,7 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
             invoiceNumber,
             cashierId: 1,
             tableId: 1,
+            customerName: 'Budi',
             status: OrderStatus.OPEN_BILL,
             subtotal: BigInt(56000),
             grandTotal: BigInt(56000),
@@ -142,6 +149,36 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
         where: { id: 1 },
         data: { isOccupied: true },
       });
+    });
+
+    it('menyimpan customerName = null bila tidak dikirim (opsional)', async () => {
+      prismaMock_.user.findUnique.mockResolvedValue(cashierRow());
+      prismaMock_.cafeTable.findUnique.mockResolvedValue(tableRow());
+      prismaMock_.product.findMany.mockResolvedValue([productRow()]);
+      prismaMock_.order.findFirst.mockResolvedValue({ invoiceNumber: 'INV-20260905-0000' });
+      tx.order.create.mockResolvedValue({
+        id: 46,
+        invoiceNumber: 'INV-20260905-0001',
+        tableId: 1,
+        status: OrderStatus.OPEN_BILL,
+        customerName: null,
+        subtotal: BigInt(56000),
+        grandTotal: BigInt(56000),
+      });
+
+      const result = await service.openBill(
+        { tableId: 1, items: [{ productId: 10, quantity: 2 }] },
+        { sub: 1, username: 'kasir1', role: 'CASHIER' },
+      );
+
+      expect(result.customerName).toBeNull();
+      expect(tx.order.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            customerName: null,
+          }),
+        }),
+      );
     });
 
     it('menolak jika meja sudah terisi (isOccupied = true)', async () => {

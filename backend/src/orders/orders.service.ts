@@ -11,6 +11,7 @@ export interface OpenBillItemInput {
 }
 
 export interface OpenBillInput {
+  customerName?: string;
   tableId: number;
   items: OpenBillItemInput[];
 }
@@ -85,6 +86,7 @@ export class OrdersService {
           invoiceNumber,
           tableId: input.tableId,
           cashierId: cashier.id,
+          customerName: input.customerName ?? null,
           status: OrderStatus.OPEN_BILL,
           subtotal,
           grandTotal,
@@ -112,6 +114,7 @@ export class OrdersService {
         invoiceNumber: order.invoiceNumber,
         tableId: order.tableId,
         status: order.status,
+        customerName: order.customerName,
         subtotal: Number(order.subtotal),
         grandTotal: Number(order.grandTotal),
       };

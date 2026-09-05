@@ -27,6 +27,10 @@ export class OpenBillItemDto {
 }
 
 export class OpenBillDto {
+  @IsOptional()
+  @IsString()
+  customerName?: string;
+
   @IsInt()
   @IsPositive()
   tableId: number;

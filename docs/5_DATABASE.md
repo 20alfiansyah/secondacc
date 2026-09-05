@@ -51,6 +51,7 @@ erDiagram
         string invoice_number UK
         int table_id FK
         int cashier_id FK
+        string customer_name "Nama pelanggan (opsional)"
         string customer_gender "P / L"
         string status "OPEN_BILL / PAID / CANCELLED"
         int subtotal
@@ -203,6 +204,7 @@ model Order {
   table          CafeTable?      @relation(fields: [tableId], references: [id], onDelete: SetNull)
   cashierId      Int
   cashier        User            @relation(fields: [cashierId], references: [id])
+  customerName   String? // Nama pelanggan (opsional) — ditampilkan di kartu RECENT ORDERS
   customerGender CustomerGender? // Dicatat saat kasir checkout (P / L)
   status         OrderStatus     @default(OPEN_BILL)
   subtotal       BigInt
