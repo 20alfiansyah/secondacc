@@ -105,23 +105,27 @@ export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
 
             <div className="my-3 border-t border-dashed border-border" />
 
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Metode Bayar</span>
-              <span className="font-semibold text-foreground">{order.payment.methodName}</span>
-            </div>
-            <div className="mt-0.5 flex justify-between text-xs text-muted-foreground">
-              <span>Uang Diterima</span>
-              <span className="tabular-nums font-semibold text-foreground">
-                {formatRupiah(order.payment.amountPaid)}
-              </span>
-            </div>
-            {order.payment.changeDue > 0 && (
-              <div className="mt-0.5 flex justify-between text-xs text-emerald-700 font-bold">
-                <span>Kembalian</span>
-                <span className="tabular-nums font-black text-emerald-700">
-                  {formatRupiah(order.payment.changeDue)}
-                </span>
-              </div>
+            {order.payment && (
+              <>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Metode Bayar</span>
+                  <span className="font-semibold text-foreground">{order.payment.methodName}</span>
+                </div>
+                <div className="mt-0.5 flex justify-between text-xs text-muted-foreground">
+                  <span>Uang Diterima</span>
+                  <span className="tabular-nums font-semibold text-foreground">
+                    {formatRupiah(order.payment.amountPaid)}
+                  </span>
+                </div>
+                {order.payment.changeDue > 0 && (
+                  <div className="mt-0.5 flex justify-between text-xs text-emerald-700 font-bold">
+                    <span>Kembalian</span>
+                    <span className="tabular-nums font-black text-emerald-700">
+                      {formatRupiah(order.payment.changeDue)}
+                    </span>
+                  </div>
+                )}
+              </>
             )}
 
             <div className="receipt__footer mt-4 border-t border-dashed border-border pt-3 text-center text-[11px] text-muted-foreground">

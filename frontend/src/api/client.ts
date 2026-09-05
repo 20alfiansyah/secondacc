@@ -159,6 +159,7 @@ export interface CheckoutResult {
   invoiceNumber: string
   status: OrderStatus
   customerGender: CustomerGender | null
+  customerName?: string | null
   grandTotal: number
   items: {
     productName: string
