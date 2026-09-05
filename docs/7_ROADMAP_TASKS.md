@@ -33,10 +33,10 @@
   - Endpoint `POST /api/orders/:id/checkout` (rekam gender P/L, simpan pembayaran, ubah status order = `PAID`, kosongkan meja).
 
 ### Milestone 1.3: Frontend Foundation & POS Screen (Vite + React + Tailwind + Shadcn)
-- [ ] **Task 1.3.1: Setup Proyek `frontend/`**
+- [x] **Task 1.3.1: Setup Proyek `frontend/`**
   - Inisialisasi Vite + React + TypeScript + Tailwind CSS + Lucide Icons + Shadcn UI.
   - Setup Axios client dengan interceptor JWT token.
-- [ ] **Task 1.3.2: Layar Login & Role Redirection**
+- [x] **Task 1.3.2: Layar Login & Role Redirection**
   - Halaman `/login` responsif: Kasir otomatis diarahkan ke `/pos`, Admin ke `/dashboard`.
 - [ ] **Task 1.3.3: Layar Kasir POS (`/pos`) - Layout 2 Kolom**
   - Kolom Kiri: Katalog menu dengan tab kategori, live search, dan badge *Sold Out*.
