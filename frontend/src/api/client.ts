@@ -132,6 +132,7 @@ export interface OpenBillResult {
   invoiceNumber: string
   tableId: number | null
   status: OrderStatus
+  customerName: string | null
   subtotal: number
   grandTotal: number
 }
@@ -147,7 +148,7 @@ interface OpenBillResponse {
 
 /** Simpan pesanan sementara ke meja (status OPEN_BILL). */
 export async function openBillRequest(
-  payload: { tableId: number; items: OpenBillItemInput[] },
+  payload: { customerName?: string; tableId: number; items: OpenBillItemInput[] },
 ): Promise<OpenBillResult> {
   const { data } = await api.post<OpenBillResponse>('/orders/open-bill', payload)
   return data.order
@@ -180,6 +181,7 @@ interface CheckoutResponse {
 }
 
 export interface CheckoutPayload {
+  customerName?: string
   customerGender: CustomerGender
   payment: {
     category: PaymentCategory
@@ -194,6 +196,74 @@ export async function checkoutRequest(
   payload: CheckoutPayload,
 ): Promise<CheckoutResult> {
   const { data } = await api.post<CheckoutResponse>(`/orders/${orderId}/checkout`, payload)
+  return data.order
+}
+
+/** Satu baris order untuk kartu RECENT ORDERS / riwayat (GET /api/orders). */
+export interface OrderSummary {
+  id: number
+  invoiceNumber: string
+  status: OrderStatus
+  tableId: number | null
+  tableNumber: string | null
+  customerName: string | null
+  customerGender: CustomerGender | null
+  paymentMethod: string | null
+  subtotal: number
+  grandTotal: number
+  itemCount: number
+  createdAt: string
+}
+
+interface OrderSummaryResponse {
+  success: boolean
+  orders: OrderSummary[]
+}
+
+/** Ambil daftar order berdasarkan status (OPEN_BILL / PAID). */
+export async function fetchOrders(status: OrderStatus): Promise<OrderSummary[]> {
+  const { data } = await api.get<OrderSummaryResponse>('/orders', {
+    params: { status },
+  })
+  return data.orders
+}
+
+/** Detail lengkap satu order (GET /api/orders/:id) — untuk panel & re-print struk. */
+export interface OrderDetail {
+  id: number
+  invoiceNumber: string
+  status: OrderStatus
+  customerName: string | null
+  customerGender: CustomerGender | null
+  tableId: number | null
+  tableNumber: string | null
+  subtotal: number
+  grandTotal: number
+  createdAt: string
+  items: {
+    productName: string
+    quantity: number
+    unitPrice: number
+    subtotal: number
+    notes: string | null
+  }[]
+  payment: {
+    category: PaymentCategory
+    methodName: string
+    amountPaid: number
+    changeDue: number
+    paidAt: string | null
+  } | null
+}
+
+interface OrderDetailResponse {
+  success: boolean
+  order: OrderDetail
+}
+
+/** Ambil detail order lengkap. */
+export async function fetchOrderDetail(orderId: number): Promise<OrderDetail> {
+  const { data } = await api.get<OrderDetailResponse>(`/orders/${orderId}`)
   return data.order
 }
 
