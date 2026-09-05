@@ -226,6 +226,7 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
         id: 45,
         invoiceNumber: 'INV-20260905-0045',
         status: OrderStatus.PAID,
+        customerName: 'Budi',
         customerGender: CustomerGender.L,
         subtotal: BigInt(56000),
         grandTotal: BigInt(56000),
@@ -252,6 +253,7 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
       const result = await service.checkout(
         45,
         {
+          customerName: 'Budi',
           customerGender: CustomerGender.L,
           payment: { category: PaymentCategory.CASH, methodName: 'Tunai', amountPaid: 100000 },
         },
@@ -260,6 +262,7 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
       expect(result.order).toMatchObject({
         id: 45,
         status: OrderStatus.PAID,
+        customerName: 'Budi',
         customerGender: 'L',
         grandTotal: 56000,
       });
@@ -283,6 +286,12 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
         where: { id: 1 },
         data: { isOccupied: false },
       });
+      // customerName dipersist saat checkout
+      expect(tx.order.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ customerName: 'Budi' }),
+        }),
+      );
     });
 
     it('menolak order yang bukan OPEN_BILL (status PAID) — filter status di query', async () => {

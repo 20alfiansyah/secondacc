@@ -55,6 +55,10 @@ export class PaymentDto {
 }
 
 export class CheckoutDto {
+  @IsOptional()
+  @IsString()
+  customerName?: string;
+
   @IsEnum(CustomerGender)
   customerGender: CustomerGender;
 

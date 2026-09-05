@@ -23,6 +23,7 @@ export interface PaymentInput {
 }
 
 export interface CheckoutInput {
+  customerName?: string;
   customerGender: CustomerGender;
   payment: PaymentInput;
 }
@@ -142,6 +143,7 @@ export class OrdersService {
         where: { id: order.id },
         data: {
           status: OrderStatus.PAID,
+          customerName: input.customerName ?? null,
           customerGender: input.customerGender,
         },
         include: { items: { include: { product: true } } },
@@ -180,6 +182,7 @@ export class OrdersService {
           id: updated.id,
           invoiceNumber: updated.invoiceNumber,
           status: updated.status,
+          customerName: updated.customerName,
           customerGender: updated.customerGender,
           grandTotal: Number(updated.grandTotal),
           items,
