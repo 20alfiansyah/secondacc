@@ -15,6 +15,8 @@ interface PaymentModalProps {
   grandTotal: number
   itemCount: number
   tableNumber: string | null
+  /** Gender pelanggan sudah dipilih di panel ORDER DETAIL, bukan di modal. */
+  gender: CustomerGender | null
   submitting: boolean
   onSubmit: (payload: {
     customerGender: CustomerGender
@@ -24,20 +26,20 @@ interface PaymentModalProps {
 }
 
 const METHOD_META: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = [
-  { key: 'CASH', label: 'Tunai', icon: Banknote },
-  { key: 'THIRD_PARTY', label: 'QRIS / Third-party', icon: QrCode },
-  { key: 'EDC', label: 'EDC', icon: CreditCard },
+  { key: 'CASH', label: 'Tunai (Cash)', icon: Banknote },
+  { key: 'THIRD_PARTY', label: 'QRIS / E-Wallet', icon: QrCode },
+  { key: 'EDC', label: 'Mesin EDC / Kartu', icon: CreditCard },
 ]
 
 export default function PaymentModal({
   grandTotal,
   itemCount,
   tableNumber,
+  gender,
   submitting,
   onSubmit,
   onClose,
 }: PaymentModalProps) {
-  const [gender, setGender] = useState<CustomerGender | null>(null)
   const [method, setMethod] = useState<PaymentMethod>('CASH')
   const [selectedMethodName, setSelectedMethodName] = useState('Tunai')
   const [cash, setCash] = useState<string>('')
@@ -56,7 +58,7 @@ export default function PaymentModal({
   function handleSubmit() {
     setError(null)
     if (!gender) {
-      setError('Pilih jenis kelamin pelanggan (P / L).')
+      setError('Pilih jenis kelamin pelanggan (P / L) di panel ORDER DETAIL terlebih dahulu.')
       return
     }
 
@@ -83,129 +85,151 @@ export default function PaymentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-background p-6 shadow-lg">
-        <div className="mb-4 flex items-start justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-md rounded-3xl border border-border/80 bg-card p-6 shadow-modal animate-in zoom-in-95 duration-150">
+        {/* Modal Header */}
+        <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Pembayaran</h2>
-            <p className="text-sm text-muted-foreground">
-              {tableNumber ? `Meja ${tableNumber}` : 'Total'} • {itemCount} item
+            <h2 className="text-lg font-bold text-foreground">Pembayaran Kasir</h2>
+            <p className="text-xs text-muted-foreground">
+              {tableNumber ? `Pesanan Meja ${tableNumber}` : 'Pesanan'} • {itemCount} item
             </p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="h-5 w-5" />
+          <button
+            onClick={onClose}
+            className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Ringkasan total */}
-        <div className="mb-4 rounded-lg bg-muted/50 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Total Tagihan</span>
-            <span className="text-xl font-bold">{formatRupiah(grandTotal)}</span>
+        {/* Total Tagihan Card */}
+        <div className="mb-5 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-center shadow-subtle">
+          <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+            Total Tagihan
+          </span>
+          <div className="mt-1 text-3xl font-black tracking-tight text-primary tabular-nums">
+            {formatRupiah(grandTotal)}
           </div>
         </div>
 
-        {/* Gender */}
+        {/* Metode Pembayaran */}
         <div className="mb-4">
-          <p className="mb-2 text-sm font-medium">Jenis Kelamin Pelanggan</p>
-          <div className="grid grid-cols-2 gap-2">
-            {(
-              [
-                { v: 'L' as CustomerGender, label: '👨 Laki-laki' },
-                { v: 'P' as CustomerGender, label: '👩 Perempuan' },
-              ]
-            ).map((opt) => (
-              <button
-                key={opt.v}
-                onClick={() => setGender(opt.v)}
-                className={cn(
-                  'rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors',
-                  gender === opt.v
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border bg-background hover:bg-accent',
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Metode bayar */}
-        <div className="mb-4">
-          <p className="mb-2 text-sm font-medium">Metode Pembayaran</p>
+          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Metode Pembayaran
+          </label>
           <div className="grid grid-cols-3 gap-2">
             {METHOD_META.map((m) => {
               const Icon = m.icon
+              const isSelected = method === m.key
               return (
                 <button
                   key={m.key}
+                  type="button"
                   onClick={() => {
                     setMethod(m.key)
-                    setSelectedMethodName(m.label)
+                    setSelectedMethodName(m.label.split(' ')[0])
                   }}
                   className={cn(
-                    'flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-xs font-medium transition-colors',
-                    method === m.key
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border bg-background hover:bg-accent',
+                    'flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-semibold transition-all duration-150 active:scale-95',
+                    isSelected
+                      ? 'border-primary bg-primary/10 text-primary shadow-xs'
+                      : 'border-border/80 bg-background text-muted-foreground hover:bg-accent hover:text-foreground',
                   )}
                 >
                   <Icon className="h-5 w-5" />
-                  {m.label}
+                  <span className="text-center leading-tight">{m.label.split(' ')[0]}</span>
                 </button>
               )
             })}
           </div>
         </div>
 
-        {/* Tunai */}
+        {/* Cash Calculation Section */}
         {method === 'CASH' && (
-          <div className="mb-4 space-y-3">
-            <p className="text-sm font-medium">Uang Diterima</p>
-            <div className="grid grid-cols-4 gap-2">
+          <div className="mb-5 space-y-3 rounded-2xl border border-border/80 bg-background/50 p-3.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Uang Diterima (Tunai)
+              </span>
+            </div>
+
+            {/* Quick Cash Buttons */}
+            <div className="grid grid-cols-4 gap-1.5">
               <button
+                type="button"
                 onClick={() => setCash(String(grandTotal))}
-                className="rounded-lg border border-border px-2 py-2 text-xs font-medium hover:bg-accent"
+                className={cn(
+                  'rounded-lg border px-2 py-2 text-xs font-bold transition-all active:scale-95',
+                  parsedCash === grandTotal
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border/80 bg-card hover:bg-accent text-foreground',
+                )}
               >
                 Uang Pas
               </button>
               {QUICK_CASH.map((v) => (
                 <button
                   key={v}
+                  type="button"
                   onClick={() => setCash(String(v))}
-                  className="rounded-lg border border-border px-2 py-2 text-xs font-medium hover:bg-accent"
+                  className={cn(
+                    'rounded-lg border px-2 py-2 text-xs font-bold transition-all active:scale-95',
+                    parsedCash === v
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border/80 bg-card hover:bg-accent text-foreground',
+                  )}
                 >
                   {Math.round(v / 1000)}k
                 </button>
               ))}
             </div>
-            <Input
-              type="number"
-              inputMode="numeric"
-              placeholder="Nominal lain"
-              value={cash}
-              onChange={(e) => setCash(e.target.value)}
-            />
+
+            {/* Custom Input */}
+            <div className="relative">
+              <Input
+                type="number"
+                inputMode="numeric"
+                placeholder="Masukkan nominal lain..."
+                value={cash}
+                onChange={(e) => setCash(e.target.value)}
+                className="h-10 bg-card tabular-nums text-sm font-semibold"
+              />
+            </div>
+
+            {/* Change Due Indicator */}
             {changeDue !== null && (
-              <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
-                <span className="text-sm text-muted-foreground">Kembalian</span>
-                <span className="text-lg font-semibold">{formatRupiah(changeDue)}</span>
+              <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-emerald-900 animate-in fade-in duration-150">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">
+                  Uang Kembalian
+                </span>
+                <span className="text-lg font-black tracking-tight tabular-nums text-emerald-700">
+                  {formatRupiah(changeDue)}
+                </span>
               </div>
             )}
           </div>
         )}
 
+        {/* Error Message */}
         {error && (
-          <p role="alert" className="mb-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p role="alert" className="mb-3 rounded-xl bg-destructive/10 px-3.5 py-2.5 text-xs font-semibold text-destructive">
             {error}
           </p>
         )}
 
-        <Button className="w-full" size="lg" onClick={handleSubmit} disabled={submitting}>
-          {submitting ? 'Memproses…' : 'Selesaikan Transaksi'}
+        {/* Submit Button */}
+        <Button
+          className="w-full h-12 text-sm font-bold shadow-sm"
+          size="lg"
+          onClick={handleSubmit}
+          disabled={submitting}
+        >
+          <Banknote className="h-4 w-4" />
+          {submitting ? 'Memproses Transaksi...' : 'Selesaikan Transaksi'}
         </Button>
       </div>
     </div>
   )
 }
+
