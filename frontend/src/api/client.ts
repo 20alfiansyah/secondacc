@@ -70,3 +70,52 @@ export async function loginRequest(username: string, password: string) {
   const { data } = await api.post<LoginResponse>('/auth/login', { username, password })
   return data
 }
+
+export interface Product {
+  id: number
+  name: string
+  price: number
+  categoryId: number
+  categoryName: string
+  description: string | null
+  isAvailable: boolean
+}
+
+export interface CafeTable {
+  id: number
+  tableNumber: string
+  qrIdentifier: string
+  isOccupied: boolean
+  activeOrder: {
+    id: number
+    invoiceNumber: string
+    subtotal: number
+    itemCount: number
+  } | null
+}
+
+interface ListResponse<T> {
+  success: boolean
+  data: T
+}
+
+/** Ambil daftar produk; dukung filter kategori & search. */
+export async function fetchProducts(params?: {
+  categoryId?: number
+  search?: string
+}): Promise<Product[]> {
+  const { data } = await api.get<ListResponse<Product[]>>('/products', {
+    params: {
+      category_id: params?.categoryId,
+      search: params?.search || undefined,
+    },
+  })
+  return data.data
+}
+
+/** Ambil daftar meja kafe (status terisi + info open bill). */
+export async function fetchTables(): Promise<CafeTable[]> {
+  const { data } = await api.get<ListResponse<CafeTable[]>>('/tables')
+  return data.data
+}
+

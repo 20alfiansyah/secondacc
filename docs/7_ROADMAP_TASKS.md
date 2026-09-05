@@ -38,7 +38,7 @@
   - Setup Axios client dengan interceptor JWT token.
 - [x] **Task 1.3.2: Layar Login & Role Redirection**
   - Halaman `/login` responsif: Kasir otomatis diarahkan ke `/pos`, Admin ke `/dashboard`.
-- [ ] **Task 1.3.3: Layar Kasir POS (`/pos`) - Layout 2 Kolom**
+- [x] **Task 1.3.3: Layar Kasir POS (`/pos`) - Layout 2 Kolom**
   - Kolom Kiri: Katalog menu dengan tab kategori, live search, dan badge *Sold Out*.
   - Kolom Kanan: Pemilih nomor meja, keranjang belanja dinamis (tambah, kurangi kuantiti, catatan menu).
 - [ ] **Task 1.3.4: Aksi Open Bill di Layar Kasir**
