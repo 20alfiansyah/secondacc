@@ -135,6 +135,14 @@ enum PaymentCategory {
   EDC
 }
 
+enum PaymentStatus {
+  PENDING   // Menunggu pembayaran QRIS Midtrans oleh pelanggan
+  SETTLED   // Pembayaran berhasil diverifikasi (Midtrans settlement / Tunai)
+  EXPIRED   // Transaksi Midtrans kadaluarsa
+  FAILED    // Pembayaran ditolak / gagal
+  CANCELLED // Dibatalkan oleh kasir
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   username     String   @unique
@@ -176,7 +184,7 @@ model Product {
   categoryId  Int
   category    Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   name        String
-  price       Int         // Integer Rupiah bulat
+  price       BigInt      // Nominal Rupiah aman hingga triliunan
   description String?
   imageUrl    String?
   isAvailable Boolean     @default(true) // Toggle Tersedia / Sold Out
@@ -190,15 +198,15 @@ model Product {
 
 model Order {
   id             Int             @id @default(autoincrement())
-  invoiceNumber  String          @unique
+  invoiceNumber  String          @unique // Digunakan sebagai order_id di Midtrans
   tableId        Int?
   table          CafeTable?      @relation(fields: [tableId], references: [id], onDelete: SetNull)
   cashierId      Int
   cashier        User            @relation(fields: [cashierId], references: [id])
-  customerGender CustomerGender? // Dicatat saat kasir checkout
+  customerGender CustomerGender? // Dicatat saat kasir checkout (P / L)
   status         OrderStatus     @default(OPEN_BILL)
-  subtotal       Int
-  grandTotal     Int
+  subtotal       BigInt
+  grandTotal     BigInt
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -219,23 +227,36 @@ model OrderItem {
   productId Int
   product   Product  @relation(fields: [productId], references: [id])
   quantity  Int
-  unitPrice Int
-  subtotal  Int
+  unitPrice BigInt   // Snapshot harga saat transaksi
+  subtotal  BigInt
   notes     String?
 
   @@map("order_items")
 }
 
 model Payment {
-  id             Int             @id @default(autoincrement())
-  orderId        Int             @unique
-  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  category       PaymentCategory // CASH, THIRD_PARTY, EDC
-  methodName     String          // Contoh: "Tunai", "QRIS BCA", "Debit Mandiri"
-  amountPaid     Int
-  changeDue      Int             @default(0)
-  paidAt         DateTime        @default(now())
+  id              Int             @id @default(autoincrement())
+  orderId         Int             @unique
+  order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  category        PaymentCategory // CASH, THIRD_PARTY, EDC
+  methodName      String          // Contoh: "Midtrans QRIS", "Tunai", "BCA EDC"
+  status          PaymentStatus   @default(SETTLED) // Langsung SETTLED untuk kasir manual, PENDING untuk QRIS Midtrans
+  
+  // Midtrans & Gateway Specific Fields
+  gatewayProvider String?         @default("MANUAL") // "MIDTRANS", "MANUAL"
+  gatewayRefId    String?         @unique // transaction_id resmi dari Midtrans
+  qrString        String?         // String payload untuk render QRIS dinamis di kasir
+  paymentUrl      String?         // URL pembayaran / Snap URL jika dibutuhkan
+  rawPayload      Json?           // Audit trail payload notifikasi Webhook Midtrans
 
+  amountPaid      BigInt          // Nominal uang yang dibayarkan
+  changeDue       BigInt          @default(0) // Uang kembalian (untuk Tunai)
+  paidAt          DateTime?       @default(now())
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status])
+  @@index([gatewayRefId])
   @@map("payments")
 }
 
@@ -243,7 +264,7 @@ model MonthlyTarget {
   id           Int      @id @default(autoincrement())
   month        Int      // 1 - 12
   year         Int      // Contoh: 2026
-  targetAmount Int      // Target nominal dalam Rupiah
+  targetAmount BigInt   // Target nominal dalam Rupiah
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
