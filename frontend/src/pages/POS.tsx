@@ -21,6 +21,8 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import PaymentModal from '@/components/PaymentModal'
+import ReceiptModal from '@/components/ReceiptModal'
+import type { CheckoutResult } from '@/api/client'
 
 interface CategoryTab {
   id: number | 'all'
@@ -46,6 +48,7 @@ export default function POS() {
   >(null)
   const [payOpen, setPayOpen] = useState(false)
   const [submittingPayment, setSubmittingPayment] = useState(false)
+  const [receipt, setReceipt] = useState<CheckoutResult | null>(null)
 
   async function loadData() {
     const [productData, tableData] = await Promise.all([fetchProducts(), fetchTables()])
@@ -121,11 +124,11 @@ export default function POS() {
     if (!selectedOrder) return
     setSubmittingPayment(true)
     try {
-      await checkoutRequest(selectedOrder.id, payload)
+      const done = await checkoutRequest(selectedOrder.id, payload)
       setPayOpen(false)
       setSelectedOrder(null)
       await loadData() // refresh: meja jadi kosong
-      setFeedback('Transaksi selesai. Struk dapat dicetak.')
+      setReceipt(done) // tampilkan pratinjau struk setelah transaksi sukses
     } catch {
       setFeedback('Gagal memproses pembayaran. Coba lagi.')
     } finally {
@@ -415,6 +418,10 @@ export default function POS() {
           onSubmit={handleCheckout}
           onClose={() => setPayOpen(false)}
         />
+      )}
+
+      {receipt && (
+        <ReceiptModal order={receipt} onClose={() => setReceipt(null)} />
       )}
     </div>
   )

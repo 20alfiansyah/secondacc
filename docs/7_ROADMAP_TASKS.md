@@ -48,7 +48,7 @@
   - Tombol cepat **`[ 👨 Laki-laki ]`** dan **`[ 👩 Perempuan ]`**.
   - Pilihan metode: Tunai (tombol uang pas, 20k, 50k, 100k + auto kembalian), QRIS/Third-party, EDC.
   - Selesaikan transaksi & kosongkan meja.
-- [ ] **Task 1.3.6: Pratinjau & Cetak Struk Belanja**
+- [x] **Task 1.3.6: Pratinjau & Cetak Struk Belanja**
   - Modal struk digital setelah transaksi sukses + tombol cetak (`window.print()`).
 
 ---

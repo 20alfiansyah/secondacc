@@ -141,7 +141,7 @@ export class OrdersService {
           status: OrderStatus.PAID,
           customerGender: input.customerGender,
         },
-        include: { items: true },
+        include: { items: { include: { product: true } } },
       });
 
       const payment = await (tx as any).payment.create({
@@ -165,6 +165,13 @@ export class OrdersService {
         });
       }
 
+      const items = updated.items.map((item) => ({
+        productName: item.product.name,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        notes: item.notes ?? null,
+      }));
+
       return {
         order: {
           id: updated.id,
@@ -172,6 +179,7 @@ export class OrdersService {
           status: updated.status,
           customerGender: updated.customerGender,
           grandTotal: Number(updated.grandTotal),
+          items,
           payment: {
             category: payment.category,
             methodName: payment.methodName,

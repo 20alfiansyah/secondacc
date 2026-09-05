@@ -82,16 +82,25 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
 
   describe('1. openBill', () => {
     it('membuat order OPEN_BILL + items + menandai meja terisi dalam satu transaksi', async () => {
+      // Tanggal invoice memakai tanggal lokal hari ini (format INV-YYYYMMDD-XXXX)
+      const now = new Date()
+      const yyyymmdd = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, '0'),
+        String(now.getDate()).padStart(2, '0'),
+      ].join('')
+      const invoiceNumber = `INV-${yyyymmdd}-0045`
+
       prismaMock_.user.findUnique.mockResolvedValue(cashierRow());
       prismaMock_.cafeTable.findUnique.mockResolvedValue(tableRow());
       prismaMock_.product.findMany.mockResolvedValue([productRow()]);
-      // generateInvoiceNumber: invoice terakhir IN-...-0044 -> yang baru 0045
+      // generateInvoiceNumber: invoice terakhir (seq 0044) -> yang baru 0045
       prismaMock_.order.findFirst.mockResolvedValue({
-        invoiceNumber: 'INV-20260905-0044',
+        invoiceNumber: `INV-${yyyymmdd}-0044`,
       });
       tx.order.create.mockResolvedValue({
         id: 45,
-        invoiceNumber: 'INV-20260905-0045',
+        invoiceNumber,
         tableId: 1,
         status: OrderStatus.OPEN_BILL,
         subtotal: BigInt(56000),
@@ -107,7 +116,7 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
 
       expect(result).toMatchObject({
         id: 45,
-        invoiceNumber: 'INV-20260905-0045',
+        invoiceNumber,
         tableId: 1,
         status: OrderStatus.OPEN_BILL,
         subtotal: 56000,
@@ -119,7 +128,7 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
       expect(tx.order.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            invoiceNumber: 'INV-20260905-0045',
+            invoiceNumber,
             cashierId: 1,
             tableId: 1,
             status: OrderStatus.OPEN_BILL,
@@ -182,6 +191,15 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
         customerGender: CustomerGender.L,
         subtotal: BigInt(56000),
         grandTotal: BigInt(56000),
+        items: [
+          {
+            quantity: 2,
+            unitPrice: BigInt(28000),
+            subtotal: BigInt(56000),
+            notes: 'Pedas sedang',
+            product: { id: 10, name: 'Nasi Goreng Spesial' },
+          },
+        ],
       });
       tx.payment.create.mockResolvedValue({
         id: 1,
@@ -213,6 +231,15 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
         amountPaid: 100000,
         changeDue: 44000,
       });
+      // Item order (untuk struk) disertakan dengan nama produk & qty
+      expect(result.order.items).toEqual([
+        {
+          productName: 'Nasi Goreng Spesial',
+          quantity: 2,
+          unitPrice: 28000,
+          notes: 'Pedas sedang',
+        },
+      ]);
       // ACS: meja dikosongkan dalam transaksi yang sama
       expect(tx.cafeTable.update).toHaveBeenCalledWith({
         where: { id: 1 },

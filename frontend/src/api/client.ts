@@ -157,6 +157,12 @@ export interface CheckoutResult {
   status: OrderStatus
   customerGender: CustomerGender | null
   grandTotal: number
+  items: {
+    productName: string
+    quantity: number
+    unitPrice: number
+    notes: string | null
+  }[]
   payment: {
     category: PaymentCategory
     methodName: string
