@@ -98,6 +98,69 @@ Base URL: `http://localhost:3000/api`
 
 ## 6.3 Orders, Open Bill, & Checkout
 
+### `GET /api/orders`
+- **Deskripsi:** Daftar order, difilter berdasarkan status (mis. `OPEN_BILL` untuk kartu RECENT ORDERS atau `PAID` untuk riwayat transaksi). Diurutkan `createdAt` menurun.
+- **Query Params:** `?status=PAID` (`OPEN_BILL` | `PAID` | `CANCELLED`; opsional)
+- **Response 200 OK:**
+  ```json
+  {
+    "success": true,
+    "orders": [
+      {
+        "id": 45,
+        "invoiceNumber": "INV-20260905-0045",
+        "status": "PAID",
+        "tableId": 1,
+        "tableNumber": "Meja 01",
+        "customerName": "Budi",
+        "customerGender": "L",
+        "paymentMethod": "Tunai",
+        "subtotal": 56000,
+        "grandTotal": 56000,
+        "itemCount": 2,
+        "createdAt": "2026-09-05T20:15:00Z"
+      }
+    ]
+  }
+  ```
+
+### `GET /api/orders/:id`
+- **Deskripsi:** Detail lengkap satu order, termasuk item (dengan nama produk & harga per item) dan data pembayaran — dipakai untuk panel ORDER DETAIL dan re-print struk.
+- **Response 200 OK:**
+  ```json
+  {
+    "success": true,
+    "order": {
+      "id": 45,
+      "invoiceNumber": "INV-20260905-0045",
+      "status": "PAID",
+      "customerName": "Budi",
+      "customerGender": "L",
+      "tableId": 1,
+      "tableNumber": "Meja 01",
+      "subtotal": 56000,
+      "grandTotal": 56000,
+      "createdAt": "2026-09-05T20:15:00Z",
+      "items": [
+        {
+          "productName": "Nasi Goreng Spesial",
+          "quantity": 2,
+          "unitPrice": 28000,
+          "subtotal": 56000,
+          "notes": "Pedas sedang"
+        }
+      ],
+      "payment": {
+        "category": "CASH",
+        "methodName": "Tunai",
+        "amountPaid": 100000,
+        "changeDue": 44000,
+        "paidAt": "2026-09-05T20:16:00Z"
+      }
+    }
+  }
+  ```
+
 ### `POST /api/orders/open-bill`
 - **Deskripsi:** Kasir menyimpan pesanan sementara ke meja (status `OPEN_BILL`).
 - **Request Body:**

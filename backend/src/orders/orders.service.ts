@@ -195,6 +195,85 @@ export class OrdersService {
     });
   }
 
+  /**
+   * Daftar order difilter berdasarkan status (mis. OPEN_BILL / PAID).
+   * Bila status diberikan, query difilter di level database, lalu dipetakan
+   * ke payload ringkas untuk kartu RECENT ORDERS & riwayat transaksi.
+   */
+  async listOrders(status?: OrderStatus) {
+    const orders = await this.prisma.order.findMany({
+      where: status ? { status } : undefined,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        items: true,
+        payment: true,
+        table: true,
+      },
+    });
+
+    return orders.map((order) => ({
+      id: order.id,
+      invoiceNumber: order.invoiceNumber,
+      status: order.status,
+      tableId: order.tableId,
+      tableNumber: order.table?.tableNumber ?? null,
+      customerName: order.customerName ?? null,
+      customerGender: order.customerGender ?? null,
+      paymentMethod: order.payment?.methodName ?? null,
+      subtotal: Number(order.subtotal),
+      grandTotal: Number(order.grandTotal),
+      itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
+      createdAt: order.createdAt,
+    }));
+  }
+
+  /**
+   * Detail lengkap satu order dengan items (termasuk nama produk) & payment,
+   * untuk panel ORDER DETAIL dan re-print struk.
+   */
+  async getOrderDetail(orderId: number) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: { include: { product: true } },
+        payment: true,
+        table: true,
+      },
+    });
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    return {
+      id: order.id,
+      invoiceNumber: order.invoiceNumber,
+      status: order.status,
+      customerName: order.customerName ?? null,
+      customerGender: order.customerGender ?? null,
+      tableId: order.tableId,
+      tableNumber: order.table?.tableNumber ?? null,
+      subtotal: Number(order.subtotal),
+      grandTotal: Number(order.grandTotal),
+      createdAt: order.createdAt,
+      items: order.items.map((item) => ({
+        productName: item.product.name,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        subtotal: Number(item.subtotal),
+        notes: item.notes ?? null,
+      })),
+      payment: order.payment
+        ? {
+            category: order.payment.category,
+            methodName: order.payment.methodName,
+            amountPaid: Number(order.payment.amountPaid),
+            changeDue: Number(order.payment.changeDue),
+            paidAt: order.payment.paidAt,
+          }
+        : null,
+    };
+  }
+
   /** Generate nomor invoice format: INV-YYYYMMDD-NNNN */
   private async generateInvoiceNumber(): Promise<string> {
     const now = new Date();

@@ -14,6 +14,7 @@ function prismaMock() {
     findFirst: jest.fn(),
     update: jest.fn(),
     findUnique: jest.fn(),
+    findMany: jest.fn(),
   };
 
   const mock = {
@@ -306,6 +307,126 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
           payment: { category: PaymentCategory.CASH, methodName: 'Tunai', amountPaid: 100000 },
         }),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('3. listOrders (riwayat / RECENT ORDERS)', () => {
+    it('memfilter query ke status yang diminta dan memetakan BigInt ke Number', async () => {
+      prismaMock_.order.findMany.mockResolvedValue([
+        {
+          id: 45,
+          invoiceNumber: 'INV-20260905-0045',
+          status: OrderStatus.PAID,
+          tableId: 1,
+          customerName: 'Budi',
+          customerGender: CustomerGender.L,
+          subtotal: BigInt(56000),
+          grandTotal: BigInt(56000),
+          createdAt: new Date('2026-09-05T20:15:00Z'),
+          items: [{ quantity: 2 }],
+          payment: { methodName: 'Tunai' },
+          table: { tableNumber: 'Meja 01' },
+        },
+      ]);
+
+      const result = await service.listOrders(OrderStatus.PAID);
+
+      expect(result).toEqual([
+        {
+          id: 45,
+          invoiceNumber: 'INV-20260905-0045',
+          status: OrderStatus.PAID,
+          tableId: 1,
+          tableNumber: 'Meja 01',
+          customerName: 'Budi',
+          customerGender: 'L',
+          paymentMethod: 'Tunai',
+          subtotal: 56000,
+          grandTotal: 56000,
+          itemCount: 2,
+          createdAt: new Date('2026-09-05T20:15:00Z'),
+        },
+      ]);
+
+      // status difilter di level database
+      expect(prismaMock_.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { status: OrderStatus.PAID } }),
+      );
+    });
+
+    it('tanpa status, mengembalikan semua order dan tidak menambahkan where', async () => {
+      prismaMock_.order.findMany.mockResolvedValue([]);
+
+      await service.listOrders();
+
+      expect(prismaMock_.order.findMany).toHaveBeenCalledWith(
+        expect.not.objectContaining({ where: expect.anything() }),
+      );
+    });
+  });
+
+  describe('4. getOrderDetail', () => {
+    it('mengembalikan detail lengkap dengan items & payment untuk re-print struk', async () => {
+      prismaMock_.order.findUnique.mockResolvedValue({
+        id: 45,
+        invoiceNumber: 'INV-20260905-0045',
+        status: OrderStatus.PAID,
+        customerName: 'Budi',
+        customerGender: CustomerGender.L,
+        tableId: 1,
+        subtotal: BigInt(56000),
+        grandTotal: BigInt(56000),
+        createdAt: new Date('2026-09-05T20:15:00Z'),
+        table: { tableNumber: 'Meja 01' },
+        items: [
+          {
+            quantity: 2,
+            unitPrice: BigInt(28000),
+            subtotal: BigInt(56000),
+            notes: 'Pedas sedang',
+            product: { name: 'Nasi Goreng Spesial' },
+          },
+        ],
+        payment: {
+          category: PaymentCategory.CASH,
+          methodName: 'Tunai',
+          amountPaid: BigInt(100000),
+          changeDue: BigInt(44000),
+          paidAt: new Date('2026-09-05T20:16:00Z'),
+        },
+      });
+
+      const result = await service.getOrderDetail(45);
+
+      expect(result).toMatchObject({
+        id: 45,
+        invoiceNumber: 'INV-20260905-0045',
+        status: OrderStatus.PAID,
+        customerName: 'Budi',
+        customerGender: 'L',
+        tableNumber: 'Meja 01',
+        grandTotal: 56000,
+      });
+      expect(result.items).toEqual([
+        {
+          productName: 'Nasi Goreng Spesial',
+          quantity: 2,
+          unitPrice: 28000,
+          subtotal: 56000,
+          notes: 'Pedas sedang',
+        },
+      ]);
+      expect(result.payment).toMatchObject({
+        methodName: 'Tunai',
+        amountPaid: 100000,
+        changeDue: 44000,
+      });
+    });
+
+    it('melempar NotFoundException bila order tidak ada', async () => {
+      prismaMock_.order.findUnique.mockResolvedValue(null);
+
+      await expect(service.getOrderDetail(999)).rejects.toThrow(NotFoundException);
     });
   });
 });
