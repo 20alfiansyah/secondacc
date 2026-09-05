@@ -24,7 +24,9 @@ export interface LoginResponse {
  * Base URL menunjuk ke backend NestJS pada /api.
  */
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api',
+  // Kosong = pakai origin tempat frontend diserve (relatif) → lewat nginx proxy /api di docker.
+  // VITE_API_URL dipakai untuk override saat dev (mis. http://localhost:3001/api).
+  baseURL: import.meta.env.VITE_API_URL ?? '/api',
   headers: { 'Content-Type': 'application/json' },
 })
 
