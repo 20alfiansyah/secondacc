@@ -18,7 +18,7 @@
   - Jalankan migrasi database awal (`npx prisma migrate dev` / `prisma generate`).
 - [x] **Task 1.1.3: Database Seeder Awal**
   - Buat seed script: 1 Admin, 1 Kasir, 4 Kategori (Kopi, Non-Kopi, Makanan Berat, Snack), 15 Menu sampel (dengan flag `isAvailable`), dan 10 Meja kafe.
-- [ ] **Task 1.1.4: Superpowers TDD - Financial & Checkout Logic**
+- [x] **Task 1.1.4: Superpowers TDD - Financial & Checkout Logic**
   - Unit test kalkulasi keranjang, subtotal, validasi uang bayar $\ge$ total, dan hitung uang kembalian.
 
 ### Milestone 1.2: Core Backend APIs
