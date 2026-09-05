@@ -28,7 +28,7 @@
   - Endpoint `GET /api/tables` (status terisi & info open bill).
   - Endpoint `GET /api/products` (filter kategori & search).
   - Endpoint `PATCH /api/products/:id/toggle-availability` (Tersedia / Sold Out).
-- [ ] **Task 1.2.3: Order, Open Bill & Checkout API (ACID Transaction)**
+- [x] **Task 1.2.3: Order, Open Bill & Checkout API (ACID Transaction)**
   - Endpoint `POST /api/orders/open-bill` (simpan pesanan meja, set status meja = `isOccupied`).
   - Endpoint `POST /api/orders/:id/checkout` (rekam gender P/L, simpan pembayaran, ubah status order = `PAID`, kosongkan meja).
 
