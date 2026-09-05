@@ -50,6 +50,9 @@
   - Selesaikan transaksi & kosongkan meja.
 - [x] **Task 1.3.6: Pratinjau & Cetak Struk Belanja**
   - Modal struk digital setelah transaksi sukses + tombol cetak (`window.print()`).
+- [x] **Task 1.3.7: Redesign Layar POS (ORDER DETAIL + RECENT ORDERS + Riwayat)**
+  - Backend: field `customerName` di Order (db push), endpoint `GET /api/orders?status=PAID` (history) & `GET /api/orders/:id` (detail) + TDD.
+  - Frontend: panel kiri katalog + section RECENT ORDERS (card OPEN_BILL), panel kanan ORDER DETAIL terseksi (Customer / Order Info / Ordered Items / Table Detail / Payment Summary), tombol Open Bill ATAU langsung Bayar (create-then-pay), modal pembayaran dengan gender dari panel, popup struk + re-print dari riwayat.
 
 ---
 
