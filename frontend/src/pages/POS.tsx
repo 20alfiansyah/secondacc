@@ -1,8 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Coffee, Minus, Plus, Search, ShoppingBag, StickyNote } from 'lucide-react'
-import type { Product } from '@/api/client'
-import { fetchProducts, fetchTables } from '@/api/client'
-import type { CafeTable } from '@/api/client'
+import {
+  Banknote,
+  Coffee,
+  LogOut,
+  Minus,
+  Plus,
+  Receipt,
+  Search,
+  ShoppingBag,
+  StickyNote,
+} from 'lucide-react'
+import type { CafeTable, Product } from '@/api/client'
+import { checkoutRequest, fetchProducts, fetchTables, openBillRequest } from '@/api/client'
+import type { OpenBillItemInput } from '@/api/client'
 import { useAuthStore } from '@/store/authStore'
 import { useCartStore } from '@/store/cartStore'
 import { formatRupiah } from '@/utils/format'
@@ -10,6 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import PaymentModal from '@/components/PaymentModal'
 
 interface CategoryTab {
   id: number | 'all'
@@ -26,21 +37,32 @@ export default function POS() {
   const [search, setSearch] = useState('')
   const [selectedTable, setSelectedTable] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [opening, setOpening] = useState(false)
+  const [feedback, setFeedback] = useState<string | null>(null)
+
+  // Order OPEN_BILL yang sedang dipilih (detail dari klik meja terisi).
+  const [selectedOrder, setSelectedOrder] = useState<
+    { id: number; tableId: number; tableNumber: string; grandTotal: number; itemCount: number } | null
+  >(null)
+  const [payOpen, setPayOpen] = useState(false)
+  const [submittingPayment, setSubmittingPayment] = useState(false)
+
+  async function loadData() {
+    const [productData, tableData] = await Promise.all([fetchProducts(), fetchTables()])
+    setProducts(productData)
+    setTables(tableData)
+  }
 
   useEffect(() => {
     let cancelled = false
-    async function load() {
+    async function init() {
       try {
-        const [productData, tableData] = await Promise.all([fetchProducts(), fetchTables()])
-        if (!cancelled) {
-          setProducts(productData)
-          setTables(tableData)
-        }
+        await loadData()
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
-    load()
+    init()
     return () => {
       cancelled = true
     }
@@ -69,6 +91,48 @@ export default function POS() {
   const cartSubtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0)
   const cartItemCount = items.reduce((sum, i) => sum + i.quantity, 0)
 
+  // ---- Open Bill ----
+  async function handleOpenBill() {
+    if (!selectedTable || items.length === 0) return
+    setOpening(true)
+    setFeedback(null)
+    try {
+      const payload: OpenBillItemInput[] = items.map((i) => ({
+        productId: i.product.id,
+        quantity: i.quantity,
+        notes: i.notes?.trim() ? i.notes : undefined,
+      }))
+      await openBillRequest({ tableId: selectedTable, items: payload })
+      clear() // keranjang reset otomatis setelah sukses
+      await loadData() // refresh: meja jadi terisi
+      setFeedback('Pesanan berhasil disimpan ke meja.')
+    } catch {
+      setFeedback('Gagal menyimpan pesanan. Coba lagi.')
+    } finally {
+      setOpening(false)
+    }
+  }
+
+  // ---- Checkout ----
+  async function handleCheckout(payload: {
+    customerGender: 'P' | 'L'
+    payment: { category: 'CASH' | 'THIRD_PARTY' | 'EDC'; methodName: string; amountPaid: number }
+  }) {
+    if (!selectedOrder) return
+    setSubmittingPayment(true)
+    try {
+      await checkoutRequest(selectedOrder.id, payload)
+      setPayOpen(false)
+      setSelectedOrder(null)
+      await loadData() // refresh: meja jadi kosong
+      setFeedback('Transaksi selesai. Struk dapat dicetak.')
+    } catch {
+      setFeedback('Gagal memproses pembayaran. Coba lagi.')
+    } finally {
+      setSubmittingPayment(false)
+    }
+  }
+
   return (
     <div className="flex h-svh flex-col bg-muted/30">
       {/* Header */}
@@ -83,6 +147,7 @@ export default function POS() {
           </div>
         </div>
         <Button variant="ghost" size="sm" onClick={logout}>
+          <LogOut className="h-4 w-4" />
           Keluar
         </Button>
       </header>
@@ -90,7 +155,6 @@ export default function POS() {
       <div className="grid flex-1 grid-cols-1 gap-4 overflow-hidden p-4 lg:grid-cols-[1fr_360px]">
         {/* ===== Kolom Kiri: katalog menu ===== */}
         <div className="flex min-h-0 flex-col">
-          {/* Search + kategori */}
           <div className="mb-4 space-y-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -119,7 +183,12 @@ export default function POS() {
             </div>
           </div>
 
-          {/* Grid produk */}
+          {feedback && (
+            <p className="mb-3 rounded-md bg-primary/10 px-3 py-2 text-sm text-primary">
+              {feedback}
+            </p>
+          )}
+
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
             {loading ? (
               <p className="py-10 text-center text-sm text-muted-foreground">Memuat menu…</p>
@@ -169,25 +238,74 @@ export default function POS() {
             <div className="mb-4">
               <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Nomor Meja</h2>
               <div className="flex flex-wrap gap-2">
-                {tables.map((table) => (
-                  <button
-                    key={table.id}
-                    onClick={() => setSelectedTable(table.id)}
-                    disabled={table.isOccupied}
-                    title={table.isOccupied ? 'Meja terisi' : table.tableNumber}
-                    className={cn(
-                      'flex h-10 w-16 items-center justify-center rounded-lg border text-sm font-medium transition-colors',
-                      selectedTable === table.id
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : table.isOccupied
-                          ? 'cursor-not-allowed border-border bg-muted text-muted-foreground/60'
-                          : 'border-border bg-background hover:border-primary/50',
-                    )}
-                  >
-                    {table.tableNumber.replace(/\D/g, '')}
-                  </button>
-                ))}
+                {tables.map((table) => {
+                  const occupied = table.isOccupied
+                  const active = selectedTable === table.id
+                  return (
+                    <button
+                      key={table.id}
+                      onClick={() => {
+                        setSelectedTable(table.id)
+                        // Klik meja terisi -> buka kembali pesanan (untuk checkout)
+                        if (occupied && table.activeOrder) {
+                          setSelectedOrder({
+                            id: table.activeOrder.id,
+                            tableId: table.id,
+                            tableNumber: table.tableNumber,
+                            grandTotal: table.activeOrder.subtotal,
+                            itemCount: table.activeOrder.itemCount,
+                          })
+                        }
+                      }}
+                      title={
+                        occupied
+                          ? `${table.tableNumber} (terisi)`
+                          : table.tableNumber
+                      }
+                      className={cn(
+                        'relative flex h-10 w-16 items-center justify-center rounded-lg border text-sm font-medium transition-colors',
+                        active
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : occupied
+                            ? 'cursor-pointer border-amber-300 bg-amber-50 text-amber-700 hover:border-primary/50'
+                            : 'border-border bg-background hover:border-primary/50',
+                      )}
+                    >
+                      {table.tableNumber.replace(/\D/g, '')}
+                      {occupied && (
+                        <span className="absolute -right-1 -top-1 flex h-3 w-3">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                          <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-500" />
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
+              {/* Indikator open bill terpilih */}
+              {selectedOrder && (
+                <div className="mt-3 flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Receipt className="h-4 w-4 text-amber-600" />
+                    <div>
+                      <p className="text-xs font-medium text-amber-800">
+                        Open Bill • {selectedOrder.tableNumber}
+                      </p>
+                      <p className="text-xs text-amber-700">
+                        {selectedOrder.itemCount} item • {formatRupiah(selectedOrder.grandTotal)}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => setPayOpen(true)}
+                    className="bg-amber-600 hover:bg-amber-700"
+                  >
+                    <Banknote className="h-4 w-4" />
+                    Bayar
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Keranjang */}
@@ -263,14 +381,19 @@ export default function POS() {
                 )}
               </div>
 
-              {/* Subtotal */}
+              {/* Subtotal + Open Bill */}
               <div className="mt-4 space-y-2 border-t pt-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-semibold">{formatRupiah(cartSubtotal)}</span>
                 </div>
-                <Button className="w-full" size="lg" disabled={items.length === 0 || !selectedTable}>
-                  Open Bill
+                <Button
+                  className="w-full"
+                  size="lg"
+                  disabled={items.length === 0 || !selectedTable || opening}
+                  onClick={handleOpenBill}
+                >
+                  {opening ? 'Menyimpan…' : 'Open Bill'}
                 </Button>
                 {!selectedTable && items.length > 0 && (
                   <p className="text-center text-xs text-muted-foreground">
@@ -282,6 +405,17 @@ export default function POS() {
           </CardContent>
         </Card>
       </div>
+
+      {payOpen && selectedOrder && (
+        <PaymentModal
+          grandTotal={selectedOrder.grandTotal}
+          itemCount={selectedOrder.itemCount}
+          tableNumber={selectedOrder.tableNumber.replace(/\D/g, '')}
+          submitting={submittingPayment}
+          onSubmit={handleCheckout}
+          onClose={() => setPayOpen(false)}
+        />
+      )}
     </div>
   )
 }

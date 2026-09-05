@@ -41,10 +41,10 @@
 - [x] **Task 1.3.3: Layar Kasir POS (`/pos`) - Layout 2 Kolom**
   - Kolom Kiri: Katalog menu dengan tab kategori, live search, dan badge *Sold Out*.
   - Kolom Kanan: Pemilih nomor meja, keranjang belanja dinamis (tambah, kurangi kuantiti, catatan menu).
-- [ ] **Task 1.3.4: Aksi Open Bill di Layar Kasir**
+- [x] **Task 1.3.4: Aksi Open Bill di Layar Kasir**
   - Tombol **Open Bill**: simpan pesanan meja ke backend, keranjang reset otomatis.
   - Indikator meja terisi (kasir bisa klik meja terisi untuk membuka kembali pesanan).
-- [ ] **Task 1.3.5: Modal Pembayaran & Input Demografi Gender (P / L)**
+- [x] **Task 1.3.5: Modal Pembayaran & Input Demografi Gender (P / L)**
   - Tombol cepat **`[ 👨 Laki-laki ]`** dan **`[ 👩 Perempuan ]`**.
   - Pilihan metode: Tunai (tombol uang pas, 20k, 50k, 100k + auto kembalian), QRIS/Third-party, EDC.
   - Selesaikan transaksi & kosongkan meja.

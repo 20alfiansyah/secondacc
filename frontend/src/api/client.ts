@@ -119,3 +119,73 @@ export async function fetchTables(): Promise<CafeTable[]> {
   return data.data
 }
 
+export interface OpenBillItemInput {
+  productId: number
+  quantity: number
+  notes?: string
+}
+
+export interface OpenBillResult {
+  id: number
+  invoiceNumber: string
+  tableId: number | null
+  status: OrderStatus
+  subtotal: number
+  grandTotal: number
+}
+
+type OrderStatus = 'OPEN_BILL' | 'PAID' | 'CANCELLED'
+export type PaymentCategory = 'CASH' | 'THIRD_PARTY' | 'EDC'
+export type CustomerGender = 'P' | 'L'
+
+interface OpenBillResponse {
+  success: boolean
+  order: OpenBillResult
+}
+
+/** Simpan pesanan sementara ke meja (status OPEN_BILL). */
+export async function openBillRequest(
+  payload: { tableId: number; items: OpenBillItemInput[] },
+): Promise<OpenBillResult> {
+  const { data } = await api.post<OpenBillResponse>('/orders/open-bill', payload)
+  return data.order
+}
+
+export interface CheckoutResult {
+  id: number
+  invoiceNumber: string
+  status: OrderStatus
+  customerGender: CustomerGender | null
+  grandTotal: number
+  payment: {
+    category: PaymentCategory
+    methodName: string
+    amountPaid: number
+    changeDue: number
+    paidAt: string | null
+  }
+}
+
+interface CheckoutResponse {
+  success: boolean
+  order: CheckoutResult
+}
+
+export interface CheckoutPayload {
+  customerGender: CustomerGender
+  payment: {
+    category: PaymentCategory
+    methodName: string
+    amountPaid: number
+  }
+}
+
+/** Selesaikan pembayaran order OPEN_BILL. */
+export async function checkoutRequest(
+  orderId: number,
+  payload: CheckoutPayload,
+): Promise<CheckoutResult> {
+  const { data } = await api.post<CheckoutResponse>(`/orders/${orderId}/checkout`, payload)
+  return data.order
+}
+
