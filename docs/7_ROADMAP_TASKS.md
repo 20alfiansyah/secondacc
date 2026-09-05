@@ -22,9 +22,9 @@
   - Unit test kalkulasi keranjang, subtotal, validasi uang bayar $\ge$ total, dan hitung uang kembalian.
 
 ### Milestone 1.2: Core Backend APIs
-- [ ] **Task 1.2.1: Auth Module & JWT Guard**
+- [x] **Task 1.2.1: Auth Module & JWT Guard**
   - Endpoint `POST /api/auth/login` (kembalikan JWT token + role).
-- [ ] **Task 1.2.2: Tables & Menu API**
+- [x] **Task 1.2.2: Tables & Menu API**
   - Endpoint `GET /api/tables` (status terisi & info open bill).
   - Endpoint `GET /api/products` (filter kategori & search).
   - Endpoint `PATCH /api/products/:id/toggle-availability` (Tersedia / Sold Out).
