@@ -46,33 +46,45 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm shadow-lg">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            <CupSoda className="h-6 w-6 text-primary" />
+    <div className="relative flex min-h-svh items-center justify-center bg-background p-4 overflow-hidden">
+      {/* Subtle ambient gradient mesh */}
+      <div className="pointer-events-none absolute -top-40 -right-40 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
+
+      <Card className="relative w-full max-w-sm rounded-3xl border border-border/80 bg-card p-2 shadow-card transition-all">
+        <CardHeader className="space-y-2 text-center pb-4">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-xs">
+            <CupSoda className="h-7 w-7" />
           </div>
-          <CardTitle className="text-xl">Cafe POS</CardTitle>
-          <CardDescription>Masuk untuk mengelola kasir & penjualan</CardDescription>
+          <div className="space-y-1">
+            <CardTitle className="text-2xl font-extrabold tracking-tight text-foreground">
+              Cafe POS
+            </CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Sistem kasir dan manajemen transaksi modern
+            </CardDescription>
+          </div>
         </CardHeader>
-        <CardContent>
+
+        <CardContent className="px-6 pb-6 pt-2">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="username" className="text-sm font-medium">
+            <div className="space-y-1.5">
+              <label htmlFor="username" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Username
               </label>
               <Input
                 id="username"
                 name="username"
                 autoComplete="username"
-                placeholder="kasir1"
+                placeholder="Masukkan username kasir..."
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
+                className="h-11 bg-background"
               />
             </div>
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
+            <div className="space-y-1.5">
+              <label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Password
               </label>
               <Input
@@ -84,17 +96,18 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="h-11 bg-background"
               />
             </div>
 
             {error && (
-              <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <p role="alert" className="rounded-xl bg-destructive/10 px-3.5 py-2.5 text-xs font-semibold text-destructive">
                 {error}
               </p>
             )}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Memproses…' : 'Masuk'}
+            <Button type="submit" className="w-full h-11 text-sm font-bold shadow-sm" disabled={loading}>
+              {loading ? 'Memverifikasi...' : 'Masuk ke Kasir'}
             </Button>
           </form>
         </CardContent>
