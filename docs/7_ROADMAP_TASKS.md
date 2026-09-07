@@ -29,7 +29,7 @@
   - 16 Produk Realistis dengan foto, harga Rupiah, serta flag `isRecommended` dan `isBestSeller`.
   - Channel Pembayaran: Tunai (Cash), QRIS BCA, EDC Mandiri.
   - Verifikasi seeder dengan `npx prisma db seed`.
-- [ ] **Task 1.1.3: Superpowers TDD - Financial & Checkout Engine (`backend/src/orders/financial.calculator.*`)**
+- [x] **Task 1.1.3: Superpowers TDD - Financial & Checkout Engine (`backend/src/orders/financial.calculator.*`)**
   - Tulis Unit Test `financial.calculator.spec.ts` sebelum kode:
     - Test kalkulasi subtotal item ($qty \times price$) dengan integer precision.
     - Test grand total order.
