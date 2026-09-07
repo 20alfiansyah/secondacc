@@ -1,11 +1,15 @@
 # 5. DATABASE SCHEMA & DATA MODELS (DATABASE.MD)
 
+> **Dokumen Master Utama:** Rincian lengkap 31 bab spesifikasi teknis tersedia di [PRD_MASTER.md](file:///f:/Project/secondacc/docs/PRD_MASTER.md) dan [1_PRD.md](file:///f:/Project/secondacc/docs/1_PRD.md).
+
+---
+
 ## 5.1 ERD Overview (Entity Relationship Diagram)
 
 ```mermaid
 erDiagram
     USERS ||--o{ ORDERS : manages
-    TABLES ||--o{ ORDERS : hosts
+    TABLES |o--o{ ORDERS : hosts
     CATEGORIES ||--o{ PRODUCTS : contains
     PRODUCTS ||--o{ ORDER_ITEMS : ordered_in
     ORDERS ||--|{ ORDER_ITEMS : includes
@@ -16,7 +20,7 @@ erDiagram
         string username UK
         string password_hash
         string name
-        string role "ADMIN / CASHIER / INVENTORY"
+        string role "ADMIN / CASHIER"
         boolean is_active
         datetime created_at
     }
@@ -49,10 +53,11 @@ erDiagram
     ORDERS {
         int id PK
         string invoice_number UK
-        int table_id FK
+        string order_type "DINE_IN / TAKE_AWAY"
+        int table_id "FK (Opsional / Nullable)"
         int cashier_id FK
-        string customer_name "Nama pelanggan (opsional)"
-        string customer_gender "P / L"
+        string customer_name "Nama tamu (opsional)"
+        string customer_gender "P / L (saat checkout)"
         string status "OPEN_BILL / PAID / CANCELLED"
         int subtotal
         int grand_total
@@ -101,7 +106,7 @@ erDiagram
 
 ## 5.2 Prisma Schema Specification (`schema.prisma`)
 
-Berikut adalah skema resmi yang akan digunakan oleh **Prisma ORM** dengan database **PostgreSQL**:
+Berikut adalah skema resmi yang digunakan oleh **Prisma ORM** dengan database **PostgreSQL**:
 
 ```prisma
 datasource db {
@@ -116,12 +121,16 @@ generator client {
 enum Role {
   ADMIN
   CASHIER
-  INVENTORY
 }
 
-enum CustomerGender {
-  P // Perempuan
-  L // Laki-laki
+enum Gender {
+  L
+  P
+}
+
+enum OrderType {
+  DINE_IN
+  TAKE_AWAY
 }
 
 enum OrderStatus {
@@ -136,39 +145,30 @@ enum PaymentCategory {
   EDC
 }
 
-enum PaymentStatus {
-  PENDING   // Menunggu pembayaran QRIS Midtrans oleh pelanggan
-  SETTLED   // Pembayaran berhasil diverifikasi (Midtrans settlement / Tunai)
-  EXPIRED   // Transaksi Midtrans kadaluarsa
-  FAILED    // Pembayaran ditolak / gagal
-  CANCELLED // Dibatalkan oleh kasir
-}
-
 model User {
   id           Int      @id @default(autoincrement())
   username     String   @unique
-  passwordHash String
+  passwordHash String   @map("password_hash")
   name         String
   role         Role     @default(CASHIER)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
 
-  orders       Order[]
+  orders Order[]
 
   @@map("users")
 }
 
-model CafeTable {
+model Table {
   id           Int      @id @default(autoincrement())
-  tableNumber  String   @unique
-  qrIdentifier String   @unique @default(uuid())
-  isOccupied   Boolean  @default(false)
-  updatedAt    DateTime @updatedAt
+  tableNumber  String   @unique @map("table_number")
+  qrIdentifier String   @unique @default(uuid()) @map("qr_identifier")
+  isOccupied   Boolean  @default(false) @map("is_occupied")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  orders       Order[]
+  orders Order[]
 
-  @@map("cafe_tables")
+  @@map("tables")
 }
 
 model Category {
@@ -181,94 +181,84 @@ model Category {
 }
 
 model Product {
-  id          Int         @id @default(autoincrement())
-  categoryId  Int
-  category    Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  name        String
-  price       BigInt      // Nominal Rupiah aman hingga triliunan
-  description String?
-  imageUrl    String?
-  isAvailable Boolean     @default(true) // Toggle Tersedia / Sold Out
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id            Int      @id @default(autoincrement())
+  categoryId    Int      @map("category_id")
+  name          String
+  price         Int // Integer Rupiah bulat
+  description   String?
+  imageUrl      String?  @map("image_url")
+  isAvailable   Boolean  @default(true) @map("is_available")
+  isRecommended Boolean  @default(false) @map("is_recommended")
+  isBestSeller  Boolean  @default(false) @map("is_best_seller")
+  createdAt     DateTime @default(now()) @map("created_at")
 
-  orderItems  OrderItem[]
+  category   Category    @relation(fields: [categoryId], references: [id])
+  orderItems OrderItem[]
 
   @@map("products")
 }
 
 model Order {
-  id             Int             @id @default(autoincrement())
-  invoiceNumber  String          @unique // Digunakan sebagai order_id di Midtrans
-  tableId        Int?
-  table          CafeTable?      @relation(fields: [tableId], references: [id], onDelete: SetNull)
-  cashierId      Int
-  cashier        User            @relation(fields: [cashierId], references: [id])
-  customerName   String? // Nama pelanggan (opsional) — ditampilkan di kartu RECENT ORDERS
-  customerGender CustomerGender? // Dicatat saat kasir checkout (P / L)
-  status         OrderStatus     @default(OPEN_BILL)
-  subtotal       BigInt
-  grandTotal     BigInt
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id             Int         @id @default(autoincrement())
+  invoiceNumber  String      @unique @map("invoice_number")
+  orderType      OrderType   @default(DINE_IN) @map("order_type")
+  tableId        Int?        @map("table_id") // Nullable: opsional untuk Take Away atau Dine In walk-in
+  cashierId      Int         @map("cashier_id")
+  customerName   String?     @map("customer_name")
+  customerGender Gender?     @map("customer_gender")
+  status         OrderStatus @default(OPEN_BILL)
+  subtotal       Int
+  grandTotal     Int         @map("grand_total")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
 
-  items          OrderItem[]
-  payment        Payment?
+  table      Table?      @relation(fields: [tableId], references: [id])
+  cashier    User        @relation(fields: [cashierId], references: [id])
+  orderItems OrderItem[]
+  payment    Payment?
 
   @@index([createdAt])
   @@index([status])
-  @@index([customerGender])
   @@index([tableId])
   @@map("orders")
 }
 
 model OrderItem {
-  id        Int      @id @default(autoincrement())
-  orderId   Int
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId Int
-  product   Product  @relation(fields: [productId], references: [id])
+  id        Int     @id @default(autoincrement())
+  orderId   Int     @map("order_id")
+  productId Int     @map("product_id")
   quantity  Int
-  unitPrice BigInt   // Snapshot harga saat transaksi
-  subtotal  BigInt
-  notes     String?
+  unitPrice Int     @map("unit_price")
+  subtotal  Int
+  notes     String? // Catatan kustom teks bebas (e.g. "Less sugar", "Pedas")
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
 
   @@map("order_items")
 }
 
 model Payment {
-  id              Int             @id @default(autoincrement())
-  orderId         Int             @unique
-  order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  category        PaymentCategory // CASH, THIRD_PARTY, EDC
-  methodName      String          // Contoh: "Midtrans QRIS", "Tunai", "BCA EDC"
-  status          PaymentStatus   @default(SETTLED) // Langsung SETTLED untuk kasir manual, PENDING untuk QRIS Midtrans
-  
-  // Midtrans & Gateway Specific Fields
-  gatewayProvider String?         @default("MANUAL") // "MIDTRANS", "MANUAL"
-  gatewayRefId    String?         @unique // transaction_id resmi dari Midtrans
-  qrString        String?         // String payload untuk render QRIS dinamis di kasir
-  paymentUrl      String?         // URL pembayaran / Snap URL jika dibutuhkan
-  rawPayload      Json?           // Audit trail payload notifikasi Webhook Midtrans
+  id          Int             @id @default(autoincrement())
+  orderId     Int             @unique @map("order_id")
+  category    PaymentCategory
+  methodName  String          @map("method_name")
+  amountPaid  Int             @map("amount_paid")
+  changeDue   Int             @map("change_due")
+  paidAt      DateTime        @default(now()) @map("paid_at")
 
-  amountPaid      BigInt          // Nominal uang yang dibayarkan
-  changeDue       BigInt          @default(0) // Uang kembalian (untuk Tunai)
-  paidAt          DateTime?       @default(now())
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  order Order @relation(fields: [orderId], references: [id])
 
-  @@index([status])
-  @@index([gatewayRefId])
   @@map("payments")
 }
 
 model MonthlyTarget {
   id           Int      @id @default(autoincrement())
-  month        Int      // 1 - 12
-  year         Int      // Contoh: 2026
-  targetAmount BigInt   // Target nominal dalam Rupiah
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  month        Int
+  year         Int
+  targetAmount BigInt   @map("target_amount")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@unique([month, year])
   @@map("monthly_targets")
@@ -276,9 +266,9 @@ model MonthlyTarget {
 
 model PaymentChannel {
   id       Int             @id @default(autoincrement())
-  name     String          // Contoh: "QRIS", "Debit BCA", "Tunai Laci"
-  category PaymentCategory // CASH, THIRD_PARTY, EDC
-  isActive Boolean         @default(true)
+  name     String
+  category PaymentCategory
+  isActive Boolean         @default(true) @map("is_active")
 
   @@map("payment_channels")
 }
