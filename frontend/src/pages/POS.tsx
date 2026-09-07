@@ -10,7 +10,6 @@ import {
   Filter,
   History,
   LayoutGrid,
-  LogOut,
   Minus,
   Plus,
   Receipt,
@@ -45,6 +44,7 @@ import { cn } from '@/lib/utils'
 import PaymentModal from '@/components/PaymentModal'
 import ReceiptModal from '@/components/ReceiptModal'
 import CustomItemModal from '@/components/CustomItemModal'
+import NavigationRail from '@/components/NavigationRail'
 import type { CheckoutResult } from '@/api/client'
 
 interface CategoryTab {
@@ -70,7 +70,7 @@ function customerNameOr(defaultName: string, name: string | null | undefined): s
 }
 
 export default function POS() {
-  const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
   const { items, increase, decrease, addItem, setNotes, removeItem, clear } = useCartStore()
 
   const [products, setProducts] = useState<Product[]>([])
@@ -307,6 +307,12 @@ export default function POS() {
     }
   }
 
+  // ---- Lock Register (kunci sesi kasir; implementasi penuh di task shift) ----
+  function lockRegister() {
+    // Fase 1: placeholder hingga task shift/lock register tersedia.
+    showFeedback('Lock Register belum tersedia di fase ini.')
+  }
+
   // ---- Riwayat order PAID + re-print struk ----
   async function openHistory() {
     setHistoryOpen(true)
@@ -337,80 +343,63 @@ export default function POS() {
   const isNewPanel = panelMode === 'new'
 
   return (
-    <div className="flex h-svh flex-col bg-background selection:bg-primary/20 selection:text-primary">
-      {/* ===== Sleek Header ===== */}
-      <header className="flex h-16 shrink-0 items-center justify-between border-b border-border/70 bg-card/80 px-4 sm:px-6 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs">
-            <Coffee className="h-5 w-5" />
+    <div className="flex h-svh bg-background selection:bg-primary/20 selection:text-primary">
+      {/* ===== Zone 1: Slim Left Navigation Rail ===== */}
+      <NavigationRail onOpenHistory={openHistory} onLockRegister={lockRegister} />
+
+      {/* ===== Main Column (semua zona lainnya) ===== */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* ===== Sleek Header ===== */}
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-border/70 bg-card/80 px-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs">
+              <Coffee className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-bold tracking-tight text-foreground">Cafe POS</h1>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Kasir: <span className="font-medium text-foreground">{user?.name || 'Staf'}</span>
+              </p>
+            </div>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold tracking-tight text-foreground">Cafe POS</h1>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Live
+
+          {/* Quick Table Stats Pill */}
+          <div className="hidden items-center gap-3 md:flex">
+            <div className="flex items-center gap-2 rounded-full border border-border/80 bg-secondary/50 px-3.5 py-1 text-xs font-medium text-muted-foreground">
+              <span className="flex items-center gap-1 text-emerald-600">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                {emptyCount} Meja Kosong
+              </span>
+              <span className="text-border">|</span>
+              <span className="flex items-center gap-1 text-amber-600">
+                <span className="h-2 w-2 rounded-full bg-amber-500" />
+                {occupiedCount} Terisi
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Kasir: <span className="font-medium text-foreground">{user?.name || 'Staf'}</span>
-            </p>
           </div>
-        </div>
 
-        {/* Quick Table Stats Pill */}
-        <div className="hidden items-center gap-3 md:flex">
-          <div className="flex items-center gap-2 rounded-full border border-border/80 bg-secondary/50 px-3.5 py-1 text-xs font-medium text-muted-foreground">
-            <span className="flex items-center gap-1 text-emerald-600">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              {emptyCount} Meja Kosong
-            </span>
-            <span className="text-border">|</span>
-            <span className="flex items-center gap-1 text-amber-600">
-              <span className="h-2 w-2 rounded-full bg-amber-500" />
-              {occupiedCount} Terisi
-            </span>
+          <div className="flex items-center gap-2">
+            {/* Mobile Cart Button trigger in Header */}
+            <button
+              onClick={() => setMobileCartOpen(true)}
+              className="relative flex items-center gap-2 rounded-xl border border-border/80 bg-card px-3 py-1.5 text-xs font-bold text-foreground lg:hidden"
+            >
+              <ShoppingBag className="h-4 w-4 text-primary" />
+              <span>Keranjang</span>
+              {cartItemCount > 0 && (
+                <span className="rounded-full bg-primary px-1.5 py-0.2 text-[10px] font-bold text-primary-foreground tabular-nums">
+                  {cartItemCount}
+                </span>
+              )}
+            </button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Riwayat Transaksi & Re-print */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={openHistory}
-            className="text-muted-foreground"
-            title="Lihat riwayat transaksi & cetak ulang struk"
-          >
-            <History className="h-4 w-4" />
-            <span className="hidden sm:inline">Riwayat</span>
-          </Button>
-
-          {/* Mobile Cart Button trigger in Header */}
-          <button
-            onClick={() => setMobileCartOpen(true)}
-            className="relative flex items-center gap-2 rounded-xl border border-border/80 bg-card px-3 py-1.5 text-xs font-bold text-foreground lg:hidden"
-          >
-            <ShoppingBag className="h-4 w-4 text-primary" />
-            <span>Keranjang</span>
-            {cartItemCount > 0 && (
-              <span className="rounded-full bg-primary px-1.5 py-0.2 text-[10px] font-bold text-primary-foreground tabular-nums">
-                {cartItemCount}
-              </span>
-            )}
-          </button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={logout}
-            className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Keluar</span>
-          </Button>
-        </div>
-      </header>
+        </header>
 
       {/* ===== Main Content Area ===== */}
       <div className="grid flex-1 grid-cols-1 gap-5 overflow-hidden p-4 sm:p-5 lg:grid-cols-[1fr_420px]">
@@ -921,6 +910,7 @@ export default function POS() {
       )}
 
       {reprint && <ReceiptModal order={reprint} onClose={() => setReprint(null)} />}
+      </div>
     </div>
   )
 }
