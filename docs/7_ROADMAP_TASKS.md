@@ -39,7 +39,7 @@
   - Tulis implementasi murni di `financial.calculator.ts` hingga semua test lulus 100%.
 
 ### Milestone 1.2: Core Backend REST APIs (NestJS)
-- [ ] **Task 1.2.1: Auth Module & JWT Guard (`backend/src/auth`)**
+- [x] **Task 1.2.1: Auth Module & JWT Guard (`backend/src/auth`)**
   - Endpoint `POST /api/auth/login` (validasi bcrypt, kembalikan JWT token, nama, dan role `ADMIN`/`CASHIER`).
   - Implementasikan `JwtAuthGuard` dan `RolesGuard`.
   - Unit test `auth.service.spec.ts` (skenario login sukses, password salah, user tidak aktif).
