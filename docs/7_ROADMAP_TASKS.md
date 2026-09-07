@@ -12,7 +12,7 @@
 ## 🟢 FASE 1: Core POS & Kasir (Fokus Utama / MVP)
 
 ### Milestone 1.1: Database Schema, Seeder & Financial Engine (Prisma + PostgreSQL + TDD)
-- [ ] **Task 1.1.1: Setup NestJS Architecture & Prisma ORM (`backend/`)**
+- [x] **Task 1.1.1: Setup NestJS Architecture & Prisma ORM (`backend/`)**
   - Pastikan modul NestJS bersih dengan konfigurasi environment PostgreSQL `.env`.
   - Tulis `backend/prisma/schema.prisma` sesuai spesifikasi `docs/5_DATABASE.md`:
     - `User` (Role `ADMIN`, `CASHIER`).
