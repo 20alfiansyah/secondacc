@@ -23,7 +23,7 @@
     - `Payment` (`category` enum `CASH`/`THIRD_PARTY`/`EDC`, `methodName`, `amountPaid` Int, `changeDue` Int).
     - `PaymentChannel` & `Table`.
   - Eksekusi `npx prisma generate` dan push database (`npx prisma db push`).
-- [ ] **Task 1.1.2: Database Seeder Realistis (`backend/prisma/seed.ts`)**
+- [x] **Task 1.1.2: Database Seeder Realistis (`backend/prisma/seed.ts`)**
   - Akun Awal: 1 Admin (`admin` / `admin123`) dan 1 Kasir (`siti` / `kasir123`) dengan bcrypt hashing.
   - 5 Kategori Kafe: `Coffee`, `Mocktails`, `Non-Coffee`, `Main Course`, `Pastry & Snacks`.
   - 16 Produk Realistis dengan foto, harga Rupiah, serta flag `isRecommended` dan `isBestSeller`.
