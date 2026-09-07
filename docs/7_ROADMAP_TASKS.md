@@ -58,7 +58,7 @@
   - Unit test `orders.service.spec.ts` memverifikasi integritas transaksi ACID dan kalkulasi finansial.
 
 ### Milestone 1.3: Frontend Foundation & POS Screen (Vite + React + Tailwind + Lucide)
-- [ ] **Task 1.3.1: Setup Frontend Foundation & Axios Interceptors (`frontend/`)**
+- [x] **Task 1.3.1: Setup Frontend Foundation & Axios Interceptors (`frontend/`)**
   - Pastikan Vite + React + TypeScript + Tailwind CSS + Lucide React terkonfigurasi.
   - Setup Axios client dengan interceptor JWT token dan redirect otomatis jika token kadaluarsa.
   - Setup Global State / Cart Store untuk mengelola item keranjang kasir.
