@@ -1,0 +1,238 @@
+import { Test } from '@nestjs/testing';
+import { BadRequestException, ConflictException } from '@nestjs/common';
+import { OrdersService } from './orders.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { OrderStatus, OrderType, PaymentCategory, Role } from '@prisma/client';
+
+// Helper: bangun objek mock ber-nested dengan jest.fn, implememtasi bisa dioverride.
+function buildMockTree(paths: Record<string, (...a: any[]) => any>) {
+  const root: any = {};
+  for (const [path, impl] of Object.entries(paths)) {
+    const parts = path.split('.');
+    let cur = root;
+    for (const p of parts.slice(0, -1)) cur = cur[p] ??= {};
+    cur[parts[parts.length - 1]] = jest.fn(impl);
+  }
+  return root;
+}
+
+describe('OrdersService (ACID & finansial server-side)', () => {
+  let service: OrdersService;
+  let prisma: any;
+  let tx: any;
+
+  const productA = { id: 10, name: 'Kopi Susu Gula Aren', price: 25000, isAvailable: true };
+  const productB = { id: 15, name: 'Lychee Splash', price: 30000, isAvailable: true };
+
+  const openOrder = {
+    id: 45,
+    invoiceNumber: 'INV-20260907-0001',
+    orderType: OrderType.DINE_IN,
+    customerName: 'Rian',
+    status: OrderStatus.OPEN_BILL,
+    subtotal: 50000,
+    grandTotal: 50000,
+    cashier: { id: 2, name: 'Siti' },
+    table: null,
+    orderItems: [
+      { productId: 10, quantity: 2, unitPrice: 25000, subtotal: 50000 },
+    ],
+  };
+
+  const defaults: Record<string, (...a: any[]) => any> = {
+    'product.findMany': () => Promise.resolve([productA, productB]),
+    'order.findFirst': () => Promise.resolve(null),
+    'order.create': (d: any) => Promise.resolve({ id: 45, ...d.data }),
+    'order.findUnique': () => Promise.resolve(null),
+    'order.findMany': () => Promise.resolve([]),
+    'order.update': (d: any) => Promise.resolve({ id: 45, ...d.data }),
+    'payment.create': (d: any) => Promise.resolve({ id: 1, ...d.data }),
+  };
+
+  async function setup(overrides: Record<string, (...a: any[]) => any> = {}) {
+    const merged = { ...defaults, ...overrides };
+    tx = buildMockTree(merged);
+    // panggilan di luar transaksi (getActive/history) memakai this.prisma.order
+    prisma = {
+      $transaction: jest.fn(async (cb: any) => cb(tx)),
+      order: tx.order,
+    };
+    const mod = await Test.createTestingModule({
+      providers: [OrdersService, { provide: PrismaService, useValue: prisma }],
+    }).compile();
+    service = mod.get(OrdersService);
+  }
+
+  // ===== Invoice sequence =====
+  describe('generateInvoice & sequence harian', () => {
+    it('order pertama hari ini = Order #001 dan INV-YYYYMMDD-0001', async () => {
+      await setup({ 'order.findFirst': () => Promise.resolve(null) });
+      const r = await service.openBill({
+        orderType: OrderType.DINE_IN,
+        customerName: 'Rian',
+        items: [{ productId: 10, quantity: 2 }],
+      });
+      expect(r.invoiceNumber).toMatch(/^INV-\d{8}-0001$/);
+      expect(r.orderNumber).toBe('Order #001');
+    });
+
+    it('melanjutkan urutan dari invoice terakhir hari ini (0002)', async () => {
+      await setup({
+        'order.findFirst': () =>
+          Promise.resolve({ invoiceNumber: 'INV-20260907-0001' }),
+      });
+      const r = await service.openBill({
+        orderType: OrderType.TAKE_AWAY,
+        customerName: 'Budi',
+        items: [{ productId: 10, quantity: 1 }],
+      });
+      expect(r.invoiceNumber).toMatch(/INV-\d{8}-0002$/);
+      expect(r.orderNumber).toBe('Order #002');
+    });
+  });
+
+  // ===== Open Bill =====
+  describe('openBill', () => {
+    it('membuat Order OPEN_BILL + OrderItems dengan snapshot harga dari DB', async () => {
+      await setup({
+        'order.create': (d: any) => Promise.resolve({ id: 45, ...d.data }),
+      });
+      const r = await service.openBill({
+        orderType: OrderType.DINE_IN,
+        customerName: 'Rian',
+        items: [{ productId: 10, quantity: 2, notes: 'Less ice' }],
+      });
+      expect(r.status).toBe(OrderStatus.OPEN_BILL);
+      // harga server-side dari DB (25000), bukan dari client
+      expect(r.subtotal).toBe(50000);
+      expect(r.grandTotal).toBe(50000);
+
+      const createCall = tx.order.create.mock.calls[0][0];
+      expect(createCall.data.status).toBe(OrderStatus.OPEN_BILL);
+      expect(createCall.data.orderItems.create).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ productId: 10, quantity: 2, unitPrice: 25000, subtotal: 50000 }),
+        ]),
+      );
+    });
+
+    it('menolak customerName kosong', async () => {
+      await setup();
+      await expect(
+        service.openBill({
+          orderType: OrderType.DINE_IN,
+          customerName: '   ',
+          items: [{ productId: 10, quantity: 1 }],
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('menolak items kosong', async () => {
+      await setup();
+      await expect(
+        service.openBill({
+          orderType: OrderType.DINE_IN,
+          customerName: 'Rian',
+          items: [],
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  // ===== Checkout =====
+  describe('checkout', () => {
+    it('checkout tunai: hitung server-side, payment + PAID, changeDue benar', async () => {
+      await setup({
+        'order.findUnique': () => Promise.resolve(openOrder),
+        'order.update': (d: any) => Promise.resolve({ id: 45, ...openOrder, ...d.data }),
+        'payment.create': (d: any) => Promise.resolve({ id: 1, ...d.data }),
+      });
+      const r = await service.checkout(45, {
+        paymentCategory: PaymentCategory.CASH,
+        methodName: 'Cash',
+        amountPaid: 100000,
+        customerGender: 'L',
+      });
+      expect(r.status).toBe(OrderStatus.PAID);
+      expect(r.amountPaid).toBe(100000);
+      expect(r.changeDue).toBe(50000);
+      expect(r.grandTotal).toBe(50000);
+    });
+
+    it('bayar kurang (amountPaid < grandTotal) => error, TIDAK ada update/payment (rollback)', async () => {
+      await setup({
+        'order.findUnique': () => Promise.resolve(openOrder),
+      });
+      await expect(
+        service.checkout(45, {
+          paymentCategory: PaymentCategory.CASH,
+          methodName: 'Cash',
+          amountPaid: 10000,
+          customerGender: 'L',
+        }),
+      ).rejects.toThrow();
+      expect(tx.order.update).not.toHaveBeenCalled();
+      expect(tx.payment.create).not.toHaveBeenCalled();
+    });
+
+    it('menolak order yang bukan OPEN_BILL (PAID)', async () => {
+      await setup({
+        'order.findUnique': () => Promise.resolve({ ...openOrder, status: OrderStatus.PAID }),
+      });
+      await expect(
+        service.checkout(45, {
+          paymentCategory: PaymentCategory.CASH,
+          methodName: 'Cash',
+          amountPaid: 100000,
+          customerGender: 'L',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('NotFound jika order tidak ada', async () => {
+      await setup({ 'order.findUnique': () => Promise.resolve(null) });
+      await expect(
+        service.checkout(999, {
+          paymentCategory: PaymentCategory.CASH,
+          methodName: 'Cash',
+          amountPaid: 100000,
+          customerGender: 'L',
+        }),
+      ).rejects.toThrow();
+    });
+  });
+
+  // ===== Active Orders =====
+  describe('getActive', () => {
+    it('mengambil semua order OPEN_BILL', async () => {
+      await setup({
+        'order.findMany': () =>
+          Promise.resolve([
+            { id: 1, status: OrderStatus.OPEN_BILL },
+            { id: 2, status: OrderStatus.OPEN_BILL },
+          ]),
+      });
+      const r = await service.getActive();
+      expect(r).toHaveLength(2);
+      expect(tx.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: OrderStatus.OPEN_BILL }),
+        }),
+      );
+    });
+  });
+
+  // ===== History =====
+  describe('history', () => {
+    it('memfilter PAID + rentang tanggal + search invoice/nama', async () => {
+      await setup();
+      await service.history({ from: '2026-09-01', to: '2026-09-07', search: 'Rian' });
+
+      const call = tx.order.findMany.mock.calls[0][0];
+      const where = call.where;
+      expect(where.status).toBe(OrderStatus.PAID);
+      expect(where.createdAt).toBeDefined();
+      expect(where.OR).toBeDefined();
+    });
+  });
+});
