@@ -49,7 +49,7 @@
   - Unit test `products.service.spec.ts`.
 - [x] **Task 1.2.3: Categories API (`backend/src/categories`)**
   - Endpoint `GET /api/categories` (mengembalikan daftar kategori dengan jumlah produk aktif).
-- [ ] **Task 1.2.4: Orders, Open Bill, & Checkout API dengan ACID Transaction (`backend/src/orders`)**
+- [x] **Task 1.2.4: Orders, Open Bill, & Checkout API dengan ACID Transaction (`backend/src/orders`)**
   - Generator sequence Order ID harian (`Order #001`, `#002`, dst) & Invoice Number (`INV-YYYYMMDD-XXXX`).
   - Endpoint `POST /api/orders/open-bill` (Prisma `$transaction`: buat Order + OrderItems, status = `OPEN_BILL`, `customerName` wajib, `orderType`).
   - Endpoint `GET /api/orders/active` (mengambil seluruh pesanan aktif berstatus `OPEN_BILL` untuk Active Orders Line).
