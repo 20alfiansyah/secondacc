@@ -43,11 +43,11 @@
   - Endpoint `POST /api/auth/login` (validasi bcrypt, kembalikan JWT token, nama, dan role `ADMIN`/`CASHIER`).
   - Implementasikan `JwtAuthGuard` dan `RolesGuard`.
   - Unit test `auth.service.spec.ts` (skenario login sukses, password salah, user tidak aktif).
-- [ ] **Task 1.2.2: Products & Catalog API (`backend/src/products`)**
+- [x] **Task 1.2.2: Products & Catalog API (`backend/src/products`)**
   - Endpoint `GET /api/products` (filter `categoryId`, `search`, `isAvailable`, `isRecommended`, `isBestSeller`).
   - Endpoint `PATCH /api/products/:id/toggle-availability` (1-tap toggle status Tersedia / Sold Out).
   - Unit test `products.service.spec.ts`.
-- [ ] **Task 1.2.3: Categories API (`backend/src/categories`)**
+- [x] **Task 1.2.3: Categories API (`backend/src/categories`)**
   - Endpoint `GET /api/categories` (mengembalikan daftar kategori dengan jumlah produk aktif).
 - [ ] **Task 1.2.4: Orders, Open Bill, & Checkout API dengan ACID Transaction (`backend/src/orders`)**
   - Generator sequence Order ID harian (`Order #001`, `#002`, dst) & Invoice Number (`INV-YYYYMMDD-XXXX`).
