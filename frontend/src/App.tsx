@@ -20,7 +20,7 @@ export default function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute roles={['ADMIN', 'INVENTORY']}>
+            <ProtectedRoute roles={['ADMIN']}>
               <Dashboard />
             </ProtectedRoute>
           }

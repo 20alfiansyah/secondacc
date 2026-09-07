@@ -6,11 +6,13 @@ export const TOKEN_KEY = 'cafe_pos_token'
 /** Role user yang tersimpan di localStorage (untuk init store di refresh). */
 export const USER_KEY = 'cafe_pos_user'
 
+export type Role = 'ADMIN' | 'CASHIER'
+
 export interface AuthUser {
   id: number
   username: string
   name: string
-  role: 'ADMIN' | 'CASHIER' | 'INVENTORY'
+  role: Role
 }
 
 export interface LoginResponse {
@@ -21,19 +23,15 @@ export interface LoginResponse {
 
 /**
  * Axios instance tunggal untuk seluruh aplikasi.
- * Base URL menunjuk ke backend NestJS pada /api.
+ * Base URL menunjuk relatif ke /api (di-proxy oleh nginx ke backend NestJS —
+ * tanpa hardcode host:port di code). Bisa dioverride via VITE_API_URL saat dev.
  */
 export const api = axios.create({
-  // Kosong = pakai origin tempat frontend diserve (relatif) → lewat nginx proxy /api di docker.
-  // VITE_API_URL dipakai untuk override saat dev (mis. http://localhost:3001/api).
   baseURL: import.meta.env.VITE_API_URL ?? '/api',
   headers: { 'Content-Type': 'application/json' },
 })
 
-/**
- * Request interceptor — auto-attach JWT token dari localStorage
- * ke header Authorization (Bearer) pada setiap request.
- */
+/** Request interceptor — auto-attach JWT token dari localStorage ke Authorization. */
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem(TOKEN_KEY)
   if (token) {
@@ -50,8 +48,8 @@ export function setUnauthorizedHandler(handler: () => void) {
 }
 
 /**
- * Response interceptor — jika backend mengembalikan 401
- * (token invalid/kadaluarsa), bersihkan sesi & redirect ke /login.
+ * Response interceptor — jika backend mengembalikan 401 (token invalid/
+ * kadaluarsa), bersihkan sesi & redirect ke /login.
  */
 api.interceptors.response.use(
   (response) => response,
@@ -67,21 +65,254 @@ api.interceptors.response.use(
   },
 )
 
-/** Endpoint login: mengembalikan JWT token + role. */
+/** Endpoint login: mengembalikan JWT token + user (id, username, name, role). */
 export async function loginRequest(username: string, password: string) {
   const { data } = await api.post<LoginResponse>('/auth/login', { username, password })
   return data
 }
+
+// ===== Katalog & Kategori =====
+
+export type OrderType = 'DINE_IN' | 'TAKE_AWAY'
+export type OrderStatus = 'OPEN_BILL' | 'PAID' | 'CANCELLED'
+export type PaymentCategory = 'CASH' | 'THIRD_PARTY' | 'EDC'
+export type CustomerGender = 'L' | 'P'
 
 export interface Product {
   id: number
   name: string
   price: number
   categoryId: number
+  /** Nama kategori (dibawa dari relasi `category.name`). */
   categoryName: string
   description: string | null
+  imageUrl: string | null
   isAvailable: boolean
+  isRecommended: boolean
+  isBestSeller: boolean
 }
+
+export interface Category {
+  id: number
+  name: string
+  slug: string
+  activeProductCount: number
+}
+
+/** Normalisasi produk ke bentuk frontend (category.name -> categoryName, dsb). */
+function toProduct(raw: any): Product {
+  return {
+    id: raw.id,
+    name: raw.name,
+    price: raw.price,
+    categoryId: raw.categoryId,
+    categoryName: raw.category?.name ?? '',
+    description: raw.description ?? null,
+    imageUrl: raw.imageUrl ?? null,
+    isAvailable: raw.isAvailable,
+    isRecommended: raw.isRecommended ?? false,
+    isBestSeller: raw.isBestSeller ?? false,
+  }
+}
+
+interface ListResponse<T> {
+  success: boolean
+  data: T
+}
+
+/** GET /api/products dengan filter opsional. */
+export async function fetchProducts(params?: {
+  categoryId?: number
+  search?: string
+  isAvailable?: boolean
+  isRecommended?: boolean
+  isBestSeller?: boolean
+}): Promise<Product[]> {
+  const { data } = await api.get<ListResponse<any[]>>('/products', { params })
+  return (data.data ?? []).map(toProduct)
+}
+
+/** GET /api/categories — daftar kategori + jumlah produk aktif. */
+export async function fetchCategories(): Promise<Category[]> {
+  const { data } = await api.get<ListResponse<Category[]>>('/categories')
+  return data.data ?? []
+}
+
+// ===== Orders =====
+
+export interface OpenBillItemInput {
+  productId: number
+  quantity: number
+  notes?: string
+}
+
+export interface OpenBillResult {
+  orderId: number
+  /** Alias orderId — bukti kompatibilitas utk POS rewrite (lihat blok kompat di bawah). */
+  id: number
+  invoiceNumber: string
+  orderNumber: string
+  orderType: OrderType
+  status: OrderStatus
+  tableNumber: string | null
+  customerName: string | null
+  subtotal: number
+  grandTotal: number
+}
+
+/** Ringkasan order utk Active Orders Line & History. */
+export interface OrderSummary {
+  id: number
+  invoiceNumber: string
+  orderType: OrderType
+  status: OrderStatus
+  customerName: string | null
+  customerGender: CustomerGender | null
+  subtotal: number
+  grandTotal: number
+  tableNumber: string | null
+  itemCount: number
+  createdAt: string
+  paymentName?: string | null
+}
+
+/** GET /api/orders/active — seluruh order OPEN_BILL. */
+export async function fetchActiveOrders(): Promise<OrderSummary[]> {
+  const { data } = await api.get<ListResponse<any[]>>('/orders/active')
+  return (data.data ?? []).map(toOrderSummary)
+}
+
+/** GET /api/orders/history — order PAID + filter tanggal & search. */
+export async function fetchOrderHistory(params?: {
+  from?: string
+  to?: string
+  search?: string
+}): Promise<OrderSummary[]> {
+  const { data } = await api.get<ListResponse<any[]>>('/orders/history', { params })
+  return (data.data ?? []).map(toOrderSummary)
+}
+
+function toOrderSummary(raw: any): OrderSummary {
+  return {
+    id: raw.id,
+    invoiceNumber: raw.invoiceNumber,
+    orderType: raw.orderType,
+    status: raw.status,
+    customerName: raw.customerName ?? null,
+    customerGender: raw.customerGender ?? null,
+    subtotal: raw.subtotal,
+    grandTotal: raw.grandTotal,
+    tableNumber: raw.table?.tableNumber ?? null,
+    itemCount: Array.isArray(raw.orderItems) ? raw.orderItems.length : (raw._count?.orderItems ?? 0),
+    createdAt: raw.createdAt,
+    paymentName: raw.payment?.methodName ?? null,
+  }
+}
+
+/** POST /api/orders/open-bill — simpan order baru berstatus OPEN_BILL. */
+export async function openBillRequest(payload: {
+  orderType?: OrderType
+  customerName?: string
+  tableId?: number
+  items: OpenBillItemInput[]
+}): Promise<OpenBillResult> {
+  // Default DINE_IN bila orderType tidak dikirim (POS legacy masih menyimpan
+  // per-meja; field orderType akan diisi penuh di Task 1.3.4+).
+  const body = {
+    orderType: payload.orderType ?? 'DINE_IN',
+    customerName: payload.customerName,
+    tableId: payload.tableId ?? undefined,
+    items: payload.items,
+  }
+  const { data } = await api.post<ListResponse<OpenBillResult>>('/orders/open-bill', body)
+  return { ...data.data, id: data.data.orderId }
+}
+
+export interface CheckoutInput {
+  customerGender?: CustomerGender
+  /** Backend PRD TIDAK menyimpan customerName saat checkout (sudah di set saat
+   *  open-bill). Field ini diterima utk kompatibilitas POS legacy; diabaikan. */
+  customerName?: string
+  paymentCategory: PaymentCategory
+  methodName: string
+  amountPaid: number
+}
+
+/** Bentuk legacy yang dikirim POS lama (nested `payment`). */
+export interface LegacyCheckoutPayload {
+  customerName?: string
+  customerGender?: CustomerGender
+  payment: { category: PaymentCategory; methodName: string; amountPaid: number }
+}
+
+export interface CheckoutResult {
+  invoiceNumber: string
+  status: OrderStatus
+  orderType: OrderType
+  customerGender: CustomerGender | null
+  customerName: string | null
+  grandTotal: number
+  amountPaid: number
+  changeDue: number
+  paidAt: string | null
+  cashierName: string | null
+  tableNumber: string | null
+  /**
+   * Kompatibilitas ReceiptModal legacy. Backend checkout TIDAK mengembalikan
+   * items/payment — diisi ulang oleh checkoutRequest dari data flat.
+   */
+  items: OrderItemLine[]
+  payment: {
+    category: PaymentCategory
+    methodName: string
+    amountPaid: number
+    changeDue: number
+    paidAt: string | null
+  }
+}
+
+/** POST /api/orders/:id/checkout — selesaikan pembayaran order OPEN_BILL. */
+export async function checkoutRequest(
+  orderId: number,
+  payload: CheckoutInput | LegacyCheckoutPayload,
+): Promise<CheckoutResult> {
+  // Normalisasi bentuk legacy (nested `payment`) ke bentuk flat backend PRD.
+  const flat: CheckoutInput = 'payment' in payload
+    ? {
+        customerGender: payload.customerGender,
+        paymentCategory: payload.payment.category,
+        methodName: payload.payment.methodName,
+        amountPaid: payload.payment.amountPaid,
+      }
+    : payload
+  const { data } = await api.post<ListResponse<CheckoutResult>>(
+    `/orders/${orderId}/checkout`,
+    flat,
+  )
+  const result = data.data
+  // Enrich data flat backend -> bentuk yang diterima ReceiptModal legacy.
+  return {
+    ...result,
+    items: result.items ?? [],
+    payment: result.payment ?? {
+      category: flat.paymentCategory,
+      methodName: flat.methodName,
+      amountPaid: flat.amountPaid,
+      changeDue: result.changeDue ?? 0,
+      paidAt: result.paidAt ?? null,
+    },
+  }
+}
+
+/* ============================================================================
+   BLOK KOMPATIBILITAS (sementara)
+   ----------------------------------------------------------------------------
+   Lapisan legacy utk POS.tsx era sebelum PRD. Dipetakan ke endpoint baru yang
+   SEMIRIP bila ada; bila backend final TIDAK menyediakan endpoint (mis. meja,
+   GET /orders, GET /orders/:id), fungsi ini sengaja mengembalikan data kosong /
+   melempar agar tsc lulus & POS tetap ter-kompilasi. Akan dibuang saat Task
+   1.3.4–1.3.8 me-rewrite POS ke model DINE_IN/TAKE_AWAY tanpa meja.
+   ========================================================================== */
 
 export interface CafeTable {
   id: number
@@ -96,144 +327,26 @@ export interface CafeTable {
   } | null
 }
 
-interface ListResponse<T> {
-  success: boolean
-  data: T
-}
-
-/** Ambil daftar produk; dukung filter kategori & search. */
-export async function fetchProducts(params?: {
-  categoryId?: number
-  search?: string
-}): Promise<Product[]> {
-  const { data } = await api.get<ListResponse<Product[]>>('/products', {
-    params: {
-      category_id: params?.categoryId,
-      search: params?.search || undefined,
-    },
-  })
-  return data.data
-}
-
-/** Ambil daftar meja kafe (status terisi + info open bill). */
+/** GET /tables — TIDAK ADA di backend PRD. Kembalikan daftar kosong. */
 export async function fetchTables(): Promise<CafeTable[]> {
-  const { data } = await api.get<ListResponse<CafeTable[]>>('/tables')
-  return data.data
+  return Promise.resolve([])
 }
 
-export interface OpenBillItemInput {
-  productId: number
+/** Item order di detail (digunakan POS & ReceiptModal legacy). */
+export interface OrderItemLine {
+  productId?: number
+  productName: string
   quantity: number
-  notes?: string
-}
-
-export interface OpenBillResult {
-  id: number
-  invoiceNumber: string
-  tableId: number | null
-  status: OrderStatus
-  customerName: string | null
+  unitPrice: number
   subtotal: number
-  grandTotal: number
+  notes: string | null
 }
 
-type OrderStatus = 'OPEN_BILL' | 'PAID' | 'CANCELLED'
-export type PaymentCategory = 'CASH' | 'THIRD_PARTY' | 'EDC'
-export type CustomerGender = 'P' | 'L'
-
-interface OpenBillResponse {
-  success: boolean
-  order: OpenBillResult
-}
-
-/** Simpan pesanan sementara ke meja (status OPEN_BILL). */
-export async function openBillRequest(
-  payload: { customerName?: string; tableId: number; items: OpenBillItemInput[] },
-): Promise<OpenBillResult> {
-  const { data } = await api.post<OpenBillResponse>('/orders/open-bill', payload)
-  return data.order
-}
-
-export interface CheckoutResult {
-  id: number
-  invoiceNumber: string
-  status: OrderStatus
-  customerGender: CustomerGender | null
-  customerName?: string | null
-  grandTotal: number
-  items: {
-    productName: string
-    quantity: number
-    unitPrice: number
-    notes: string | null
-  }[]
-  payment: {
-    category: PaymentCategory
-    methodName: string
-    amountPaid: number
-    changeDue: number
-    paidAt: string | null
-  }
-}
-
-interface CheckoutResponse {
-  success: boolean
-  order: CheckoutResult
-}
-
-export interface CheckoutPayload {
-  customerName?: string
-  customerGender: CustomerGender
-  payment: {
-    category: PaymentCategory
-    methodName: string
-    amountPaid: number
-  }
-}
-
-/** Selesaikan pembayaran order OPEN_BILL. */
-export async function checkoutRequest(
-  orderId: number,
-  payload: CheckoutPayload,
-): Promise<CheckoutResult> {
-  const { data } = await api.post<CheckoutResponse>(`/orders/${orderId}/checkout`, payload)
-  return data.order
-}
-
-/** Satu baris order untuk kartu RECENT ORDERS / riwayat (GET /api/orders). */
-export interface OrderSummary {
-  id: number
-  invoiceNumber: string
-  status: OrderStatus
-  tableId: number | null
-  tableNumber: string | null
-  customerName: string | null
-  customerGender: CustomerGender | null
-  paymentMethod: string | null
-  subtotal: number
-  grandTotal: number
-  itemCount: number
-  createdAt: string
-}
-
-interface OrderSummaryResponse {
-  success: boolean
-  orders: OrderSummary[]
-}
-
-/** Ambil daftar order berdasarkan status (OPEN_BILL / PAID). */
-export async function fetchOrders(status: OrderStatus): Promise<OrderSummary[]> {
-  const { data } = await api.get<OrderSummaryResponse>('/orders', {
-    params: { status },
-  })
-  return data.orders
-}
-
-/** Detail lengkap satu order (GET /api/orders/:id) — untuk panel & re-print struk. */
 export interface OrderDetail {
   id: number
   invoiceNumber: string
   status: OrderStatus
+  orderType: OrderType
   customerName: string | null
   customerGender: CustomerGender | null
   tableId: number | null
@@ -241,13 +354,7 @@ export interface OrderDetail {
   subtotal: number
   grandTotal: number
   createdAt: string
-  items: {
-    productName: string
-    quantity: number
-    unitPrice: number
-    subtotal: number
-    notes: string | null
-  }[]
+  items: OrderItemLine[]
   payment: {
     category: PaymentCategory
     methodName: string
@@ -257,14 +364,20 @@ export interface OrderDetail {
   } | null
 }
 
-interface OrderDetailResponse {
-  success: boolean
-  order: OrderDetail
+/** GET /orders?status= — TIDAK ADA di backend PRD. Gunakan /orders/active. */
+export async function fetchOrders(status: OrderStatus): Promise<OrderSummary[]> {
+  const { data } = await api.get<ListResponse<any[]>>('/orders/active')
+  const all = (data.data ?? []).map(toOrderSummary)
+  // Saring di sisi klien agar tetap menghormati argumen status legacy.
+  return status ? all.filter((o) => o.status === status) : all
 }
 
-/** Ambil detail order lengkap. */
-export async function fetchOrderDetail(orderId: number): Promise<OrderDetail> {
-  const { data } = await api.get<OrderDetailResponse>(`/orders/${orderId}`)
-  return data.order
+/** GET /orders/:id — TIDAK ADA di backend PRD. Lempar error jelas. */
+export async function fetchOrderDetail(_orderId: number): Promise<OrderDetail> {
+  return Promise.reject(
+    new Error(
+      'fetchOrderDetail: endpoint GET /orders/:id tidak ada di backend PRD. ' +
+        'Gunakan /orders/history atau data checkout untuk struk.',
+    ),
+  )
 }
-

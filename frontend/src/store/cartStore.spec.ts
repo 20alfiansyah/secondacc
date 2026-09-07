@@ -9,7 +9,10 @@ const mockAmericano: Product = {
   categoryId: 1,
   categoryName: 'Kopi',
   description: 'Espresso dengan air mineral segar',
+  imageUrl: null,
   isAvailable: true,
+  isRecommended: false,
+  isBestSeller: false,
 }
 
 const mockLatte: Product = {
@@ -19,7 +22,10 @@ const mockLatte: Product = {
   categoryId: 1,
   categoryName: 'Kopi',
   description: 'Espresso dengan steamed milk',
+  imageUrl: null,
   isAvailable: true,
+  isRecommended: false,
+  isBestSeller: false,
 }
 
 describe('Cart Store - Custom Menu Items', () => {
