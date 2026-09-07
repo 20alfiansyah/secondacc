@@ -62,7 +62,7 @@
   - Pastikan Vite + React + TypeScript + Tailwind CSS + Lucide React terkonfigurasi.
   - Setup Axios client dengan interceptor JWT token dan redirect otomatis jika token kadaluarsa.
   - Setup Global State / Cart Store untuk mengelola item keranjang kasir.
-- [ ] **Task 1.3.2: Layar Login & Role Redirection (`/login`)**
+- [x] **Task 1.3.2: Layar Login & Role Redirection (`/login`)**
   - Form login modern minimalis dengan proteksi autentikasi.
   - Role Redirection: Kasir otomatis masuk ke `/pos`, Admin masuk ke `/dashboard`.
 - [ ] **Task 1.3.3: Zone 1 - Slim Left Navigation Rail (`~64px` / `56px`)**
