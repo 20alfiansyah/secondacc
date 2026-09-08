@@ -82,7 +82,7 @@
   - Tombol Pill Kategori: Teks bersih tanpa emoji umum (`[ All ]`, `[ Recommended ⭐ ]`, `[ Best Seller 🔥 ]`, `[ Coffee ]`, `[ Mocktails ]`, `[ Non-Coffee ]`, `[ Main Course ]`, `[ Snacks & Pastry ]`).
   - Tombol Popover Grid `[ 📑 Categories ▼ ]` di ujung baris: Membuka popover 3 kolom untuk melompat langsung ke kategori mana pun dalam 1 klik.
   - Kolom live search produk dengan shortcut keyboard `/`.
-- [ ] **Task 1.3.6: Zone 2 - Bottom Section: Menu Catalog Grid with Category Section Headers**
+- [x] **Task 1.3.6: Zone 2 - Bottom Section: Menu Catalog Grid with Category Section Headers**
   - Saat tab `[ All ]` aktif: Menampilkan produk terkelompok rapi dengan **Header Section yang jelas** (`⭐ RECOMMENDED & BEST SELLER`, `COFFEE`, `MOCKTAILS`, dll) disertai divider garis halus.
   - Saat tab kategori spesifik aktif: Menampilkan grid terfokus kategori tersebut.
   - Kartu Produk: Foto rasio $1:1$, judul menu, harga integer Rupiah, badge eksklusif `[ ⭐ Recommended ]` / `[ 🔥 Best Seller ]`, dan badge status *Sold Out* (grayscale overlay).
