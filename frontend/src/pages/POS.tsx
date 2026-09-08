@@ -37,7 +37,6 @@ import type {
 import { useAuthStore } from '@/store/authStore'
 import { useCartStore } from '@/store/cartStore'
 import { formatRupiah } from '@/utils/format'
-import { getProductImage } from '@/utils/productImages'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -48,6 +47,7 @@ import CustomItemModal from '@/components/CustomItemModal'
 import NavigationRail from '@/components/NavigationRail'
 import ActiveOrdersLine from '@/components/ActiveOrdersLine'
 import CategoryFilterBar from '@/components/CategoryFilterBar'
+import ProductCatalogGrid from '@/components/ProductCatalogGrid'
 import type { CheckoutResult } from '@/api/client'
 
 function customerNameOr(defaultName: string, name: string | null | undefined): string {
@@ -430,7 +430,7 @@ export default function POS() {
             onSelect={handleOpenActiveOrder}
           />
 
-          {/* Product Cards Grid */}
+          {/* Zone 2 Bottom — Menu Catalog Grid (Task 1.3.6) */}
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
             {loading ? (
               <div className="flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground">
@@ -444,85 +444,11 @@ export default function POS() {
                 <p className="text-xs">Coba ubah kata kunci pencarian atau filter status.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 pb-20 lg:pb-4">
-                {filteredProducts.map((product) => {
-                  const imageUrl = getProductImage(product.name, product.categoryName)
-                  return (
-                    <div
-                      key={product.id}
-                      onClick={() => product.isAvailable && handleOpenCustom(product)}
-                      className={cn(
-                        'group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-card text-left shadow-card transition-all duration-200 select-none',
-                        product.isAvailable
-                          ? 'cursor-pointer border-border/70 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-card-hover active:scale-[0.98]'
-                          : 'cursor-not-allowed border-border/40 opacity-60 bg-muted/30',
-                      )}
-                    >
-                      <div className="relative h-32 sm:h-36 w-full overflow-hidden bg-muted">
-                        <img
-                          src={imageUrl}
-                          alt={product.name}
-                          loading="lazy"
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          onError={(e) => {
-                            ;(e.target as HTMLImageElement).src =
-                              'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=500&auto=format&fit=crop&q=80'
-                          }}
-                        />
-                        <div className="absolute left-2.5 top-2.5">
-                          <span className="rounded-full bg-black/50 px-2.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-md">
-                            {product.categoryName}
-                          </span>
-                        </div>
-                        {!product.isAvailable && (
-                          <div className="absolute right-2.5 top-2.5">
-                            <span className="rounded-full bg-destructive/90 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-destructive-foreground backdrop-blur-sm">
-                              Sold Out
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex flex-1 flex-col justify-between p-3.5">
-                        <div>
-                          <h3 className="line-clamp-1 text-sm font-bold text-foreground group-hover:text-primary transition-colors">
-                            {product.name}
-                          </h3>
-                          {product.description && (
-                            <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground leading-tight">
-                              {product.description}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="mt-3.5 flex items-center justify-between border-t border-border/50 pt-2.5">
-                          <span className="text-sm sm:text-[15px] font-extrabold tracking-tight text-foreground tabular-nums">
-                            {formatRupiah(product.price)}
-                          </span>
-
-                          {product.isAvailable ? (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleOpenCustom(product)
-                              }}
-                              className="flex h-9 items-center gap-1.5 rounded-xl bg-primary px-3 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-all active:scale-90 shadow-xs"
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                              <span>Pesan</span>
-                            </button>
-                          ) : (
-                            <span className="text-[11px] font-semibold text-muted-foreground italic">
-                              Habis
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+              <ProductCatalogGrid
+                products={filteredProducts}
+                activeCategory={activeCategory}
+                onSelect={handleOpenCustom}
+              />
             )}
           </div>
         </div>
