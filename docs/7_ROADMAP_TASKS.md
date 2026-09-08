@@ -87,7 +87,7 @@
   - Saat tab kategori spesifik aktif: Menampilkan grid terfokus kategori tersebut.
   - Kartu Produk: Foto rasio $1:1$, judul menu, harga integer Rupiah, badge eksklusif `[ ⭐ Recommended ]` / `[ 🔥 Best Seller ]`, dan badge status *Sold Out* (grayscale overlay).
   - Klik kartu produk membuka Guided Item Customization Modal.
-- [ ] **Task 1.3.7: Guided Item Customization Modal (Pop-up Terpandu)**
+- [x] **Task 1.3.7: Guided Item Customization Modal (Pop-up Terpandu)**
   - Muncul otomatis saat kasir klik kartu menu apa saja.
   - Stepper kuantitas `-` / `+` (default 1).
   - Opsi dinamis:
