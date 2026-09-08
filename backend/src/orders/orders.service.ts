@@ -11,6 +11,7 @@ import {
   calculateItemSubtotal,
   calculateGrandTotal,
   calculateCashChange,
+  InsufficientPaymentError,
 } from './financial.calculator';
 import { buildInvoice, dailyPrefix, extractSequence, toDateKey } from './invoice.generator';
 
@@ -191,6 +192,20 @@ export class OrdersService {
    * finansial server-side, simpan Payment, set PAID. Rollback jika gagal.
    */
   async checkout(id: number, input: CheckoutInput) {
+    try {
+      return await this.checkoutInTx(id, input);
+    } catch (err) {
+      if (err instanceof InsufficientPaymentError) {
+        throw new BadRequestException({
+          code: 'INSUFFICIENT_PAYMENT',
+          message: err.message,
+        });
+      }
+      throw err;
+    }
+  }
+
+  private async checkoutInTx(id: number, input: CheckoutInput) {
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id },
