@@ -111,11 +111,12 @@
   - Mode Tunai: Tombol nominal cepat (Uang Pas, 20k, 50k, 100k) + kalkulasi otomatis uang kembalian (*change due*).
   - Proteksi bayar kurang: uang tunai < total → tombol Selesaikan dinonaktifkan + pesan "Uang Kurang −Rp…".
   - Eksekusi transaksi checkout ke backend: Order berstatus `PAID` otomatis terhapus dari Active Orders line dan panel keranjang kembali bersih.
-- [ ] **Task 1.3.10: Slide-Over Drawer: Order History & 1-Tap Reprint Receipt**
+- [x] **Task 1.3.10: Slide-Over Drawer: Order History & 1-Tap Reprint Receipt**
   - Dibuka via ikon `[ 🧾 Order History ]` pada rel navigasi kiri tanpa me-reload halaman kasir atau menghapus keranjang yang sedang diketik.
   - Fitur: Search by invoice / nama pelanggan, filter tanggal (Today, Yesterday).
   - Tabel transaksi selesai (`status = PAID`) dengan detail metode bayar.
   - Tombol **`[ 🖨️ Reprint Receipt ]`**: Membuka preview struk dan langsung memicu cetak printer thermal via `window.print()` dengan isolasi CSS 58mm/80mm.
+  - Backend: tambah `GET /api/orders/:id` (detail items + payment + kasir) utk reprint.
 - [ ] **Task 1.3.11: Verifikasi Responsivitas & Ergonomi Sentuh**
   - Verifikasi tampilan pada Desktop AIO (4 kolom grid, 3 zona berdampingan).
   - Verifikasi tampilan pada Tablet Landscape (3 kolom grid, 3 zona berdampingan tanpa panel tersembunyi).
