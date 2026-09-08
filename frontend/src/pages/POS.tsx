@@ -1,22 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  ArrowUpDown,
   Banknote,
   CheckCircle2,
   Coffee,
-  Cookie,
   CreditCard,
-  CupSoda,
-  Filter,
   History,
-  LayoutGrid,
   Minus,
   Plus,
   Receipt,
   Search,
   ShoppingBag,
   SlidersHorizontal,
-  Sparkles,
   StickyNote,
   Trash2,
   User,
@@ -27,13 +21,19 @@ import type { CafeTable, CustomerGender, Product } from '@/api/client'
 import {
   checkoutRequest,
   fetchActiveOrders,
+  fetchCategories,
   fetchOrderDetail,
   fetchOrders,
   fetchProducts,
   fetchTables,
   openBillRequest,
 } from '@/api/client'
-import type { OpenBillItemInput, OrderDetail, OrderSummary } from '@/api/client'
+import type { Category, OpenBillItemInput, OrderDetail, OrderSummary } from '@/api/client'
+import type {
+  AvailabilityFilter,
+  CategoryFilter,
+  SortOption,
+} from '@/components/CategoryFilterBar'
 import { useAuthStore } from '@/store/authStore'
 import { useCartStore } from '@/store/cartStore'
 import { formatRupiah } from '@/utils/format'
@@ -47,25 +47,8 @@ import ReceiptModal from '@/components/ReceiptModal'
 import CustomItemModal from '@/components/CustomItemModal'
 import NavigationRail from '@/components/NavigationRail'
 import ActiveOrdersLine from '@/components/ActiveOrdersLine'
+import CategoryFilterBar from '@/components/CategoryFilterBar'
 import type { CheckoutResult } from '@/api/client'
-
-interface CategoryTab {
-  id: number | 'all'
-  name: string
-}
-
-type SortOption = 'default' | 'price-asc' | 'price-desc' | 'name-asc'
-type AvailabilityFilter = 'all' | 'available' | 'sold-out'
-
-function getCategoryIcon(name: string) {
-  const lower = name.toLowerCase()
-  if (lower.includes('kopi') || lower.includes('coffee')) return Coffee
-  if (lower.includes('makan') || lower.includes('heavy') || lower.includes('food')) return Utensils
-  if (lower.includes('snack') || lower.includes('cemilan') || lower.includes('roti')) return Cookie
-  if (lower.includes('non') || lower.includes('drink') || lower.includes('tea') || lower.includes('soda'))
-    return CupSoda
-  return Sparkles
-}
 
 function customerNameOr(defaultName: string, name: string | null | undefined): string {
   return name?.trim() ? name : defaultName
@@ -76,9 +59,10 @@ export default function POS() {
   const { items, increase, decrease, addItem, setNotes, removeItem, clear } = useCartStore()
 
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [tables, setTables] = useState<CafeTable[]>([])
   const [recentOrders, setRecentOrders] = useState<OrderSummary[]>([])
-  const [activeCategory, setActiveCategory] = useState<number | 'all'>('all')
+  const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all')
   const [search, setSearch] = useState('')
   const [availabilityFilter, setAvailabilityFilter] = useState<AvailabilityFilter>('all')
   const [sortOption, setSortOption] = useState<SortOption>('default')
@@ -115,12 +99,14 @@ export default function POS() {
   const [reprintLoading, setReprintLoading] = useState<number | null>(null)
 
   async function loadData() {
-    const [productData, tableData, orderData] = await Promise.all([
+    const [productData, categoryData, tableData, orderData] = await Promise.all([
       fetchProducts(),
+      fetchCategories(),
       fetchTables(),
       fetchActiveOrders(),
     ])
     setProducts(productData)
+    setCategories(categoryData)
     setTables(tableData)
     setRecentOrders(orderData)
   }
@@ -140,22 +126,13 @@ export default function POS() {
     }
   }, [])
 
-  // Tab kategori diturunkan dari data produk.
-  const categoryTabs: CategoryTab[] = useMemo(() => {
-    const seen = new Map<number, string>()
-    for (const p of products) seen.set(p.categoryId, p.categoryName)
-    const tabs: CategoryTab[] = Array.from(seen.entries()).map(([id, name]) => ({
-      id,
-      name,
-    }))
-    return [{ id: 'all', name: 'Semua Menu' }, ...tabs]
-  }, [products])
-
-  // Filtering & Sorting yang canggih
+  // Filtering & Sorting yang canggih (Grid produk itu sendiri di Task 1.3.6)
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase()
     const result = products.filter((p) => {
-      if (activeCategory !== 'all' && p.categoryId !== activeCategory) return false
+      if (activeCategory === 'recommended' && !p.isRecommended) return false
+      if (activeCategory === 'best-seller' && !p.isBestSeller) return false
+      if (typeof activeCategory === 'number' && p.categoryId !== activeCategory) return false
       if (availabilityFilter === 'available' && !p.isAvailable) return false
       if (availabilityFilter === 'sold-out' && p.isAvailable) return false
       if (q && !p.name.toLowerCase().includes(q)) return false
@@ -417,95 +394,19 @@ export default function POS() {
       <div className="grid flex-1 grid-cols-1 gap-5 overflow-hidden p-4 sm:p-5 lg:grid-cols-[1fr_420px]">
         {/* ===== Left Column: Menu Catalog + RECENT ORDERS ===== */}
         <div className="flex min-h-0 flex-col">
-          {/* Search, Filter Toolbar & Category Tabs */}
-          <div className="mb-4 space-y-3">
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-              <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
-                <Input
-                  className="h-11 rounded-2xl pl-10 pr-9 bg-card shadow-subtle border-border/80 text-sm"
-                  placeholder="Cari nama menu..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                {search && (
-                  <button
-                    onClick={() => setSearch('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-                <div className="flex items-center gap-1 rounded-xl border border-border/80 bg-card p-1 shadow-subtle text-xs">
-                  <Filter className="h-3.5 w-3.5 text-muted-foreground ml-1 mr-0.5" />
-                  <select
-                    value={availabilityFilter}
-                    onChange={(e) => setAvailabilityFilter(e.target.value as AvailabilityFilter)}
-                    className="bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer pr-1"
-                  >
-                    <option value="all">Semua Status</option>
-                    <option value="available">Tersedia</option>
-                    <option value="sold-out">Sold Out</option>
-                  </select>
-                </div>
-
-                <div className="flex items-center gap-1 rounded-xl border border-border/80 bg-card p-1 shadow-subtle text-xs">
-                  <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground ml-1 mr-0.5" />
-                  <select
-                    value={sortOption}
-                    onChange={(e) => setSortOption(e.target.value as SortOption)}
-                    className="bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer pr-1"
-                  >
-                    <option value="default">Urutan Default</option>
-                    <option value="price-asc">Harga: Rendah → Tinggi</option>
-                    <option value="price-desc">Harga: Tinggi → Rendah</option>
-                    <option value="name-asc">Nama: A → Z</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Category Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-none">
-              {categoryTabs.map((tab) => {
-                const isActive = activeCategory === tab.id
-                const Icon = tab.id === 'all' ? LayoutGrid : getCategoryIcon(tab.name)
-                const count =
-                  tab.id === 'all'
-                    ? products.length
-                    : products.filter((p) => p.categoryId === tab.id).length
-
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveCategory(tab.id)}
-                    className={cn(
-                      'group flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all duration-150 active:scale-[0.98]',
-                      isActive
-                        ? 'border-primary bg-primary text-primary-foreground shadow-xs'
-                        : 'border-border/80 bg-card text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground',
-                    )}
-                  >
-                    <Icon className={cn('h-3.5 w-3.5', isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground')} />
-                    <span>{tab.name}</span>
-                    <span
-                      className={cn(
-                        'rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums',
-                        isActive
-                          ? 'bg-primary-foreground/20 text-primary-foreground'
-                          : 'bg-muted text-muted-foreground',
-                      )}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
+          {/* Zone 2 Middle — Category Filter Bar & Overflow Handling (Task 1.3.5) */}
+          <CategoryFilterBar
+            categories={categories}
+            products={products}
+            activeCategory={activeCategory}
+            onSelectCategory={setActiveCategory}
+            search={search}
+            onSearchChange={setSearch}
+            availabilityFilter={availabilityFilter}
+            onAvailabilityChange={setAvailabilityFilter}
+            sortOption={sortOption}
+            onSortChange={setSortOption}
+          />
 
           {/* Feedback Banner */}
           {feedback && (
