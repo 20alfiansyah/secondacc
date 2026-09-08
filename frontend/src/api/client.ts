@@ -311,35 +311,7 @@ export async function checkoutRequest(
   }
 }
 
-/* ============================================================================
-   BLOK KOMPATIBILITAS (sementara)
-   ----------------------------------------------------------------------------
-   Lapisan legacy utk POS.tsx era sebelum PRD. Dipetakan ke endpoint baru yang
-   SEMIRIP bila ada; bila backend final TIDAK menyediakan endpoint (mis. meja,
-   GET /orders, GET /orders/:id), fungsi ini sengaja mengembalikan data kosong /
-   melempar agar tsc lulus & POS tetap ter-kompilasi. Akan dibuang saat Task
-   1.3.4–1.3.8 me-rewrite POS ke model DINE_IN/TAKE_AWAY tanpa meja.
-   ========================================================================== */
-
-export interface CafeTable {
-  id: number
-  tableNumber: string
-  qrIdentifier: string
-  isOccupied: boolean
-  activeOrder: {
-    id: number
-    invoiceNumber: string
-    subtotal: number
-    itemCount: number
-  } | null
-}
-
-/** GET /tables — TIDAK ADA di backend PRD. Kembalikan daftar kosong. */
-export async function fetchTables(): Promise<CafeTable[]> {
-  return Promise.resolve([])
-}
-
-/** Item order di detail (digunakan POS & ReceiptModal legacy). */
+/** Item order di detail struk / re-print (disusun dari data yang tersedia). */
 export interface OrderItemLine {
   productId?: number
   productName: string
@@ -349,6 +321,7 @@ export interface OrderItemLine {
   notes: string | null
 }
 
+/** Detail order untuk struk ReceiptModal (alur bayar / re-print). */
 export interface OrderDetail {
   id: number
   invoiceNumber: string
@@ -369,22 +342,4 @@ export interface OrderDetail {
     changeDue: number
     paidAt: string | null
   } | null
-}
-
-/** GET /orders?status= — TIDAK ADA di backend PRD. Gunakan /orders/active. */
-export async function fetchOrders(status: OrderStatus): Promise<OrderSummary[]> {
-  const { data } = await api.get<ListResponse<any[]>>('/orders/active')
-  const all = (data.data ?? []).map(toOrderSummary)
-  // Saring di sisi klien agar tetap menghormati argumen status legacy.
-  return status ? all.filter((o) => o.status === status) : all
-}
-
-/** GET /orders/:id — TIDAK ADA di backend PRD. Lempar error jelas. */
-export async function fetchOrderDetail(_orderId: number): Promise<OrderDetail> {
-  return Promise.reject(
-    new Error(
-      'fetchOrderDetail: endpoint GET /orders/:id tidak ada di backend PRD. ' +
-        'Gunakan /orders/history atau data checkout untuk struk.',
-    ),
-  )
 }

@@ -1,34 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Banknote,
   CheckCircle2,
   Coffee,
   CreditCard,
   History,
-  Minus,
-  Plus,
   Receipt,
   Search,
   ShoppingBag,
-  SlidersHorizontal,
-  StickyNote,
-  Trash2,
-  User,
-  Utensils,
   X,
 } from 'lucide-react'
-import type { CafeTable, CustomerGender, Product } from '@/api/client'
+import type { CustomerGender, OrderType, Product } from '@/api/client'
 import {
   checkoutRequest,
   fetchActiveOrders,
   fetchCategories,
-  fetchOrderDetail,
-  fetchOrders,
+  fetchOrderHistory,
   fetchProducts,
-  fetchTables,
   openBillRequest,
 } from '@/api/client'
-import type { Category, OpenBillItemInput, OrderDetail, OrderSummary } from '@/api/client'
+import type { Category, OpenBillItemInput, OrderSummary } from '@/api/client'
 import type {
   AvailabilityFilter,
   CategoryFilter,
@@ -38,7 +28,6 @@ import { useAuthStore } from '@/store/authStore'
 import { useCartStore } from '@/store/cartStore'
 import { formatRupiah } from '@/utils/format'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import PaymentModal from '@/components/PaymentModal'
@@ -48,6 +37,7 @@ import NavigationRail from '@/components/NavigationRail'
 import ActiveOrdersLine from '@/components/ActiveOrdersLine'
 import CategoryFilterBar from '@/components/CategoryFilterBar'
 import ProductCatalogGrid from '@/components/ProductCatalogGrid'
+import OrderDetailsPanel from '@/components/OrderDetailsPanel'
 import type { CheckoutResult } from '@/api/client'
 
 function customerNameOr(defaultName: string, name: string | null | undefined): string {
@@ -60,15 +50,13 @@ export default function POS() {
 
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
-  const [tables, setTables] = useState<CafeTable[]>([])
-  const [recentOrders, setRecentOrders] = useState<OrderSummary[]>([])
+  const [activeOrders, setActiveOrders] = useState<OrderSummary[]>([])
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all')
   const [search, setSearch] = useState('')
   const [availabilityFilter, setAvailabilityFilter] = useState<AvailabilityFilter>('all')
   const [sortOption, setSortOption] = useState<SortOption>('default')
-  const [selectedTable, setSelectedTable] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
-  const [opening, setOpening] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [feedbackError, setFeedbackError] = useState(false)
 
@@ -80,9 +68,10 @@ export default function POS() {
   const [customModalOpen, setCustomModalOpen] = useState(false)
 
   // ---- ORDER DETAIL panel state ----
-  // mode: 'new' = keranjang baru; 'open' = order OPEN_BILL yang sedang di-view
+  // mode: 'new' = pesanan baru; 'open' = viewing open bill lama
   const [panelMode, setPanelMode] = useState<'new' | 'open'>('new')
-  const [openOrder, setOpenOrder] = useState<OrderDetail | null>(null)
+  const [openOrder, setOpenOrder] = useState<OrderSummary | null>(null)
+  const [orderType, setOrderType] = useState<OrderType>('DINE_IN')
 
   // Field customer (diisi di panel)
   const [customerName, setCustomerName] = useState('')
@@ -95,20 +84,17 @@ export default function POS() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [historyData, setHistoryData] = useState<OrderSummary[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
-  const [reprint, setReprint] = useState<OrderDetail | null>(null)
-  const [reprintLoading, setReprintLoading] = useState<number | null>(null)
+  const [historyMessage, setHistoryMessage] = useState<string | null>(null)
 
   async function loadData() {
-    const [productData, categoryData, tableData, orderData] = await Promise.all([
+    const [productData, categoryData, orderData] = await Promise.all([
       fetchProducts(),
       fetchCategories(),
-      fetchTables(),
       fetchActiveOrders(),
     ])
     setProducts(productData)
     setCategories(categoryData)
-    setTables(tableData)
-    setRecentOrders(orderData)
+    setActiveOrders(orderData)
   }
 
   useEffect(() => {
@@ -154,10 +140,6 @@ export default function POS() {
   const cartSubtotal = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0)
   const cartItemCount = items.reduce((sum, i) => sum + i.quantity, 0)
 
-  const occupiedCount = tables.filter((t) => t.isOccupied).length
-  const emptyCount = tables.length - occupiedCount
-  const currentTableObj = tables.find((t) => t.id === selectedTable)
-
   function showFeedback(message: string, isError = false) {
     setFeedback(message)
     setFeedbackError(isError)
@@ -176,53 +158,44 @@ export default function POS() {
     addItem(product, options)
   }
 
-  // Klik kartu ACTIVE ORDERS -> muat pesanan ke panel (Zone 2 Top, Task 1.3.4).
-  // Backend PRD belum menyediakan GET /orders/:id, jadi panel diisi dari ringkasan
-  // Active Orders; detail item lengkap + tombol aksi disempurnakan di Task 1.3.8.
-  function handleOpenActiveOrder(orderId: number) {
-    const summary = recentOrders.find((o) => o.id === orderId)
+  // Klik kartu ACTIVE ORDERS -> viewing tiket lama (pesanan tak bisa diedit penuh;
+  // hanya gender/customer utk checkout — back office menangani item).
+  function handleViewActiveOrder(orderId: number) {
+    const summary = activeOrders.find((o) => o.id === orderId)
     if (!summary) {
-      showFeedback('Gagal memuat detail pesanan. Silakan coba lagi.', true)
+      showFeedback('Pesanan tidak ditemukan.', true)
       return
     }
     setPanelMode('open')
-    setOpenOrder({
-      id: summary.id,
-      invoiceNumber: summary.invoiceNumber,
-      status: summary.status,
-      orderType: summary.orderType,
-      customerName: summary.customerName,
-      customerGender: summary.customerGender,
-      tableId: null,
-      tableNumber: summary.tableNumber,
-      subtotal: summary.subtotal,
-      grandTotal: summary.grandTotal,
-      createdAt: summary.createdAt,
-      items: [],
-      payment: null,
-    })
+    setOpenOrder(summary)
+    setOrderType(summary.orderType)
     setCustomerName(summary.customerName ?? '')
     setCustomerGender(summary.customerGender)
-  }
-
-  // Klik meja -> mulai order baru (panel berubah ke mode 'new')
-  function handleSelectTable(tableId: number) {
-    setSelectedTable(tableId)
-    setPanelMode('new')
-    setOpenOrder(null)
-  }
-
-  // Mulai pesanan baru dari nol (kosongkan hp panel)
-  function handleNewOrder() {
-    setPanelMode('new')
-    setOpenOrder(null)
+    // Bersihkan keranjang agar panel mode open menampilkan tiket lama, bukan cart.
     clear()
   }
 
-  // ---- Open Bill (simpan order baru dari keranjang) ----
-  async function handleOpenBill() {
-    if (!selectedTable || items.length === 0) return
-    setOpening(true)
+  // Kembali ke pesanan baru (reset panel & keranjang)
+  function handleNewOrder() {
+    setPanelMode('new')
+    setOpenOrder(null)
+    setOrderType('DINE_IN')
+    setCustomerName('')
+    setCustomerGender(null)
+    clear()
+  }
+
+  // ---- Save Open Bill (simpan order baru dari keranjang) ----
+  async function handleSaveOpenBill() {
+    if (!customerName.trim()) {
+      showFeedback('Nama pelanggan wajib diisi sebelum menyimpan.', true)
+      return
+    }
+    if (items.length === 0) {
+      showFeedback('Pesanan minimal berisi 1 item.', true)
+      return
+    }
+    setSaving(true)
     setFeedback(null)
     try {
       const payload: OpenBillItemInput[] = items.map((i) => ({
@@ -231,20 +204,18 @@ export default function POS() {
         notes: i.notes?.trim() ? i.notes : undefined,
       }))
       const saved = await openBillRequest({
-        customerName: customerName.trim() || undefined,
-        tableId: selectedTable,
+        orderType,
+        customerName: customerName.trim(),
         items: payload,
       })
       clear() // keranjang reset otomatis setelah sukses
-      await loadData() // refresh: meja terisi, RECENT ORDERS bertambah
-      // Buka order yang baru disimpan langsung di panel (Active Orders Line)
-      handleOpenActiveOrder(saved.id)
+      await loadData() // refresh: Active Orders Line bertambah
+      showFeedback(`Pesanan ${saved.invoiceNumber} disimpan ke Active Orders.`)
       setMobileCartOpen(false)
-      showFeedback('Pesanan berhasil disimpan ke meja.')
     } catch {
       showFeedback('Gagal menyimpan pesanan. Silakan coba lagi.', true)
     } finally {
-      setOpening(false)
+      setSaving(false)
     }
   }
 
@@ -260,8 +231,13 @@ export default function POS() {
         orderId = openOrder.id
       } else {
         // Order baru belum pernah di-open-bill: buat dulu, lalu bayar (create-then-pay)
-        if (!selectedTable) {
-          showFeedback('Silakan pilih nomor meja terlebih dahulu.', true)
+        if (!customerName.trim()) {
+          showFeedback('Nama pelanggan wajib diisi.', true)
+          setSubmittingPayment(false)
+          return
+        }
+        if (items.length === 0) {
+          showFeedback('Pesanan minimal berisi 1 item.', true)
           setSubmittingPayment(false)
           return
         }
@@ -271,23 +247,25 @@ export default function POS() {
           notes: i.notes?.trim() ? i.notes : undefined,
         }))
         const created = await openBillRequest({
-          customerName: customerName.trim() || undefined,
-          tableId: selectedTable,
+          orderType,
+          customerName: customerName.trim(),
           items: itemsPayload,
         })
         orderId = created.id
       }
 
       const done = await checkoutRequest(orderId, {
-        customerName: customerName.trim() || undefined,
         customerGender: payload.customerGender,
         payment: payload.payment,
       })
       setPayOpen(false)
       setOpenOrder(null)
       setPanelMode('new')
+      setOrderType('DINE_IN')
+      setCustomerName('')
+      setCustomerGender(null)
       clear()
-      await loadData() // refresh: meja kosong, kartu OPEN_BILL hilang, paid history bertambah
+      await loadData() // refresh: kartu OPEN_BILL hilang, paid history bertambah
       setReceipt(done) // tampilkan pratinjau struk setelah transaksi sukses
     } catch {
       showFeedback('Gagal memproses pembayaran. Silakan coba lagi.', true)
@@ -298,37 +276,31 @@ export default function POS() {
 
   // ---- Lock Register (kunci sesi kasir; implementasi penuh di task shift) ----
   function lockRegister() {
-    // Fase 1: placeholder hingga task shift/lock register tersedia.
     showFeedback('Lock Register belum tersedia di fase ini.')
   }
 
-  // ---- Riwayat order PAID + re-print struk ----
+  // ---- Riwayat order PAID (Task 1.3.10 menyempurnakan re-print struk) ----
   async function openHistory() {
     setHistoryOpen(true)
     setHistoryLoading(true)
+    setHistoryMessage(null)
     try {
-      const orders = await fetchOrders('PAID')
+      const orders = await fetchOrderHistory()
       setHistoryData(orders)
     } catch {
-      showFeedback('Gagal memuat riwayat transaksi.', true)
+      setHistoryData([])
+      setHistoryMessage('Gagal memuat riwayat transaksi.')
     } finally {
       setHistoryLoading(false)
     }
   }
 
-  async function handleReprint(orderId: number) {
-    setReprintLoading(orderId)
-    try {
-      const detail = await fetchOrderDetail(orderId)
-      setReprint(detail)
-    } catch {
-      showFeedback('Gagal memuat struk. Silakan coba lagi.', true)
-    } finally {
-      setReprintLoading(null)
-    }
+  function handleReprint(orderId: number) {
+    // Task 1.3.10: 1-tap reprint struk. Fase 1 placeholder.
+    showFeedback('Cetak ulang struk akan tersedia di fitur reprint (Task 1.3.10).', true)
+    void orderId
   }
 
-  // Panel ORDER DETAIL dalam mode 'new' (keranjang) vs 'open' (order dibuka ulang)
   const isNewPanel = panelMode === 'new'
 
   return (
@@ -358,22 +330,13 @@ export default function POS() {
             </div>
           </div>
 
-          {/* Quick Table Stats Pill */}
-          <div className="hidden items-center gap-3 md:flex">
-            <div className="flex items-center gap-2 rounded-full border border-border/80 bg-secondary/50 px-3.5 py-1 text-xs font-medium text-muted-foreground">
-              <span className="flex items-center gap-1 text-emerald-600">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                {emptyCount} Meja Kosong
-              </span>
-              <span className="text-border">|</span>
-              <span className="flex items-center gap-1 text-amber-600">
-                <span className="h-2 w-2 rounded-full bg-amber-500" />
-                {occupiedCount} Terisi
+          <div className="flex items-center gap-2">
+            <div className="hidden items-center rounded-full border border-border/80 bg-secondary/50 px-3.5 py-1 text-xs font-medium text-muted-foreground md:flex">
+              <span className="flex items-center gap-1 text-primary">
+                <span className="h-2 w-2 rounded-full bg-primary" />
+                {activeOrders.length} Active Orders
               </span>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
             {/* Mobile Cart Button trigger in Header */}
             <button
               onClick={() => setMobileCartOpen(true)}
@@ -391,8 +354,8 @@ export default function POS() {
         </header>
 
       {/* ===== Main Content Area ===== */}
-      <div className="grid flex-1 grid-cols-1 gap-5 overflow-hidden p-4 sm:p-5 lg:grid-cols-[1fr_420px]">
-        {/* ===== Left Column: Menu Catalog + RECENT ORDERS ===== */}
+      <div className="grid flex-1 grid-cols-1 gap-5 overflow-hidden p-4 sm:p-5 lg:grid-cols-[1fr_400px]">
+        {/* ===== Left Column: Menu Catalog ===== */}
         <div className="flex min-h-0 flex-col">
           {/* Zone 2 Middle — Category Filter Bar & Overflow Handling (Task 1.3.5) */}
           <CategoryFilterBar
@@ -425,9 +388,9 @@ export default function POS() {
 
           {/* Zone 2 Top — Persistent Active Orders Line (Task 1.3.4) */}
           <ActiveOrdersLine
-            orders={recentOrders}
+            orders={activeOrders}
             activeOrderId={panelMode === 'open' ? openOrder?.id ?? null : null}
-            onSelect={handleOpenActiveOrder}
+            onSelect={handleViewActiveOrder}
           />
 
           {/* Zone 2 Bottom — Menu Catalog Grid (Task 1.3.6) */}
@@ -453,44 +416,31 @@ export default function POS() {
           </div>
         </div>
 
-        {/* ===== Right Column (Desktop): ORDER DETAIL Panel ===== */}
+        {/* ===== Right Column (Desktop): ORDER DETAIL Panel (Zone 3, Task 1.3.8) ===== */}
         <Card className="hidden lg:flex min-h-0 flex-col overflow-hidden border-border/80 bg-card shadow-card">
           <CardContent className="flex h-full min-h-0 flex-col p-4">
-            {isNewPanel ? (
-              <NewOrderDetail
-                items={items}
-                tables={tables}
-                selectedTable={selectedTable}
-                currentTableObj={currentTableObj}
-                cartSubtotal={cartSubtotal}
-                cartItemCount={cartItemCount}
-                customerName={customerName}
-                setCustomerName={setCustomerName}
-                customerGender={customerGender}
-                setCustomerGender={setCustomerGender}
-                onSelectTable={handleSelectTable}
-                onIncrease={increase}
-                onDecrease={decrease}
-                onSetNotes={setNotes}
-                onRemoveItem={removeItem}
-                onClearCart={clear}
-                opening={opening}
-                onOpenBill={handleOpenBill}
-                onPay={() => setPayOpen(true)}
-              />
-            ) : (
-              <OpenOrderDetail
-                order={openOrder}
-                loading={false}
-                customerName={customerName}
-                setCustomerName={setCustomerName}
-                customerGender={customerGender}
-                setCustomerGender={setCustomerGender}
-                onNewOrder={handleNewOrder}
-                onPay={() => setPayOpen(true)}
-                submittingPayment={submittingPayment}
-              />
-            )}
+            <OrderDetailsPanel
+              mode={panelMode}
+              orderNumber={isNewPanel ? null : openOrder?.id ?? null}
+              createdAt={isNewPanel ? null : openOrder?.createdAt ?? null}
+              items={items}
+              customerName={customerName}
+              setCustomerName={setCustomerName}
+              customerGender={customerGender}
+              setCustomerGender={setCustomerGender}
+              orderType={orderType}
+              setOrderType={setOrderType}
+              onIncrease={increase}
+              onDecrease={decrease}
+              onSetNotes={setNotes}
+              onRemoveItem={removeItem}
+              onClearCart={clear}
+              onNewOrder={handleNewOrder}
+              onPay={() => setPayOpen(true)}
+              onSaveOpenBill={handleSaveOpenBill}
+              saving={saving}
+              validationError={null}
+            />
           </CardContent>
         </Card>
       </div>
@@ -498,15 +448,9 @@ export default function POS() {
       {/* ===== Floating Mobile/Tablet Cart Bar (Bottom) ===== */}
       <div className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-border/80 bg-card/95 px-4 py-3 backdrop-blur-md shadow-modal lg:hidden">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-muted-foreground">
-              {currentTableObj ? currentTableObj.tableNumber : 'Belum pilih meja'}
-            </span>
-            <span className="text-xs text-border">•</span>
-            <span className="text-xs font-bold text-foreground tabular-nums">
-              {cartItemCount} item
-            </span>
-          </div>
+          <span className="text-xs font-bold text-muted-foreground">
+            {customerName.trim() || 'Belum isi nama'}
+          </span>
           <p className="text-base font-black text-primary tabular-nums">
             {formatRupiah(cartSubtotal)}
           </p>
@@ -543,41 +487,28 @@ export default function POS() {
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
-              {isNewPanel ? (
-                <NewOrderDetail
-                  items={items}
-                  tables={tables}
-                  selectedTable={selectedTable}
-                  currentTableObj={currentTableObj}
-                  cartSubtotal={cartSubtotal}
-                  cartItemCount={cartItemCount}
-                  customerName={customerName}
-                  setCustomerName={setCustomerName}
-                  customerGender={customerGender}
-                  setCustomerGender={setCustomerGender}
-                  onSelectTable={handleSelectTable}
-                  onIncrease={increase}
-                  onDecrease={decrease}
-                  onSetNotes={setNotes}
-                  onRemoveItem={removeItem}
-                  onClearCart={clear}
-                  opening={opening}
-                  onOpenBill={handleOpenBill}
-                  onPay={() => setPayOpen(true)}
-                />
-              ) : (
-                <OpenOrderDetail
-                  order={openOrder}
-                  loading={false}
-                  customerName={customerName}
-                  setCustomerName={setCustomerName}
-                  customerGender={customerGender}
-                  setCustomerGender={setCustomerGender}
-                  onNewOrder={handleNewOrder}
-                  onPay={() => setPayOpen(true)}
-                  submittingPayment={submittingPayment}
-                />
-              )}
+              <OrderDetailsPanel
+                mode={panelMode}
+                orderNumber={isNewPanel ? null : openOrder?.id ?? null}
+                createdAt={isNewPanel ? null : openOrder?.createdAt ?? null}
+                items={items}
+                customerName={customerName}
+                setCustomerName={setCustomerName}
+                customerGender={customerGender}
+                setCustomerGender={setCustomerGender}
+                orderType={orderType}
+                setOrderType={setOrderType}
+                onIncrease={increase}
+                onDecrease={decrease}
+                onSetNotes={setNotes}
+                onRemoveItem={removeItem}
+                onClearCart={clear}
+                onNewOrder={handleNewOrder}
+                onPay={() => setPayOpen(true)}
+                onSaveOpenBill={handleSaveOpenBill}
+                saving={saving}
+                validationError={null}
+              />
             </div>
           </div>
         </div>
@@ -593,13 +524,9 @@ export default function POS() {
 
       {payOpen && (
         <PaymentModal
-          grandTotal={isNewPanel ? cartSubtotal : openOrder?.grandTotal ?? 0}
-          itemCount={isNewPanel ? cartItemCount : openOrder?.items.reduce((s, i) => s + i.quantity, 0) ?? 0}
-          tableNumber={
-            currentTableObj
-              ? currentTableObj.tableNumber.replace(/\D/g, '')
-              : openOrder?.tableNumber?.replace(/\D/g, '') ?? null
-          }
+          grandTotal={cartSubtotal}
+          itemCount={cartItemCount}
+          tableNumber={null}
           gender={customerGender}
           submitting={submittingPayment}
           onSubmit={handleCheckout}
@@ -609,7 +536,7 @@ export default function POS() {
 
       {receipt && <ReceiptModal order={receipt} onClose={() => setReceipt(null)} />}
 
-      {/* Riwayat Transaksi (PAID) + Re-print */}
+      {/* Riwayat Transaksi (PAID) */}
       {historyOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-border/80 bg-card shadow-modal animate-in zoom-in-95 duration-150">
@@ -619,7 +546,7 @@ export default function POS() {
                 <div>
                   <h2 className="text-sm font-bold text-foreground">Riwayat Transaksi</h2>
                   <p className="text-[11px] text-muted-foreground">
-                    Pesanan yang sudah dibayar — klik struk untuk mencetak ulang.
+                    Pesanan yang sudah dibayar — reprint struk menyusul (Task 1.3.10).
                   </p>
                 </div>
               </div>
@@ -639,6 +566,11 @@ export default function POS() {
                     <p className="text-sm font-medium">Memuat riwayat...</p>
                   </div>
                 </div>
+              ) : historyMessage ? (
+                <div className="flex h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 p-6 text-center text-muted-foreground">
+                  <History className="mb-2 h-7 w-7 opacity-40" />
+                  <p className="text-sm font-medium text-foreground">{historyMessage}</p>
+                </div>
               ) : historyData.length === 0 ? (
                 <div className="flex h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 p-6 text-center text-muted-foreground">
                   <History className="mb-2 h-7 w-7 opacity-40" />
@@ -652,11 +584,7 @@ export default function POS() {
                       key={order.id}
                       className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-background/60 p-3.5 shadow-subtle"
                     >
-                      <button
-                        onClick={() => handleReprint(order.id)}
-                        disabled={reprintLoading === order.id}
-                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                      >
+                      <div className="flex min-w-0 flex-1 items-center gap-3 text-left">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
                           <Receipt className="h-4 w-4" />
                         </div>
@@ -666,19 +594,19 @@ export default function POS() {
                           </p>
                           <p className="text-[11px] text-muted-foreground">
                             {customerNameOr('Pelanggan', order.customerName)} •{' '}
-                            {order.tableNumber ?? 'Tanpa meja'} • {formatRupiah(order.grandTotal)}
+                            {order.orderType === 'TAKE_AWAY' ? 'Takeaway' : 'Dine In'} •{' '}
+                            {formatRupiah(order.grandTotal)}
                           </p>
                         </div>
-                      </button>
+                      </div>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleReprint(order.id)}
-                        disabled={reprintLoading === order.id}
                         className="shrink-0"
                       >
                         <CreditCard className="h-3.5 w-3.5" />
-                        {reprintLoading === order.id ? 'Memuat...' : 'Struk'}
+                        Struk
                       </Button>
                     </li>
                   ))}
@@ -688,503 +616,7 @@ export default function POS() {
           </div>
         </div>
       )}
-
-      {reprint && <ReceiptModal order={reprint} onClose={() => setReprint(null)} />}
       </div>
-    </div>
-  )
-}
-
-/* ============================================================
-   Panel ORDER DETAIL — order baru (keranjang belum di-open-bill)
-   ============================================================ */
-interface NewOrderDetailProps {
-  items: ReturnType<typeof useCartStore.getState>['items']
-  tables: CafeTable[]
-  selectedTable: number | null
-  currentTableObj: CafeTable | undefined
-  cartSubtotal: number
-  cartItemCount: number
-  customerName: string
-  setCustomerName: (v: string) => void
-  customerGender: CustomerGender | null
-  setCustomerGender: (v: CustomerGender | null) => void
-  onSelectTable: (id: number) => void
-  onIncrease: (id: string) => void
-  onDecrease: (id: string) => void
-  onSetNotes: (id: string, notes: string) => void
-  onRemoveItem: (id: string) => void
-  onClearCart: () => void
-  opening: boolean
-  onOpenBill: () => void
-  onPay: () => void
-}
-
-function NewOrderDetail({
-  items,
-  tables,
-  selectedTable,
-  currentTableObj,
-  cartSubtotal,
-  cartItemCount,
-  customerName,
-  setCustomerName,
-  customerGender,
-  setCustomerGender,
-  onSelectTable,
-  onIncrease,
-  onDecrease,
-  onSetNotes,
-  onRemoveItem,
-  onClearCart,
-  opening,
-  onOpenBill,
-  onPay,
-}: NewOrderDetailProps) {
-  return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pr-1">
-      {/* Section: Customer */}
-      <SectionTitle icon={<User className="h-4 w-4" />} title="Customer" />
-
-      <div className="rounded-2xl border border-border/70 bg-background/60 p-3.5 shadow-subtle">
-        <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-          Nama Pelanggan
-        </label>
-        <Input
-          value={customerName}
-          onChange={(e) => setCustomerName(e.target.value)}
-          placeholder="Nama pelanggan (opsional)"
-          className="h-10 bg-card text-sm"
-        />
-        <label className="mb-1.5 mt-3 block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-          Gender Pelanggan
-        </label>
-        <div className="grid grid-cols-2 gap-2.5">
-          {(
-            [
-              { v: 'L' as CustomerGender, label: '👨 Laki-laki' },
-              { v: 'P' as CustomerGender, label: '👩 Perempuan' },
-            ]
-          ).map((opt) => (
-            <button
-              key={opt.v}
-              type="button"
-              onClick={() => setCustomerGender(opt.v)}
-              className={cn(
-                'flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all duration-150 active:scale-95',
-                customerGender === opt.v
-                  ? 'border-primary bg-primary text-primary-foreground shadow-xs'
-                  : 'border-border/80 bg-background text-foreground hover:bg-accent',
-              )}
-            >
-              <span>{opt.label}</span>
-              {customerGender === opt.v && <CheckCircle2 className="h-4 w-4 text-primary-foreground" />}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Section: Order Info */}
-      <SectionTitle icon={<Receipt className="h-4 w-4" />} title="Order Info" />
-      <div className="grid grid-cols-3 gap-2">
-        <InfoBox label="Order ID" value="—" />
-        <InfoBox label="Invoice" value="—" />
-        <InfoBox label="Nomor Meja" value={currentTableObj ? currentTableObj.tableNumber.replace(/\D/g, '') : '—'} />
-      </div>
-
-      {/* Section: Ordered Items */}
-      <SectionTitle
-        icon={<ShoppingBag className="h-4 w-4" />}
-        title="Ordered Items"
-        badge={cartItemCount > 0 ? cartItemCount : undefined}
-        rightAction={
-          items.length > 0 ? (
-            <button
-              onClick={onClearCart}
-              className="text-xs font-medium text-muted-foreground hover:text-destructive transition-colors"
-            >
-              Kosongkan
-            </button>
-          ) : undefined
-        }
-      />
-
-      <div className="min-h-0 space-y-2.5">
-        {items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 p-6 text-center text-muted-foreground">
-            <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-muted/60 text-muted-foreground/60">
-              <ShoppingBag className="h-6 w-6" />
-            </div>
-            <p className="text-sm font-semibold text-foreground">Belum ada item</p>
-            <p className="text-xs text-muted-foreground max-w-[220px] mt-0.5">
-              Pilih menu di katalog untuk menambahkan pesanan.
-            </p>
-          </div>
-        ) : (
-          items.map((item) => (
-            <div
-              key={item.id}
-              className="rounded-2xl border border-border/70 bg-background/60 p-3 shadow-subtle"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground leading-tight">
-                    {item.product.name}
-                  </p>
-                  <p className="text-xs font-medium text-muted-foreground tabular-nums mt-0.5">
-                    {formatRupiah(item.product.price)} x {item.quantity}
-                  </p>
-                  {item.notes && (
-                    <div className="mt-1.5 flex flex-wrap gap-1">
-                      <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                        <SlidersHorizontal className="h-3 w-3" />
-                        {item.notes}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <div className="flex items-center gap-1 rounded-lg border border-border/80 bg-card p-0.5">
-                    <button
-                      onClick={() => onDecrease(item.id)}
-                      className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted text-foreground transition-colors active:scale-90"
-                      aria-label="Kurangi kuantiti"
-                    >
-                      <Minus className="h-3 w-3" />
-                    </button>
-                    <span className="w-6 text-center text-xs font-bold tabular-nums text-foreground">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => onIncrease(item.id)}
-                      className="flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted text-foreground transition-colors active:scale-90"
-                      aria-label="Tambah kuantiti"
-                    >
-                      <Plus className="h-3 w-3" />
-                    </button>
-                  </div>
-                  <p className="text-xs font-bold text-foreground tabular-nums">
-                    {formatRupiah(item.product.price * item.quantity)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-2 flex items-center justify-between gap-1.5 rounded-lg bg-secondary/50 px-2 py-1">
-                <div className="flex flex-1 items-center gap-1.5 min-w-0">
-                  <StickyNote className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-                  <input
-                    value={item.notes ?? ''}
-                    onChange={(e) => onSetNotes(item.id, e.target.value)}
-                    placeholder="Edit catatan..."
-                    className="w-full bg-transparent text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
-                  />
-                </div>
-                <button
-                  onClick={() => onRemoveItem(item.id)}
-                  className="p-1 text-muted-foreground/60 hover:text-destructive transition-colors"
-                  title="Hapus baris ini"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Section: Table Detail */}
-      <SectionTitle icon={<Utensils className="h-4 w-4" />} title="Table Detail" />
-      <div className="rounded-2xl border border-border/70 bg-background/60 p-3.5 shadow-subtle">
-        <div className="grid grid-cols-5 gap-2">
-          {tables.map((table) => {
-            const occupied = table.isOccupied
-            const active = selectedTable === table.id
-            return (
-              <button
-                key={table.id}
-                onClick={() => !occupied && onSelectTable(table.id)}
-                disabled={occupied}
-                title={
-                  occupied
-                    ? `${table.tableNumber} (Terisi)`
-                    : table.tableNumber
-                }
-                className={cn(
-                  'relative flex h-11 flex-col items-center justify-center rounded-xl border text-xs font-bold transition-all duration-150 active:scale-95',
-                  active
-                    ? 'border-primary bg-primary text-primary-foreground shadow-xs ring-2 ring-primary/20'
-                    : occupied
-                      ? 'border-border/60 bg-muted/40 text-muted-foreground/60 cursor-not-allowed'
-                      : 'border-border/80 bg-background hover:border-primary/50 text-foreground',
-                )}
-              >
-                <span className="tabular-nums">{table.tableNumber.replace(/\D/g, '')}</span>
-                {occupied && (
-                  <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-500" />
-                )}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Section: Payment Summary */}
-      <SectionTitle icon={<Banknote className="h-4 w-4" />} title="Payment Summary" />
-      <div className="rounded-2xl border border-border/70 bg-background/60 p-3.5 shadow-subtle">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground font-medium">Subtotal</span>
-          <span className="text-foreground font-semibold tabular-nums">
-            {formatRupiah(cartSubtotal)}
-          </span>
-        </div>
-        <div className="mt-2 flex items-center justify-between border-t border-border/70 pt-2.5">
-          <span className="text-base font-bold text-foreground">Grand Total</span>
-          <span className="text-xl font-black text-primary tabular-nums">
-            {formatRupiah(cartSubtotal)}
-          </span>
-        </div>
-      </div>
-
-      {/* Aksi */}
-      <div className="sticky bottom-0 space-y-2.5 bg-card pb-1 pt-2">
-        <Button
-          className="w-full h-11 text-sm font-bold shadow-sm"
-          disabled={items.length === 0 || !selectedTable || opening}
-          onClick={onOpenBill}
-        >
-          <Receipt className="h-4 w-4" />
-          {opening ? 'Menyimpan ke Meja...' : 'Open Bill (Simpan Pesanan)'}
-        </Button>
-        <Button
-          variant="secondary"
-          className="w-full h-11 text-sm font-bold shadow-sm"
-          disabled={items.length === 0 || !selectedTable}
-          onClick={onPay}
-        >
-          <Banknote className="h-4 w-4" />
-          Langsung Bayar
-        </Button>
-        {!selectedTable && items.length > 0 && (
-          <p className="text-center text-[11px] font-medium text-amber-600">
-            ⚠️ Silakan klik nomor meja pada Tab Order Detail di bawah terlebih dahulu.
-          </p>
-        )}
-      </div>
-    </div>
-  )
-}
-
-/* ============================================================
-   Panel ORDER DETAIL — order OPEN_BILL yang sedang dibuka ulang
-   ============================================================ */
-interface OpenOrderDetailProps {
-  order: OrderDetail | null
-  loading: boolean
-  customerName: string
-  setCustomerName: (v: string) => void
-  customerGender: CustomerGender | null
-  setCustomerGender: (v: CustomerGender | null) => void
-  onNewOrder: () => void
-  onPay: () => void
-  submittingPayment: boolean
-}
-
-function OpenOrderDetail({
-  order,
-  loading,
-  customerName,
-  setCustomerName,
-  customerGender,
-  setCustomerGender,
-  onNewOrder,
-  onPay,
-  submittingPayment,
-}: OpenOrderDetailProps) {
-  if (loading || !order) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
-        <Receipt className="h-8 w-8 animate-pulse text-primary/60" />
-        <p className="text-sm font-medium">Memuat detail pesanan...</p>
-      </div>
-    )
-  }
-
-  const itemCount = order.items.reduce((s, i) => s + i.quantity, 0)
-
-  return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pr-1">
-      {/* Header panel */}
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h2 className="text-sm font-bold text-foreground">Order #{order.id}</h2>
-          <p className="text-[11px] text-muted-foreground">{order.invoiceNumber}</p>
-        </div>
-        <Button size="sm" variant="ghost" onClick={onNewOrder} className="text-muted-foreground">
-          <Plus className="h-4 w-4" />
-          Pesanan Baru
-        </Button>
-      </div>
-
-      {/* Section: Customer */}
-      <SectionTitle icon={<User className="h-4 w-4" />} title="Customer" />
-      <div className="rounded-2xl border border-border/70 bg-background/60 p-3.5 shadow-subtle">
-        <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-          Nama Pelanggan
-        </label>
-        <Input
-          value={customerName}
-          onChange={(e) => setCustomerName(e.target.value)}
-          placeholder="Nama pelanggan"
-          className="h-10 bg-card text-sm"
-        />
-        <label className="mb-1.5 mt-3 block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-          Gender Pelanggan
-        </label>
-        <div className="grid grid-cols-2 gap-2.5">
-          {(
-            [
-              { v: 'L' as CustomerGender, label: '👨 Laki-laki' },
-              { v: 'P' as CustomerGender, label: '👩 Perempuan' },
-            ]
-          ).map((opt) => (
-            <button
-              key={opt.v}
-              type="button"
-              onClick={() => setCustomerGender(opt.v)}
-              className={cn(
-                'flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all duration-150 active:scale-95',
-                customerGender === opt.v
-                  ? 'border-primary bg-primary text-primary-foreground shadow-xs'
-                  : 'border-border/80 bg-background text-foreground hover:bg-accent',
-              )}
-            >
-              <span>{opt.label}</span>
-              {customerGender === opt.v && <CheckCircle2 className="h-4 w-4 text-primary-foreground" />}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Section: Order Info */}
-      <SectionTitle icon={<Receipt className="h-4 w-4" />} title="Order Info" />
-      <div className="grid grid-cols-3 gap-2">
-        <InfoBox label="Order ID" value={String(order.id)} />
-        <InfoBox label="Invoice" value={order.invoiceNumber} />
-        <InfoBox label="Nomor Meja" value={order.tableNumber?.replace(/\D/g, '') ?? '—'} />
-      </div>
-
-      {/* Section: Ordered Items */}
-      <SectionTitle
-        icon={<ShoppingBag className="h-4 w-4" />}
-        title="Ordered Items"
-        badge={itemCount}
-      />
-      <div className="space-y-2.5">
-        {order.items.map((item, idx) => (
-          <div
-            key={idx}
-            className="flex items-start justify-between gap-2 rounded-2xl border border-border/70 bg-background/60 p-3 shadow-subtle"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-foreground">{item.productName}</p>
-              <p className="text-xs font-medium text-muted-foreground tabular-nums mt-0.5">
-                {item.quantity} x {formatRupiah(item.unitPrice)}
-              </p>
-              {item.notes && (
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                    <SlidersHorizontal className="h-3 w-3" />
-                    {item.notes}
-                  </span>
-                </div>
-              )}
-            </div>
-            <p className="shrink-0 text-sm font-bold text-foreground tabular-nums">
-              {formatRupiah(item.subtotal)}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Section: Table Detail */}
-      <SectionTitle icon={<Utensils className="h-4 w-4" />} title="Table Detail" />
-      <div className="rounded-2xl border border-border/70 bg-background/60 p-3.5 shadow-subtle">
-        <InfoBox label="Nomor Meja" value={order.tableNumber ?? '—'} />
-      </div>
-
-      {/* Section: Payment Summary */}
-      <SectionTitle icon={<Banknote className="h-4 w-4" />} title="Payment Summary" />
-      <div className="rounded-2xl border border-border/70 bg-background/60 p-3.5 shadow-subtle">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground font-medium">Subtotal</span>
-          <span className="text-foreground font-semibold tabular-nums">{formatRupiah(order.subtotal)}</span>
-        </div>
-        <div className="mt-2 flex items-center justify-between border-t border-border/70 pt-2.5">
-          <span className="text-base font-bold text-foreground">Grand Total</span>
-          <span className="text-xl font-black text-primary tabular-nums">
-            {formatRupiah(order.grandTotal)}
-          </span>
-        </div>
-      </div>
-
-      {/* Aksi */}
-      <div className="sticky bottom-0 space-y-2.5 bg-card pb-1 pt-2">
-        <Button
-          className="w-full h-11 text-sm font-bold shadow-sm"
-          disabled={!customerGender || submittingPayment}
-          onClick={onPay}
-        >
-          <Banknote className="h-4 w-4" />
-          {submittingPayment ? 'Memproses...' : 'Bayar Sekarang'}
-        </Button>
-        {!customerGender && (
-          <p className="text-center text-[11px] font-medium text-amber-600">
-            Pilih gender pelanggan (P / L) untuk melanjutkan pembayaran.
-          </p>
-        )}
-      </div>
-    </div>
-  )
-}
-
-/* ============================================================
-   Helper komponen kecil
-   ============================================================ */
-function SectionTitle({
-  icon,
-  title,
-  badge,
-  rightAction,
-}: {
-  icon: React.ReactNode
-  title: string
-  badge?: number
-  rightAction?: React.ReactNode
-}) {
-  return (
-    <div className="mb-1 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          {icon}
-        </span>
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{title}</h3>
-        {badge && badge > 0 && (
-          <span className="rounded-full bg-primary px-2 py-0.2 text-[11px] font-bold text-primary-foreground tabular-nums">
-            {badge}
-          </span>
-        )}
-      </div>
-      {rightAction}
-    </div>
-  )
-}
-
-function InfoBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-border/70 bg-background/40 px-3 py-2.5">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="mt-0.5 truncate text-sm font-bold text-foreground tabular-nums">{value}</p>
     </div>
   )
 }
