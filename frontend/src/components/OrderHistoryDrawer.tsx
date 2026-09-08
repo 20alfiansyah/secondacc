@@ -128,7 +128,7 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
             </div>
             <button
               onClick={onClose}
-              className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               aria-label="Tutup"
             >
               <X className="h-5 w-5" />
@@ -159,7 +159,7 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
                   type="button"
                   onClick={() => setDateFilter(key)}
                   className={cn(
-                    'rounded-lg py-1.5 text-xs font-bold transition-all duration-150',
+                    'flex h-11 items-center justify-center rounded-lg text-sm font-bold transition-all duration-150',
                     dateFilter === key
                       ? 'bg-card text-foreground shadow-xs'
                       : 'text-muted-foreground hover:text-foreground',
@@ -228,7 +228,7 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
                           variant="outline"
                           onClick={() => handleReprint(order.id)}
                           disabled={loadingReceipt === order.id}
-                          className="h-8 gap-1.5 px-2.5 text-[11px]"
+                          className="h-11 gap-1.5 px-3 text-xs"
                         >
                           <Printer className="h-3.5 w-3.5" />
                           {loadingReceipt === order.id ? 'Menyiapkan...' : 'Reprint'}

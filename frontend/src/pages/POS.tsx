@@ -310,7 +310,7 @@ export default function POS() {
             {/* Mobile Cart Button trigger in Header */}
             <button
               onClick={() => setMobileCartOpen(true)}
-              className="relative flex items-center gap-2 rounded-xl border border-border/80 bg-card px-3 py-1.5 text-xs font-bold text-foreground lg:hidden"
+              className="relative flex h-11 items-center gap-2 rounded-xl border border-border/80 bg-card px-3 text-xs font-bold text-foreground lg:hidden"
             >
               <ShoppingBag className="h-4 w-4 text-primary" />
               <span>Keranjang</span>
@@ -451,7 +451,7 @@ export default function POS() {
               </div>
               <button
                 onClick={() => setMobileCartOpen(false)}
-                className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               >
                 <X className="h-5 w-5" />
               </button>

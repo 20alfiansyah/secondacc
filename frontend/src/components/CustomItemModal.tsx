@@ -148,7 +148,7 @@ export default function CustomItemModal({
           <button
             onClick={onClose}
             aria-label="Tutup"
-            className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -228,9 +228,9 @@ export default function CustomItemModal({
                 type="button"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                 aria-label="Kurangi jumlah"
-                className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-muted text-foreground transition-colors active:scale-90"
+                className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-muted text-foreground transition-colors active:scale-90"
               >
-                <Minus className="h-3.5 w-3.5" />
+                <Minus className="h-4 w-4" />
               </button>
               <span className="w-8 text-center text-sm font-black tabular-nums text-foreground">
                 {quantity}
@@ -239,9 +239,9 @@ export default function CustomItemModal({
                 type="button"
                 onClick={() => setQuantity((q) => q + 1)}
                 aria-label="Tambah jumlah"
-                className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-muted text-foreground transition-colors active:scale-90"
+                className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-muted text-foreground transition-colors active:scale-90"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -299,7 +299,7 @@ function ChipGroup({
               type="button"
               onClick={() => (active && allowClear ? onSelect('') : onSelect(opt))}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95',
+                'inline-flex h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-all duration-150 active:scale-95',
                 active
                   ? 'border-primary bg-primary text-primary-foreground shadow-xs'
                   : 'border-border/80 bg-background text-foreground hover:bg-accent',

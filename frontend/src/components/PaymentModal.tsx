@@ -109,7 +109,7 @@ export default function PaymentModal({
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -172,7 +172,7 @@ export default function PaymentModal({
                 type="button"
                 onClick={() => setCash(String(grandTotal))}
                 className={cn(
-                  'rounded-lg border px-2 py-2 text-xs font-bold transition-all active:scale-95',
+                  'flex h-11 items-center justify-center rounded-lg border px-2 text-xs font-bold transition-all active:scale-95',
                   parsedCash === grandTotal
                     ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-border/80 bg-card hover:bg-accent text-foreground',
@@ -186,7 +186,7 @@ export default function PaymentModal({
                   type="button"
                   onClick={() => setCash(String(v))}
                   className={cn(
-                    'rounded-lg border px-2 py-2 text-xs font-bold transition-all active:scale-95',
+                    'flex h-11 items-center justify-center rounded-lg border px-2 text-xs font-bold transition-all active:scale-95',
                     parsedCash === v
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-border/80 bg-card hover:bg-accent text-foreground',

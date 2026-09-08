@@ -144,8 +144,8 @@ export default function OrderDetailsPanel({
           <p className="text-[11px] font-semibold text-amber-800">
             Viewing Order {orderNumber != null ? padOrder(orderNumber) : ''} (Open Bill)
           </p>
-          <Button size="sm" variant="ghost" onClick={onNewOrder} className="h-7 px-2 text-[11px] text-amber-800 hover:bg-amber-100">
-            <X className="h-3 w-3" />
+          <Button size="sm" variant="ghost" onClick={onNewOrder} className="h-10 px-3 text-[11px] text-amber-800 hover:bg-amber-100">
+            <X className="h-3.5 w-3.5" />
             New Order
           </Button>
         </div>
@@ -165,7 +165,7 @@ export default function OrderDetailsPanel({
                 type="button"
                 onClick={() => setOrderType(t)}
                 className={cn(
-                  'rounded-lg py-2 text-xs font-bold transition-all duration-150 active:scale-[0.98]',
+                  'flex h-11 items-center justify-center rounded-lg text-sm font-bold transition-all duration-150 active:scale-[0.98]',
                   active
                     ? 'bg-card text-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground',
@@ -212,7 +212,7 @@ export default function OrderDetailsPanel({
                   type="button"
                   onClick={() => setCustomerGender(opt.v)}
                   className={cn(
-                    'flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all duration-150 active:scale-95',
+                    'flex h-11 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold transition-all duration-150 active:scale-95',
                     active
                       ? 'border-primary bg-primary text-primary-foreground shadow-xs'
                       : 'border-border/80 bg-background text-foreground hover:bg-accent',
@@ -235,7 +235,7 @@ export default function OrderDetailsPanel({
             {items.length > 0 && (
               <button
                 onClick={onClearCart}
-                className="text-[11px] font-medium text-muted-foreground hover:text-destructive transition-colors"
+                className="flex h-10 items-center rounded-lg px-2 text-[11px] font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
               >
                 Kosongkan
               </button>
@@ -359,32 +359,32 @@ function CartLineItem({
           )}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <div className="flex items-center gap-1 rounded-lg border border-border/80 bg-card p-0.5">
+          <div className="flex items-center gap-1 rounded-xl border border-border/80 bg-card p-1">
             <button
               onClick={() => onDecrease(item.id)}
-              className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-muted text-foreground transition-colors active:scale-90"
+              className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted text-foreground transition-colors active:scale-90"
               aria-label="Kurangi kuantiti"
             >
-              <Minus className="h-3 w-3" />
+              <Minus className="h-4 w-4" />
             </button>
-            <span className="w-6 text-center text-xs font-bold tabular-nums text-foreground">
+            <span className="w-7 text-center text-sm font-bold tabular-nums text-foreground">
               {item.quantity}
             </span>
             <button
               onClick={() => onIncrease(item.id)}
-              className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-muted text-foreground transition-colors active:scale-90"
+              className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted text-foreground transition-colors active:scale-90"
               aria-label="Tambah kuantiti"
             >
-              <Plus className="h-3 w-3" />
+              <Plus className="h-4 w-4" />
             </button>
           </div>
           <button
             onClick={() => onRemoveItem(item.id)}
-            className="p-1 text-muted-foreground/60 hover:text-destructive transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive transition-colors active:scale-90"
             title="Hapus baris ini"
             aria-label="Hapus item"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </div>
