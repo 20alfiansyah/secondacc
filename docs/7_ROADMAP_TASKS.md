@@ -95,7 +95,7 @@
     - Makanan: Chip level pedas (`Tidak Pedas`, `Sedang`, `Pedas`), chip catatan cepat (`Pisah Sambal`, `Tanpa Bawang`).
   - Textarea catatan dapur bebas (free-form kitchen notes).
   - Tombol aksi: `[ Add to Order • Rp XX,XXX (Enter ↵) ]` yang mengkalkulasi total dinamis secara real-time. Keyboard shortcut `Enter` untuk tambah, `Esc` untuk batal.
-- [ ] **Task 1.3.8: Zone 3 - Right Order Details Panel (`~380px` / `320px`)**
+- [x] **Task 1.3.8: Zone 3 - Right Order Details Panel (`~380px` / `320px`)**
   - Header: Nomor Tiket Harian (`Order #045`) dan tanggal/jam.
   - Tombol Reset: Indikator `Viewing Order #042 (Open Bill)` dengan tombol **`[ ✕ New Order ]`** untuk kembali ke pesanan baru saat sedang membuka tiket lama.
   - Segmented toggle: **`[ Dine In ]`** vs **`[ Takeaway ]`**.
