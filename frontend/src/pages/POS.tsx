@@ -5,6 +5,7 @@ import {
   Receipt,
   Search,
   ShoppingBag,
+  UtensilsCrossed,
   X,
 } from 'lucide-react'
 import type { CustomerGender, OrderType, Product } from '@/api/client'
@@ -32,6 +33,7 @@ import ReceiptModal from '@/components/ReceiptModal'
 import CustomItemModal from '@/components/CustomItemModal'
 import OrderHistoryDrawer from '@/components/OrderHistoryDrawer'
 import NavigationRail from '@/components/NavigationRail'
+import { Section } from '@/components/ui/Section'
 import ActiveOrdersLine from '@/components/ActiveOrdersLine'
 import CategoryFilterBar from '@/components/CategoryFilterBar'
 import ProductCatalogGrid from '@/components/ProductCatalogGrid'
@@ -325,20 +327,13 @@ export default function POS() {
 
       {/* ===== Main Content Area ===== */}
       <div className="grid flex-1 grid-cols-1 gap-5 overflow-hidden p-4 sm:p-5 lg:grid-cols-[1fr_400px]">
-        {/* ===== Left Column: Menu Catalog ===== */}
-        <div className="flex min-h-0 flex-col">
-          {/* Zone 2 Middle — Category Filter Bar & Overflow Handling (Task 1.3.5) */}
-          <CategoryFilterBar
-            categories={categories}
-            products={products}
-            activeCategory={activeCategory}
-            onSelectCategory={setActiveCategory}
-            search={search}
-            onSearchChange={setSearch}
-            availabilityFilter={availabilityFilter}
-            onAvailabilityChange={setAvailabilityFilter}
-            sortOption={sortOption}
-            onSortChange={setSortOption}
+        {/* ===== Left Column: Order Queue & Menu Catalog Sections ===== */}
+        <div className="flex min-h-0 flex-col gap-5">
+          {/* SECTION 1 — Order Queue (open bills waiting for payment) */}
+          <ActiveOrdersLine
+            orders={activeOrders}
+            activeOrderId={panelMode === 'open' ? openOrder?.id ?? null : null}
+            onSelect={handleViewActiveOrder}
           />
 
           {/* Feedback Banner */}
@@ -356,34 +351,52 @@ export default function POS() {
             </div>
           )}
 
-          {/* Zone 2 Top — Persistent Active Orders Line (Task 1.3.4) */}
-          <ActiveOrdersLine
-            orders={activeOrders}
-            activeOrderId={panelMode === 'open' ? openOrder?.id ?? null : null}
-            onSelect={handleViewActiveOrder}
-          />
-
-          {/* Zone 2 Bottom — Menu Catalog Grid (Task 1.3.6) */}
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-            {loading ? (
-              <div className="flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground">
-                <Coffee className="h-8 w-8 animate-bounce text-primary/60" />
-                <p className="text-sm font-medium">Loading menu...</p>
-              </div>
-            ) : filteredProducts.length === 0 ? (
-              <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 p-8 text-center text-muted-foreground">
-                <Search className="mb-2 h-8 w-8 opacity-40" />
-                <p className="text-sm font-medium text-foreground">No menu found</p>
-                <p className="text-xs">Try a different keyword or change the status filter.</p>
-              </div>
-            ) : (
-              <ProductCatalogGrid
-                products={filteredProducts}
+          {/* SECTION 2 — Menu Catalog: full filter toolbar lives here */}
+          <Section
+            icon={UtensilsCrossed}
+            title="Menu Catalog"
+            subtitle="All items across the menu"
+            bodyClassName="min-h-0 flex-1"
+            className="flex-1"
+          >
+            <div className="flex min-h-0 flex-1 flex-col">
+              {/* Toolbar filter katalog: search, pills, sort/status, popover Categories */}
+              <CategoryFilterBar
+                categories={categories}
+                products={products}
                 activeCategory={activeCategory}
-                onSelect={handleOpenCustom}
+                onSelectCategory={setActiveCategory}
+                search={search}
+                onSearchChange={setSearch}
+                availabilityFilter={availabilityFilter}
+                onAvailabilityChange={setAvailabilityFilter}
+                sortOption={sortOption}
+                onSortChange={setSortOption}
               />
-            )}
-          </div>
+
+              {/* Grid produk + section headers kategori */}
+              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                {loading ? (
+                  <div className="flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <Coffee className="h-8 w-8 animate-bounce text-primary/60" />
+                    <p className="text-sm font-medium">Loading menu...</p>
+                  </div>
+                ) : filteredProducts.length === 0 ? (
+                  <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 p-8 text-center text-muted-foreground">
+                    <Search className="mb-2 h-8 w-8 opacity-40" />
+                    <p className="text-sm font-medium text-foreground">No menu found</p>
+                    <p className="text-xs">Try a different keyword or change the status filter.</p>
+                  </div>
+                ) : (
+                  <ProductCatalogGrid
+                    products={filteredProducts}
+                    activeCategory={activeCategory}
+                    onSelect={handleOpenCustom}
+                  />
+                )}
+              </div>
+            </div>
+          </Section>
         </div>
 
         {/* ===== Right Column (Desktop): ORDER DETAIL Panel (Zone 3, Task 1.3.8) ===== */}

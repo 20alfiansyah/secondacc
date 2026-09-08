@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Coffee, Search, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ClipboardList, Coffee, Search, X } from 'lucide-react'
 import type { OrderSummary, OrderType } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { formatRupiah } from '@/utils/format'
 import { Input } from '@/components/ui/input'
+import { Section } from '@/components/ui/Section'
 
 type OrderFilter = 'all' | OrderType
 
@@ -76,58 +77,57 @@ export default function ActiveOrdersLine({
   }
 
   return (
-    <section className="mb-4">
-      {/* Header: judul + count + pencarian */}
-      <div className="mb-3 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Coffee className="h-4 w-4" />
-          </div>
-          <h2 className="text-sm font-bold tracking-tight text-foreground">Active Orders</h2>
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary tabular-nums">
-            {orders.length}
-          </span>
+    <Section
+      icon={ClipboardList}
+      title="Order Queue"
+      subtitle="Open bills waiting for payment"
+      badge={
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary tabular-nums">
+          {orders.length}
+        </span>
+      }
+      right={
+        <div className="flex items-center gap-1.5">
+          {FILTERS.map((pill) => {
+            const isActive = filter === pill.value
+            return (
+              <button
+                key={pill.value}
+                onClick={() => setFilter(pill.value)}
+                className={cn(
+                  'flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-[0.97]',
+                  isActive
+                    ? 'border-primary bg-primary text-primary-foreground shadow-xs'
+                    : 'border-border/80 bg-card text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground',
+                )}
+              >
+                {pill.label}
+              </button>
+            )
+          })}
         </div>
-
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search orders..."
-            className="h-9 rounded-xl bg-card pl-9 pr-8 text-sm shadow-subtle border-border/80"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery('')}
-              aria-label="Bersihkan pencarian"
-              className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Filter pills */}
-      <div className="mb-3 flex items-center gap-1.5">
-        {FILTERS.map((pill) => {
-          const isActive = filter === pill.value
-          return (
-            <button
-              key={pill.value}
-              onClick={() => setFilter(pill.value)}
-              className={cn(
-                'flex h-11 items-center rounded-full border px-4 text-sm font-semibold transition-all duration-150 active:scale-[0.97]',
-                isActive
-                  ? 'border-primary bg-primary text-primary-foreground shadow-xs'
-                  : 'border-border/80 bg-card text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground',
-              )}
-            >
-              {pill.label}
-            </button>
-          )
-        })}
+      }
+      bodyClassName="p-4 sm:p-5"
+      className="shrink-0"
+    >
+      {/* Search bar di dalam section body */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search orders by ID or customer..."
+          className="h-10 rounded-xl bg-background pl-9 pr-8 text-sm border-border/80"
+        />
+        {query && (
+          <button
+            onClick={() => setQuery('')}
+            aria-label="Clear search"
+            className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {/* Carousel 1-baris dengan panah saat overflow */}
@@ -135,7 +135,7 @@ export default function ActiveOrdersLine({
         <button
           onClick={() => scrollBy(-1)}
           disabled={!canLeft}
-          aria-label="Geser ke kiri"
+          aria-label="Scroll left"
           className="absolute -left-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground shadow-subtle transition-all duration-150 hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 md:flex"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -151,7 +151,7 @@ export default function ActiveOrdersLine({
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted/60 text-muted-foreground/60">
                 <Coffee className="h-4 w-4" />
               </div>
-              <p className="text-xs">Belum ada order berjalan.</p>
+              <p className="text-xs">No orders in the queue yet.</p>
             </div>
           ) : (
             filteredOrders.map((order) => {
@@ -184,7 +184,7 @@ export default function ActiveOrdersLine({
                   </div>
 
                   <p className="truncate text-xs font-semibold text-muted-foreground">
-                    {order.customerName?.trim() || 'Pelanggan'}
+                    {order.customerName?.trim() || 'Customer'}
                   </p>
 
                   <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
@@ -202,12 +202,12 @@ export default function ActiveOrdersLine({
         <button
           onClick={() => scrollBy(1)}
           disabled={!canRight}
-          aria-label="Geser ke kanan"
+          aria-label="Scroll right"
           className="absolute -right-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground shadow-subtle transition-all duration-150 hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 md:flex"
         >
           <ChevronRight className="h-5 w-5" />
         </button>
       </div>
-    </section>
+    </Section>
   )
 }
