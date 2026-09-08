@@ -71,7 +71,7 @@
     - `[ 🏪 Register / POS ]` (Halaman aktif kasir).
     - `[ 🧾 Order History ]` (Membuka Slide-Over Drawer riwayat transaksi selesai & reprint struk tanpa unmount layar kasir).
   - Avatar Kasir di bawah (`👤 Siti`) dengan popover: Info login kasir, lock register, dan Sign Out (logout).
-- [ ] **Task 1.3.4: Zone 2 - Top Section: Persistent Active Orders Line**
+- [x] **Task 1.3.4: Zone 2 - Top Section: Persistent Active Orders Line**
   - Header: Judul `Active Orders (count)` dan kolom pencarian `[ 🔍 Search orders ]` (by Order ID atau nama pelanggan).
   - Filter Pills tepat di bawah judul: `[ All ]`, `[ Dine In ]`, `[ Takeaway ]`.
   - Carousel horizontal 1-baris dengan navigasi panah `<` `>`.
