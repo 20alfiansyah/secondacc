@@ -41,13 +41,13 @@ function groupBySections(products: Product[]): { title: string; items: Product[]
 function SectionIcon({ label }: { label: string }) {
   const lower = label.toLowerCase()
   if (lower.includes('recommended') && !lower.includes('coffee')) {
-    return <Star className="h-3.5 w-3.5" />
+    return <Star className="h-4 w-4" />
   }
   if (lower.includes('best seller') || lower.includes('best-seller')) {
-    return <Flame className="h-3.5 w-3.5" />
+    return <Flame className="h-4 w-4" />
   }
-  if (lower.includes('coffee') || lower.includes('kopi')) return <Sparkles className="h-3.5 w-3.5" />
-  return <Sparkles className="h-3.5 w-3.5" />
+  if (lower.includes('coffee') || lower.includes('kopi')) return <Sparkles className="h-4 w-4" />
+  return <Sparkles className="h-4 w-4" />
 }
 
 /**
@@ -136,10 +136,10 @@ export default function ProductCatalogGrid({
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 flex-col justify-between p-4">
+        <div className="flex flex-1 flex-col justify-between p-4 sm:p-5">
           <h3
             className={cn(
-              'line-clamp-1 text-[15px] font-bold transition-colors',
+              'line-clamp-1 text-base font-semibold tracking-tight transition-colors sm:text-[17px]',
               soldOut ? 'text-muted-foreground' : 'text-foreground group-hover:text-primary',
             )}
           >
@@ -148,7 +148,7 @@ export default function ProductCatalogGrid({
           {p.description && (
             <p
               className={cn(
-                'mt-1 line-clamp-2 text-xs leading-relaxed',
+                'mt-1.5 line-clamp-2 text-sm leading-relaxed',
                 soldOut ? 'text-muted-foreground/70' : 'text-muted-foreground',
               )}
             >
@@ -156,19 +156,19 @@ export default function ProductCatalogGrid({
             </p>
           )}
 
-          <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-3">
+          <div className="mt-4 flex items-center justify-between gap-3 border-t border-border/50 pt-3.5">
             <span
               className={cn(
-                'text-base font-extrabold tracking-tight tabular-nums',
+                'text-lg font-extrabold tracking-tight tabular-nums',
                 soldOut ? 'text-muted-foreground/80' : 'text-foreground',
               )}
             >
               {formatRupiah(p.price)}
             </span>
             {soldOut ? (
-              <span className="text-xs font-semibold italic text-muted-foreground">Unavailable</span>
+              <span className="text-sm font-semibold italic text-muted-foreground">Unavailable</span>
             ) : (
-              <span className="flex h-9 items-center rounded-xl bg-primary px-3.5 text-sm font-bold text-primary-foreground shadow-xs">
+              <span className="flex h-10 items-center rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-xs">
                 Add
               </span>
             )}
@@ -184,19 +184,19 @@ export default function ProductCatalogGrid({
         {grouped.map((section) => (
           <div key={section.title}>
             {/* Section header + divider halus */}
-            <div className="mb-3 flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <div className="mb-4 flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <SectionIcon label={section.title} />
               </span>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">
                 {section.title}
               </h2>
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground tabular-nums">
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-bold text-muted-foreground tabular-nums">
                 {section.items.length}
               </span>
               <div className="h-px flex-1 bg-border" />
             </div>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-5 lg:grid-cols-3">
               {section.items.map(renderCard)}
             </div>
           </div>
@@ -206,7 +206,7 @@ export default function ProductCatalogGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 pb-20 sm:grid-cols-2 md:grid-cols-3 lg:pb-4 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-5 pb-20 lg:grid-cols-3 lg:pb-4">
       {products.map(renderCard)}
     </div>
   )
