@@ -26,6 +26,7 @@ import {
 import type { CafeTable, CustomerGender, Product } from '@/api/client'
 import {
   checkoutRequest,
+  fetchActiveOrders,
   fetchOrderDetail,
   fetchOrders,
   fetchProducts,
@@ -45,6 +46,7 @@ import PaymentModal from '@/components/PaymentModal'
 import ReceiptModal from '@/components/ReceiptModal'
 import CustomItemModal from '@/components/CustomItemModal'
 import NavigationRail from '@/components/NavigationRail'
+import ActiveOrdersLine from '@/components/ActiveOrdersLine'
 import type { CheckoutResult } from '@/api/client'
 
 interface CategoryTab {
@@ -97,7 +99,6 @@ export default function POS() {
   // mode: 'new' = keranjang baru; 'open' = order OPEN_BILL yang sedang di-view
   const [panelMode, setPanelMode] = useState<'new' | 'open'>('new')
   const [openOrder, setOpenOrder] = useState<OrderDetail | null>(null)
-  const [orderLoading, setOrderLoading] = useState(false)
 
   // Field customer (diisi di panel)
   const [customerName, setCustomerName] = useState('')
@@ -117,7 +118,7 @@ export default function POS() {
     const [productData, tableData, orderData] = await Promise.all([
       fetchProducts(),
       fetchTables(),
-      fetchOrders('OPEN_BILL'),
+      fetchActiveOrders(),
     ])
     setProducts(productData)
     setTables(tableData)
@@ -198,22 +199,33 @@ export default function POS() {
     addItem(product, options)
   }
 
-  // Klik kartu RECENT ORDERS -> muat detail order OPEN_BILL ke panel
-  async function handleOpenRecentOrder(orderId: number) {
-    setOrderLoading(true)
-    setPanelMode('open')
-    try {
-      const detail = await fetchOrderDetail(orderId)
-      setOpenOrder(detail)
-      setCustomerName(detail.customerName ?? '')
-      setCustomerGender(detail.customerGender)
-      if (detail.tableId) setSelectedTable(detail.tableId)
-    } catch {
+  // Klik kartu ACTIVE ORDERS -> muat pesanan ke panel (Zone 2 Top, Task 1.3.4).
+  // Backend PRD belum menyediakan GET /orders/:id, jadi panel diisi dari ringkasan
+  // Active Orders; detail item lengkap + tombol aksi disempurnakan di Task 1.3.8.
+  function handleOpenActiveOrder(orderId: number) {
+    const summary = recentOrders.find((o) => o.id === orderId)
+    if (!summary) {
       showFeedback('Gagal memuat detail pesanan. Silakan coba lagi.', true)
-      setPanelMode('new')
-    } finally {
-      setOrderLoading(false)
+      return
     }
+    setPanelMode('open')
+    setOpenOrder({
+      id: summary.id,
+      invoiceNumber: summary.invoiceNumber,
+      status: summary.status,
+      orderType: summary.orderType,
+      customerName: summary.customerName,
+      customerGender: summary.customerGender,
+      tableId: null,
+      tableNumber: summary.tableNumber,
+      subtotal: summary.subtotal,
+      grandTotal: summary.grandTotal,
+      createdAt: summary.createdAt,
+      items: [],
+      payment: null,
+    })
+    setCustomerName(summary.customerName ?? '')
+    setCustomerGender(summary.customerGender)
   }
 
   // Klik meja -> mulai order baru (panel berubah ke mode 'new')
@@ -248,8 +260,8 @@ export default function POS() {
       })
       clear() // keranjang reset otomatis setelah sukses
       await loadData() // refresh: meja terisi, RECENT ORDERS bertambah
-      // Buka order yang baru disimpan langsung di panel
-      await handleOpenRecentOrder(saved.id)
+      // Buka order yang baru disimpan langsung di panel (Active Orders Line)
+      handleOpenActiveOrder(saved.id)
       setMobileCartOpen(false)
       showFeedback('Pesanan berhasil disimpan ke meja.')
     } catch {
@@ -510,71 +522,12 @@ export default function POS() {
             </div>
           )}
 
-          {/* RECENT ORDERS — order Ongoing (OPEN_BILL) */}
-          <div className="mb-4">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Receipt className="h-4 w-4 text-primary" />
-                <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Recent Orders
-                </h2>
-                <span className="rounded-full bg-amber-500/10 px-2 py-0.2 text-[11px] font-bold text-amber-700 tabular-nums">
-                  {recentOrders.length} Ongoing
-                </span>
-              </div>
-              <button
-                onClick={handleNewOrder}
-                className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
-              >
-                + Pesanan Baru
-              </button>
-            </div>
-
-            {recentOrders.length === 0 ? (
-              <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border/70 bg-background/40 px-4 py-3 text-muted-foreground">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted/60 text-muted-foreground/60">
-                  <Receipt className="h-4 w-4" />
-                </div>
-                <p className="text-xs">
-                  Belum ada order berjalan. Buat pesanan baru lalu tekan{' '}
-                  <span className="font-semibold text-foreground">Open Bill</span> untuk menyimpannya
-                  di sini.
-                </p>
-              </div>
-            ) : (
-              <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none">
-                {recentOrders.map((order) => {
-                  const active = panelMode === 'open' && openOrder?.id === order.id
-                  return (
-                    <button
-                      key={order.id}
-                      onClick={() => handleOpenRecentOrder(order.id)}
-                      className={cn(
-                        'group relative flex min-w-[180px] shrink-0 flex-col gap-0.5 rounded-2xl border p-3 text-left shadow-subtle transition-all duration-150 active:scale-[0.98]',
-                        active
-                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                          : 'border-amber-300/70 bg-amber-50/50 hover:border-primary/40 hover:shadow-card',
-                      )}
-                    >
-                      <span className="absolute right-2.5 top-2.5 flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
-                      </span>
-                      <p className="truncate text-sm font-bold text-amber-900">
-                        {customerNameOr('Pelanggan', order.customerName)}
-                      </p>
-                      <p className="text-[11px] font-medium text-amber-800/80">
-                        #{order.id} • {order.tableNumber ?? 'Tanpa meja'}
-                      </p>
-                      <p className="mt-1 text-xs font-semibold text-amber-800 tabular-nums">
-                        {order.itemCount} item • {formatRupiah(order.grandTotal)}
-                      </p>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
+          {/* Zone 2 Top — Persistent Active Orders Line (Task 1.3.4) */}
+          <ActiveOrdersLine
+            orders={recentOrders}
+            activeOrderId={panelMode === 'open' ? openOrder?.id ?? null : null}
+            onSelect={handleOpenActiveOrder}
+          />
 
           {/* Product Cards Grid */}
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
@@ -701,7 +654,7 @@ export default function POS() {
             ) : (
               <OpenOrderDetail
                 order={openOrder}
-                loading={orderLoading}
+                loading={false}
                 customerName={customerName}
                 setCustomerName={setCustomerName}
                 customerGender={customerGender}
@@ -788,7 +741,7 @@ export default function POS() {
               ) : (
                 <OpenOrderDetail
                   order={openOrder}
-                  loading={orderLoading}
+                  loading={false}
                   customerName={customerName}
                   setCustomerName={setCustomerName}
                   customerGender={customerGender}
