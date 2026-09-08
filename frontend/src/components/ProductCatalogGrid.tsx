@@ -89,8 +89,8 @@ export default function ProductCatalogGrid({
             : 'cursor-pointer border-border/70 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-card-hover active:scale-[0.98]',
         )}
       >
-        {/* Foto rasio 1:1 */}
-        <div className="relative aspect-square w-full overflow-hidden bg-muted">
+        {/* Foto hero — rasio 4:5 biar makanan jadi visual dominan */}
+        <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted">
           <img
             src={resolveProductImage(p)}
             alt={p.name}
@@ -196,7 +196,7 @@ export default function ProductCatalogGrid({
               </span>
               <div className="h-px flex-1 bg-border" />
             </div>
-            <div className="grid grid-cols-2 gap-5 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {section.items.map(renderCard)}
             </div>
           </div>
@@ -206,7 +206,7 @@ export default function ProductCatalogGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-5 pb-20 lg:grid-cols-3 lg:pb-4">
+    <div className="grid grid-cols-1 gap-4 pb-20 sm:grid-cols-2 lg:grid-cols-3 lg:pb-4">
       {products.map(renderCard)}
     </div>
   )
