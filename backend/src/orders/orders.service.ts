@@ -130,17 +130,22 @@ export class OrdersService {
     });
   }
 
-  /** GET /api/orders/active — semua order OPEN_BILL untuk Active Orders Line. */
+  /** GET /api/orders/active — semua order OPEN_BILL untuk Active Orders Line.
+   *  itemCount dihitung sebagai TOTAL qty (bukan jumlah baris orderItems). */
   async getActive() {
-    return this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       where: { status: OrderStatus.OPEN_BILL },
       include: {
-        orderItems: { select: { id: true } },
+        orderItems: { select: { quantity: true } },
         table: true,
         cashier: { select: { id: true, name: true } },
       },
       orderBy: { id: 'desc' },
     });
+    return orders.map((order) => ({
+      ...order,
+      itemCount: (order.orderItems ?? []).reduce((sum, i) => sum + i.quantity, 0),
+    }));
   }
 
   /**

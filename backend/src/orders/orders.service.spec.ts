@@ -220,6 +220,28 @@ describe('OrdersService (ACID & finansial server-side)', () => {
         }),
       );
     });
+
+    it('itemCount = total qty (bukan jumlah baris orderItems)', async () => {
+      await setup({
+        'order.findMany': () =>
+          Promise.resolve([
+            {
+              id: 1,
+              status: OrderStatus.OPEN_BILL,
+              orderItems: [
+                { quantity: 2 },
+                { quantity: 3 },
+                { quantity: 1 },
+              ],
+            },
+          ]),
+      });
+      const r = await service.getActive();
+      expect(r[0].itemCount).toBe(6); // 2 + 3 + 1, bukan jumlah baris (3)
+      // pastikan include memilih quantity (untuk menghitung total qty)
+      const call = tx.order.findMany.mock.calls[0][0];
+      expect(call.include.orderItems.select).toEqual({ quantity: true });
+    });
   });
 
   // ===== History =====

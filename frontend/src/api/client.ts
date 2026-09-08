@@ -203,7 +203,14 @@ function toOrderSummary(raw: any): OrderSummary {
     subtotal: raw.subtotal,
     grandTotal: raw.grandTotal,
     tableNumber: raw.table?.tableNumber ?? null,
-    itemCount: Array.isArray(raw.orderItems) ? raw.orderItems.length : (raw._count?.orderItems ?? 0),
+    // Backend /orders/active menghitung itemCount = TOTAL qty (jumlah item, bukan
+    // jumlah baris). Pakai field tsb bila tersedia; fallback lama utk endpoint lain.
+    itemCount:
+      typeof raw.itemCount === 'number'
+        ? raw.itemCount
+        : Array.isArray(raw.orderItems)
+          ? raw.orderItems.length
+          : (raw._count?.orderItems ?? 0),
     createdAt: raw.createdAt,
     paymentName: raw.payment?.methodName ?? null,
   }
