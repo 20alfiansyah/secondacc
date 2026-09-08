@@ -51,8 +51,11 @@ const Section = React.forwardRef<
     {/* Garis pemisah halus */}
     <div className="mt-3.5 shrink-0 border-t border-border/60" />
 
-    {/* Konten */}
-    <div className={cn('min-h-0 flex-1 p-4 sm:p-5', bodyClassName)}>{children}</div>
+    {/* Konten — flex-col agar `bodyClassName` berbasis flex-1/min-h-0
+        (mis. grid yang bisa di-scroll) ikut ter-constrain oleh tinggi
+        parent dan bisa scroll, alih-alih meluber terpotong oleh
+        overflow-hidden ancestor. */}
+    <div className={cn('flex min-h-0 flex-1 flex-col p-4 sm:p-5', bodyClassName)}>{children}</div>
   </div>
 ))
 Section.displayName = 'Section'

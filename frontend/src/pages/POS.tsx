@@ -356,45 +356,42 @@ export default function POS() {
             icon={UtensilsCrossed}
             title="Menu Catalog"
             subtitle="All items across the menu"
-            bodyClassName="min-h-0 flex-1"
             className="flex-1"
           >
-            <div className="flex min-h-0 flex-1 flex-col">
-              {/* Toolbar filter katalog: search, pills, sort/status, popover Categories */}
-              <CategoryFilterBar
-                categories={categories}
-                products={products}
-                activeCategory={activeCategory}
-                onSelectCategory={setActiveCategory}
-                search={search}
-                onSearchChange={setSearch}
-                availabilityFilter={availabilityFilter}
-                onAvailabilityChange={setAvailabilityFilter}
-                sortOption={sortOption}
-                onSortChange={setSortOption}
-              />
+            {/* Toolbar filter katalog: search, pills, sort/status, popover Categories */}
+            <CategoryFilterBar
+              categories={categories}
+              products={products}
+              activeCategory={activeCategory}
+              onSelectCategory={setActiveCategory}
+              search={search}
+              onSearchChange={setSearch}
+              availabilityFilter={availabilityFilter}
+              onAvailabilityChange={setAvailabilityFilter}
+              sortOption={sortOption}
+              onSortChange={setSortOption}
+            />
 
-              {/* Grid produk + section headers kategori */}
-              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                {loading ? (
-                  <div className="flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground">
-                    <Coffee className="h-8 w-8 animate-bounce text-primary/60" />
-                    <p className="text-sm font-medium">Loading menu...</p>
-                  </div>
-                ) : filteredProducts.length === 0 ? (
-                  <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 p-8 text-center text-muted-foreground">
-                    <Search className="mb-2 h-8 w-8 opacity-40" />
-                    <p className="text-sm font-medium text-foreground">No menu found</p>
-                    <p className="text-xs">Try a different keyword or change the status filter.</p>
-                  </div>
-                ) : (
-                  <ProductCatalogGrid
-                    products={filteredProducts}
-                    activeCategory={activeCategory}
-                    onSelect={handleOpenCustom}
-                  />
-                )}
-              </div>
+            {/* Grid produk + section headers kategori */}
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              {loading ? (
+                <div className="flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground">
+                  <Coffee className="h-8 w-8 animate-bounce text-primary/60" />
+                  <p className="text-sm font-medium">Loading menu...</p>
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 p-8 text-center text-muted-foreground">
+                  <Search className="mb-2 h-8 w-8 opacity-40" />
+                  <p className="text-sm font-medium text-foreground">No menu found</p>
+                  <p className="text-xs">Try a different keyword or change the status filter.</p>
+                </div>
+              ) : (
+                <ProductCatalogGrid
+                  products={filteredProducts}
+                  activeCategory={activeCategory}
+                  onSelect={handleOpenCustom}
+                />
+              )}
             </div>
           </Section>
         </div>
