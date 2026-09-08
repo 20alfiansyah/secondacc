@@ -117,7 +117,7 @@
   - Tabel transaksi selesai (`status = PAID`) dengan detail metode bayar.
   - Tombol **`[ 🖨️ Reprint Receipt ]`**: Membuka preview struk dan langsung memicu cetak printer thermal via `window.print()` dengan isolasi CSS 58mm/80mm.
   - Backend: tambah `GET /api/orders/:id` (detail items + payment + kasir) utk reprint.
-- [ ] **Task 1.3.11: Verifikasi Responsivitas & Ergonomi Sentuh**
+- [x] **Task 1.3.11: Verifikasi Responsivitas & Ergonomi Sentuh**
   - Verifikasi tampilan pada Desktop AIO (4 kolom grid, 3 zona berdampingan).
   - Verifikasi tampilan pada Tablet Landscape (3 kolom grid, 3 zona berdampingan tanpa panel tersembunyi).
   - Verifikasi tampilan pada Tablet Portrait (3 kolom grid + floating bottom cart dock).
