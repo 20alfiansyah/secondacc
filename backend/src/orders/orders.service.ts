@@ -148,6 +148,44 @@ export class OrdersService {
     }));
   }
 
+  /** GET /api/orders/:id — rincian lengkap order utk pratinjau struk & reprint
+   *  (items + product name, payment, kasir, meja). Per kontrak 6_API_CONTRACTS. */
+  async getById(id: number) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        table: true,
+        cashier: { select: { id: true, name: true } },
+        payment: true,
+        orderItems: {
+          include: { product: { select: { id: true, name: true } } },
+        },
+      },
+    });
+    if (!order) {
+      throw new NotFoundException({
+        code: 'ORDER_NOT_FOUND',
+        message: `Order id ${id} tidak ditemukan`,
+      });
+    }
+    const { table, cashier, payment, orderItems, ...rest } = order;
+    return {
+      ...rest,
+      tableId: table?.id ?? null,
+      tableNumber: table?.tableNumber ?? null,
+      cashierName: cashier?.name ?? null,
+      payment: payment ?? null,
+      items: orderItems.map((i) => ({
+        productId: i.productId,
+        productName: i.product?.name ?? 'Item',
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        subtotal: i.subtotal,
+        notes: i.notes ?? null,
+      })),
+    };
+  }
+
   /**
    * POST /api/orders/:id/checkout — ACID: validasi status, hitung ulang
    * finansial server-side, simpan Payment, set PAID. Rollback jika gagal.

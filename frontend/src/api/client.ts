@@ -192,6 +192,12 @@ export async function fetchOrderHistory(params?: {
   return (data.data ?? []).map(toOrderSummary)
 }
 
+/** Detail order utk pratinjau struk & reprint (GET /api/orders/:id). */
+export async function fetchOrderDetail(orderId: number): Promise<OrderDetail> {
+  const { data } = await api.get<ListResponse<OrderDetail>>(`/orders/${orderId}`)
+  return data.data
+}
+
 function toOrderSummary(raw: any): OrderSummary {
   return {
     id: raw.id,
@@ -329,6 +335,7 @@ export interface OrderDetail {
   orderType: OrderType
   customerName: string | null
   customerGender: CustomerGender | null
+  cashierName: string | null
   tableId: number | null
   tableNumber: string | null
   subtotal: number

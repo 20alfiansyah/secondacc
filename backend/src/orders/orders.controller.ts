@@ -50,4 +50,10 @@ export class OrdersController {
     const data = await this.ordersService.history({ from, to, search });
     return { success: true, data };
   }
+
+  @Get(':id')
+  async getById(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.ordersService.getById(id);
+    return { success: true, data };
+  }
 }

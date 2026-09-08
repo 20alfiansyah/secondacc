@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   CheckCircle2,
   Coffee,
-  CreditCard,
-  History,
   Receipt,
   Search,
   ShoppingBag,
@@ -14,7 +12,6 @@ import {
   checkoutRequest,
   fetchActiveOrders,
   fetchCategories,
-  fetchOrderHistory,
   fetchProducts,
   openBillRequest,
 } from '@/api/client'
@@ -33,16 +30,13 @@ import { cn } from '@/lib/utils'
 import PaymentModal from '@/components/PaymentModal'
 import ReceiptModal from '@/components/ReceiptModal'
 import CustomItemModal from '@/components/CustomItemModal'
+import OrderHistoryDrawer from '@/components/OrderHistoryDrawer'
 import NavigationRail from '@/components/NavigationRail'
 import ActiveOrdersLine from '@/components/ActiveOrdersLine'
 import CategoryFilterBar from '@/components/CategoryFilterBar'
 import ProductCatalogGrid from '@/components/ProductCatalogGrid'
 import OrderDetailsPanel from '@/components/OrderDetailsPanel'
 import type { CheckoutResult } from '@/api/client'
-
-function customerNameOr(defaultName: string, name: string | null | undefined): string {
-  return name?.trim() ? name : defaultName
-}
 
 export default function POS() {
   const { user } = useAuthStore()
@@ -81,10 +75,8 @@ export default function POS() {
   const [payOpen, setPayOpen] = useState(false)
   const [submittingPayment, setSubmittingPayment] = useState(false)
   const [receipt, setReceipt] = useState<CheckoutResult | null>(null)
+  // Drawer Order History (Task 1.3.10) — riwayat PAID tanpa reload layar kasir
   const [historyOpen, setHistoryOpen] = useState(false)
-  const [historyData, setHistoryData] = useState<OrderSummary[]>([])
-  const [historyLoading, setHistoryLoading] = useState(false)
-  const [historyMessage, setHistoryMessage] = useState<string | null>(null)
 
   async function loadData() {
     const [productData, categoryData, orderData] = await Promise.all([
@@ -279,34 +271,12 @@ export default function POS() {
     showFeedback('Lock Register belum tersedia di fase ini.')
   }
 
-  // ---- Riwayat order PAID (Task 1.3.10 menyempurnakan re-print struk) ----
-  async function openHistory() {
-    setHistoryOpen(true)
-    setHistoryLoading(true)
-    setHistoryMessage(null)
-    try {
-      const orders = await fetchOrderHistory()
-      setHistoryData(orders)
-    } catch {
-      setHistoryData([])
-      setHistoryMessage('Gagal memuat riwayat transaksi.')
-    } finally {
-      setHistoryLoading(false)
-    }
-  }
-
-  function handleReprint(orderId: number) {
-    // Task 1.3.10: 1-tap reprint struk. Fase 1 placeholder.
-    showFeedback('Cetak ulang struk akan tersedia di fitur reprint (Task 1.3.10).', true)
-    void orderId
-  }
-
   const isNewPanel = panelMode === 'new'
 
   return (
     <div className="flex h-svh bg-background selection:bg-primary/20 selection:text-primary">
       {/* ===== Zone 1: Slim Left Navigation Rail ===== */}
-      <NavigationRail onOpenHistory={openHistory} onLockRegister={lockRegister} />
+      <NavigationRail onOpenHistory={() => setHistoryOpen(true)} onLockRegister={lockRegister} />
 
       {/* ===== Main Column (semua zona lainnya) ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
@@ -536,86 +506,8 @@ export default function POS() {
 
       {receipt && <ReceiptModal order={receipt} onClose={() => setReceipt(null)} />}
 
-      {/* Riwayat Transaksi (PAID) */}
-      {historyOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-border/80 bg-card shadow-modal animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-border/70 px-5 py-4 bg-muted/30">
-              <div className="flex items-center gap-2">
-                <History className="h-5 w-5 text-primary" />
-                <div>
-                  <h2 className="text-sm font-bold text-foreground">Riwayat Transaksi</h2>
-                  <p className="text-[11px] text-muted-foreground">
-                    Pesanan yang sudah dibayar — reprint struk menyusul (Task 1.3.10).
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setHistoryOpen(false)}
-                className="rounded-full p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              {historyLoading ? (
-                <div className="flex h-40 items-center justify-center text-muted-foreground">
-                  <div className="flex flex-col items-center gap-2">
-                    <Receipt className="h-7 w-7 animate-pulse text-primary/60" />
-                    <p className="text-sm font-medium">Memuat riwayat...</p>
-                  </div>
-                </div>
-              ) : historyMessage ? (
-                <div className="flex h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 p-6 text-center text-muted-foreground">
-                  <History className="mb-2 h-7 w-7 opacity-40" />
-                  <p className="text-sm font-medium text-foreground">{historyMessage}</p>
-                </div>
-              ) : historyData.length === 0 ? (
-                <div className="flex h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 p-6 text-center text-muted-foreground">
-                  <History className="mb-2 h-7 w-7 opacity-40" />
-                  <p className="text-sm font-medium text-foreground">Belum ada transaksi</p>
-                  <p className="text-xs">Transaksi yang sudah dibayar akan tampil di sini.</p>
-                </div>
-              ) : (
-                <ul className="space-y-2.5">
-                  {historyData.map((order) => (
-                    <li
-                      key={order.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-background/60 p-3.5 shadow-subtle"
-                    >
-                      <div className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
-                          <Receipt className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-foreground">
-                            {order.invoiceNumber}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {customerNameOr('Pelanggan', order.customerName)} •{' '}
-                            {order.orderType === 'TAKE_AWAY' ? 'Takeaway' : 'Dine In'} •{' '}
-                            {formatRupiah(order.grandTotal)}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleReprint(order.id)}
-                        className="shrink-0"
-                      >
-                        <CreditCard className="h-3.5 w-3.5" />
-                        Struk
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Drawer Order History (Task 1.3.10) — slide-over kanan */}
+      <OrderHistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} />
       </div>
     </div>
   )
