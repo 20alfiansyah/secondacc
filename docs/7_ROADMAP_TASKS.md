@@ -77,7 +77,7 @@
   - Carousel horizontal 1-baris dengan navigasi panah `<` `>`.
   - Kartu Pesanan Aktif: Order ID (`Order #045`), Badge tipe pesanan, Nama pelanggan, Total item & total Rupiah.
   - Interaksi 1-Klik: Klik kartu langsung memuat pesanan ke panel kanan (Order Details).
-- [ ] **Task 1.3.5: Zone 2 - Middle Section: Category Filter Bar & Overflow Handling**
+- [x] **Task 1.3.5: Zone 2 - Middle Section: Category Filter Bar & Overflow Handling**
   - Carousel horizontal 1-baris tanpa wrap (tinggi tetap `~42px`) dengan kontrol panah `<` `>`.
   - Tombol Pill Kategori: Teks bersih tanpa emoji umum (`[ All ]`, `[ Recommended ⭐ ]`, `[ Best Seller 🔥 ]`, `[ Coffee ]`, `[ Mocktails ]`, `[ Non-Coffee ]`, `[ Main Course ]`, `[ Snacks & Pastry ]`).
   - Tombol Popover Grid `[ 📑 Categories ▼ ]` di ujung baris: Membuka popover 3 kolom untuk melompat langsung ke kategori mana pun dalam 1 klik.
