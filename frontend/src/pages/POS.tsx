@@ -326,7 +326,7 @@ export default function POS() {
         </header>
 
       {/* ===== Main Content Area ===== */}
-      <div className="grid flex-1 grid-cols-1 gap-5 overflow-hidden p-4 sm:p-5 lg:grid-cols-[1fr_400px]">
+      <div className="grid flex-1 grid-cols-1 gap-5 overflow-hidden p-4 sm:p-5 lg:grid-cols-[1fr_360px]">
         {/* ===== Left Column: Order Queue & Menu Catalog Sections ===== */}
         <div className="flex min-h-0 flex-col gap-5">
           {/* SECTION 1 — Order Queue (open bills waiting for payment) */}

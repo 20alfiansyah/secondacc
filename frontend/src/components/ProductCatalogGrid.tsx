@@ -196,7 +196,7 @@ export default function ProductCatalogGrid({
               </span>
               <div className="h-px flex-1 bg-border" />
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {section.items.map(renderCard)}
             </div>
           </div>
@@ -206,7 +206,7 @@ export default function ProductCatalogGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 pb-20 sm:grid-cols-2 lg:grid-cols-3 lg:pb-4">
+    <div className="grid grid-cols-1 gap-4 pb-20 sm:grid-cols-2 lg:grid-cols-3 lg:pb-4 xl:grid-cols-4 2xl:grid-cols-5">
       {products.map(renderCard)}
     </div>
   )
