@@ -313,7 +313,7 @@ export default function POS() {
               className="relative flex h-11 items-center gap-2 rounded-xl border border-border/80 bg-card px-3 text-xs font-bold text-foreground lg:hidden"
             >
               <ShoppingBag className="h-4 w-4 text-primary" />
-              <span>Keranjang</span>
+              <span>Cart</span>
               {cartItemCount > 0 && (
                 <span className="rounded-full bg-primary px-1.5 py-0.2 text-[10px] font-bold text-primary-foreground tabular-nums">
                   {cartItemCount}
@@ -368,13 +368,13 @@ export default function POS() {
             {loading ? (
               <div className="flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground">
                 <Coffee className="h-8 w-8 animate-bounce text-primary/60" />
-                <p className="text-sm font-medium">Memuat katalog menu...</p>
+                <p className="text-sm font-medium">Loading menu...</p>
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 p-8 text-center text-muted-foreground">
                 <Search className="mb-2 h-8 w-8 opacity-40" />
-                <p className="text-sm font-medium text-foreground">Menu tidak ditemukan</p>
-                <p className="text-xs">Coba ubah kata kunci pencarian atau filter status.</p>
+                <p className="text-sm font-medium text-foreground">No menu found</p>
+                <p className="text-xs">Try a different keyword or change the status filter.</p>
               </div>
             ) : (
               <ProductCatalogGrid
@@ -419,7 +419,7 @@ export default function POS() {
       <div className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-border/80 bg-card/95 px-4 py-3 backdrop-blur-md shadow-modal lg:hidden">
         <div>
           <span className="text-xs font-bold text-muted-foreground">
-            {customerName.trim() || 'Belum isi nama'}
+            {customerName.trim() || 'No name yet'}
           </span>
           <p className="text-base font-black text-primary tabular-nums">
             {formatRupiah(cartSubtotal)}
@@ -431,7 +431,7 @@ export default function POS() {
           className="h-11 px-5 font-bold shadow-sm"
         >
           <ShoppingBag className="h-4 w-4" />
-          Lihat Keranjang
+          View Cart
           {cartItemCount > 0 && (
             <span className="ml-1 rounded-full bg-primary-foreground/20 px-1.5 py-0.2 text-xs font-bold text-primary-foreground">
               {cartItemCount}
@@ -447,7 +447,7 @@ export default function POS() {
             <div className="mb-3 flex items-center justify-between border-b border-border/70 pb-3">
               <div className="flex items-center gap-2">
                 <Receipt className="h-5 w-5 text-primary" />
-                <h2 className="text-base font-bold text-foreground">Detail Pesanan</h2>
+                <h2 className="text-base font-bold text-foreground">Order Details</h2>
               </div>
               <button
                 onClick={() => setMobileCartOpen(false)}

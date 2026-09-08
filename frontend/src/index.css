@@ -7,8 +7,8 @@
    ============================================================ */
 
 @theme {
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
+  --font-sans: "Inter", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
   /* Sleek modern neutral & emerald palette */
   --color-background: hsl(220 18% 97.5%);

@@ -25,16 +25,16 @@ export type AvailabilityFilter = 'all' | 'available' | 'sold-out'
 export type SortOption = 'default' | 'price-asc' | 'price-desc' | 'name-asc'
 
 export const FILTER_LABEL: Record<AvailabilityFilter, string> = {
-  all: 'Semua Status',
-  available: 'Tersedia',
+  all: 'All Status',
+  available: 'Available',
   'sold-out': 'Sold Out',
 }
 
 export const SORT_LABEL: Record<SortOption, string> = {
-  default: 'Urutan Default',
-  'price-asc': 'Harga: Rendah → Tinggi',
-  'price-desc': 'Harga: Tinggi → Rendah',
-  'name-asc': 'Nama: A → Z',
+  default: 'Default Order',
+  'price-asc': 'Price: Low → High',
+  'price-desc': 'Price: High → Low',
+  'name-asc': 'Name: A → Z',
 }
 
 const SCROLL_STEP = 260
@@ -166,7 +166,7 @@ export default function CategoryFilterBar({
   }
 
   return (
-    <div className="mb-4 space-y-3">
+    <div className="mb-4 space-y-3.5">
       {/* Row: live search + toolbar selectors */}
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
         <div className="relative flex-1">
@@ -177,8 +177,8 @@ export default function CategoryFilterBar({
             onChange={(e) => onSearchChange(e.target.value)}
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
-            placeholder="Cari nama menu..."
-            className="h-11 rounded-2xl pl-10 pr-12 bg-card shadow-subtle border-border/80 text-sm"
+            placeholder="Search products..."
+            className="h-12 rounded-2xl pl-10 pr-12 bg-card shadow-subtle border-border/80 text-sm"
           />
           {search ? (
             <button
@@ -198,12 +198,12 @@ export default function CategoryFilterBar({
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 rounded-xl border border-border/80 bg-card p-1 shadow-subtle text-xs">
-            <Filter className="h-3.5 w-3.5 text-muted-foreground ml-1 mr-0.5" />
+          <div className="flex h-12 items-center gap-1.5 rounded-xl border border-border/80 bg-card px-3 shadow-subtle text-sm">
+            <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
             <select
               value={availabilityFilter}
               onChange={(e) => onAvailabilityChange(e.target.value as AvailabilityFilter)}
-              className="bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer pr-1"
+              className="bg-transparent text-sm font-semibold text-foreground focus:outline-none cursor-pointer"
             >
               {(Object.keys(FILTER_LABEL) as AvailabilityFilter[]).map((k) => (
                 <option key={k} value={k}>
@@ -213,12 +213,12 @@ export default function CategoryFilterBar({
             </select>
           </div>
 
-          <div className="flex items-center gap-1 rounded-xl border border-border/80 bg-card p-1 shadow-subtle text-xs">
-            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground ml-1 mr-0.5" />
+          <div className="flex h-12 items-center gap-1.5 rounded-xl border border-border/80 bg-card px-3 shadow-subtle text-sm">
+            <ArrowUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
             <select
               value={sortOption}
               onChange={(e) => onSortChange(e.target.value as SortOption)}
-              className="bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer pr-1"
+              className="bg-transparent text-sm font-semibold text-foreground focus:outline-none cursor-pointer"
             >
               {(Object.keys(SORT_LABEL) as SortOption[]).map((k) => (
                 <option key={k} value={k}>
@@ -235,7 +235,7 @@ export default function CategoryFilterBar({
         <button
           onClick={() => scrollBy(-1)}
           disabled={!canLeft}
-          aria-label="Geser kategori ke kiri"
+          aria-label="Scroll categories left"
           className="absolute -left-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground shadow-subtle transition-all duration-150 hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 md:flex"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -244,7 +244,7 @@ export default function CategoryFilterBar({
         <div
           ref={scrollerRef}
           onScroll={updateArrows}
-          className="flex h-[42px] items-center gap-2 overflow-x-auto scrollbar-none"
+          className="flex h-12 items-center gap-2.5 overflow-x-auto scrollbar-none"
         >
           {pills.map((pill) => {
             const isActive = activeCategory === pill.value
@@ -253,21 +253,21 @@ export default function CategoryFilterBar({
                 key={pill.key}
                 onClick={() => select(pill.value)}
                 className={cn(
-                  'group flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-xs font-semibold transition-all duration-150 active:scale-[0.97]',
+                  'group flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-all duration-150 active:scale-[0.97]',
                   isActive
-                    ? 'border-primary bg-primary text-primary-foreground shadow-xs'
+                    ? 'border-primary shadow-sm bg-primary text-primary-foreground'
                     : 'border-border/80 bg-card text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground',
                 )}
               >
                 {pill.icon && (
                   <span className={cn(isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground')}>
-                    <pill.icon className="h-3.5 w-3.5" />
+                    <pill.icon className="h-4 w-4" />
                   </span>
                 )}
-                <span>{pill.label}</span>
+                <span className="whitespace-nowrap">{pill.label}</span>
                 <span
                   className={cn(
-                    'rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums',
+                    'rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums',
                     isActive
                       ? 'bg-primary-foreground/20 text-primary-foreground'
                       : 'bg-muted text-muted-foreground',
@@ -284,16 +284,16 @@ export default function CategoryFilterBar({
             <button
               onClick={() => setGridOpen((v) => !v)}
               className={cn(
-                'flex h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-all duration-150 active:scale-[0.97]',
+                'flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-all duration-150 active:scale-[0.97]',
                 gridOpen
                   ? 'border-primary bg-primary/10 text-primary'
                   : 'border-border/80 bg-card text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground',
               )}
             >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              <span>Categories</span>
+              <LayoutGrid className="h-4 w-4" />
+              <span className="whitespace-nowrap">Categories</span>
               <ChevronRight
-                className={cn('h-3.5 w-3.5 transition-transform duration-150', gridOpen && 'rotate-90')}
+                className={cn('h-4 w-4 transition-transform duration-150', gridOpen && 'rotate-90')}
               />
             </button>
 
@@ -342,7 +342,7 @@ export default function CategoryFilterBar({
         <button
           onClick={() => scrollBy(1)}
           disabled={!canRight}
-          aria-label="Geser kategori ke kanan"
+          aria-label="Scroll categories right"
           className="absolute -right-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground shadow-subtle transition-all duration-150 hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 md:flex"
         >
           <ChevronRight className="h-5 w-5" />

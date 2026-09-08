@@ -105,17 +105,19 @@ export default function ProductCatalogGrid({
             }}
           />
 
-          {/* Badge Recommended / Best Seller */}
+          {/* Badge Recommended / Best Seller — gaya konsisten: pill kecil
+              rounded-full, tint + border halus, semibold; beda aksen warna &
+              ikon saja (Recommended = amber/Star, Best Seller = rose/Flame). */}
           {(p.isRecommended || p.isBestSeller) && (
-            <div className="absolute left-2.5 top-2.5 flex flex-col gap-1">
+            <div className="absolute left-2.5 top-2.5 flex flex-col gap-1.5">
               {p.isRecommended && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-md">
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/50 bg-amber-50/95 px-2 py-0.5 text-[11px] font-semibold text-amber-700 shadow-sm backdrop-blur-sm">
                   <Star className="h-3 w-3" />
                   Recommended
                 </span>
               )}
               {p.isBestSeller && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-md">
+                <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/50 bg-rose-50/95 px-2 py-0.5 text-[11px] font-semibold text-rose-600 shadow-sm backdrop-blur-sm">
                   <Flame className="h-3 w-3" />
                   Best Seller
                 </span>
@@ -126,7 +128,7 @@ export default function ProductCatalogGrid({
           {/* Badge + overlay grayscale Sold Out */}
           {soldOut && (
             <div className="absolute inset-0 flex items-center justify-center bg-muted/40">
-              <span className="rounded-full bg-destructive/90 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-destructive-foreground shadow-sm">
+              <span className="rounded-full bg-destructive/90 px-3.5 py-1.5 text-xs font-black uppercase tracking-wider text-destructive-foreground shadow-sm">
                 Sold Out
               </span>
             </div>
@@ -134,10 +136,10 @@ export default function ProductCatalogGrid({
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 flex-col justify-between p-3.5">
+        <div className="flex flex-1 flex-col justify-between p-4">
           <h3
             className={cn(
-              'line-clamp-1 text-sm font-bold transition-colors',
+              'line-clamp-1 text-[15px] font-bold transition-colors',
               soldOut ? 'text-muted-foreground' : 'text-foreground group-hover:text-primary',
             )}
           >
@@ -146,7 +148,7 @@ export default function ProductCatalogGrid({
           {p.description && (
             <p
               className={cn(
-                'mt-0.5 line-clamp-2 text-[11px] leading-tight',
+                'mt-1 line-clamp-2 text-xs leading-relaxed',
                 soldOut ? 'text-muted-foreground/70' : 'text-muted-foreground',
               )}
             >
@@ -154,20 +156,20 @@ export default function ProductCatalogGrid({
             </p>
           )}
 
-          <div className="mt-3.5 flex items-center justify-between border-t border-border/50 pt-2.5">
+          <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-3">
             <span
               className={cn(
-                'text-sm sm:text-[15px] font-extrabold tracking-tight tabular-nums',
+                'text-base font-extrabold tracking-tight tabular-nums',
                 soldOut ? 'text-muted-foreground/80' : 'text-foreground',
               )}
             >
               {formatRupiah(p.price)}
             </span>
             {soldOut ? (
-              <span className="text-[11px] font-semibold italic text-muted-foreground">Habis</span>
+              <span className="text-xs font-semibold italic text-muted-foreground">Unavailable</span>
             ) : (
-              <span className="flex h-8 items-center rounded-xl bg-primary px-2.5 text-xs font-bold text-primary-foreground shadow-xs">
-                Pesan
+              <span className="flex h-9 items-center rounded-xl bg-primary px-3.5 text-sm font-bold text-primary-foreground shadow-xs">
+                Add
               </span>
             )}
           </div>
@@ -194,7 +196,7 @@ export default function ProductCatalogGrid({
               </span>
               <div className="h-px flex-1 bg-border" />
             </div>
-            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
               {section.items.map(renderCard)}
             </div>
           </div>
@@ -204,7 +206,7 @@ export default function ProductCatalogGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3.5 pb-20 sm:grid-cols-2 md:grid-cols-3 lg:pb-4 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 pb-20 sm:grid-cols-2 md:grid-cols-3 lg:pb-4 xl:grid-cols-4">
       {products.map(renderCard)}
     </div>
   )
