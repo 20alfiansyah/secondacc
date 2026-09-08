@@ -56,7 +56,7 @@ export class OrdersService {
    * POST /api/orders/open-bill — ACID: buat Order + OrderItems dalam satu
    * transaksi. Harga `unitPrice` di-snapshot dari DB (BUKAN dari client).
    */
-  async openBill(input: OpenBillInput) {
+  async openBill(input: OpenBillInput, cashierId: number) {
     const customerName = input.customerName?.trim();
     if (!customerName) {
       throw new BadRequestException({
@@ -106,7 +106,7 @@ export class OrdersService {
           invoiceNumber,
           orderType: input.orderType,
           tableId: input.tableId ?? null,
-          cashierId: 2, // TODO: dari konteks pengguna login (JwtAuthGuard) di task lanjutan
+          cashierId,
           customerName,
           status: OrderStatus.OPEN_BILL,
           subtotal: grandTotal,

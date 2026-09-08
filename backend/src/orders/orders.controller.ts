@@ -6,9 +6,11 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Request } from 'express';
+import { JwtAuthGuard, JwtPayload } from '../auth/jwt-auth.guard';
 import {
   CheckoutInput,
   OpenBillInput,
@@ -21,8 +23,9 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post('open-bill')
-  async openBill(@Body() body: OpenBillInput) {
-    const data = await this.ordersService.openBill(body);
+  async openBill(@Body() body: OpenBillInput, @Req() req: Request) {
+    const user = (req as any).user as JwtPayload;
+    const data = await this.ordersService.openBill(body, user.sub);
     return { success: true, data };
   }
 

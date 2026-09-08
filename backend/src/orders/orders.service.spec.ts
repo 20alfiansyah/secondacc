@@ -71,7 +71,7 @@ describe('OrdersService (ACID & finansial server-side)', () => {
         orderType: OrderType.DINE_IN,
         customerName: 'Rian',
         items: [{ productId: 10, quantity: 2 }],
-      });
+      }, 1);
       expect(r.invoiceNumber).toMatch(/^INV-\d{8}-0001$/);
       expect(r.orderNumber).toBe('Order #001');
     });
@@ -85,7 +85,7 @@ describe('OrdersService (ACID & finansial server-side)', () => {
         orderType: OrderType.TAKE_AWAY,
         customerName: 'Budi',
         items: [{ productId: 10, quantity: 1 }],
-      });
+      }, 1);
       expect(r.invoiceNumber).toMatch(/INV-\d{8}-0002$/);
       expect(r.orderNumber).toBe('Order #002');
     });
@@ -101,7 +101,7 @@ describe('OrdersService (ACID & finansial server-side)', () => {
         orderType: OrderType.DINE_IN,
         customerName: 'Rian',
         items: [{ productId: 10, quantity: 2, notes: 'Less ice' }],
-      });
+      }, 1);
       expect(r.status).toBe(OrderStatus.OPEN_BILL);
       // harga server-side dari DB (25000), bukan dari client
       expect(r.subtotal).toBe(50000);
@@ -123,7 +123,7 @@ describe('OrdersService (ACID & finansial server-side)', () => {
           orderType: OrderType.DINE_IN,
           customerName: '   ',
           items: [{ productId: 10, quantity: 1 }],
-        }),
+        }, 1),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
@@ -134,7 +134,7 @@ describe('OrdersService (ACID & finansial server-side)', () => {
           orderType: OrderType.DINE_IN,
           customerName: 'Rian',
           items: [],
-        }),
+        }, 1),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
