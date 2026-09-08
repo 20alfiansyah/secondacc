@@ -47,13 +47,25 @@ export default function PaymentModal({
 
   const parsedCash = cash === '' ? 0 : Number(cash)
   let changeDue: number | null = null
+  // Jumlah kekurangan bayar (tunai < total). null saat tidak relevan.
+  let shortfall: number | null = null
   if (method === 'CASH' && !Number.isNaN(parsedCash) && parsedCash > 0) {
-    try {
-      changeDue = calculateChange(grandTotal, parsedCash)
-    } catch {
-      changeDue = null
+    const isValid = Number.isInteger(parsedCash) && parsedCash >= grandTotal
+    if (isValid) {
+      try {
+        changeDue = calculateChange(grandTotal, parsedCash)
+      } catch {
+        changeDue = null
+      }
+    } else if (parsedCash < grandTotal) {
+      shortfall = grandTotal - parsedCash
     }
   }
+  // Mode non-tunai: tombol Selesaikan tetap aktif (bayar penuh). Mode tunai
+  // tanpa nominal, atau nominal kurang dari total → tombol dinonaktifkan.
+  const isUnderpaid =
+    method === 'CASH' &&
+    (cash === '' || (Number.isInteger(parsedCash) && parsedCash < grandTotal))
 
   function handleSubmit() {
     setError(null)
@@ -208,6 +220,18 @@ export default function PaymentModal({
                 </span>
               </div>
             )}
+
+            {/* Underpaid Protection: button disabled + inline message */}
+            {shortfall !== null && (
+              <div className="flex items-center justify-between rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 animate-in fade-in duration-150">
+                <span className="text-xs font-bold uppercase tracking-wider text-destructive">
+                  Uang Kurang
+                </span>
+                <span className="text-sm font-bold tabular-nums text-destructive">
+                  −{formatRupiah(shortfall)}
+                </span>
+              </div>
+            )}
           </div>
         )}
 
@@ -223,7 +247,7 @@ export default function PaymentModal({
           className="w-full h-12 text-sm font-bold shadow-sm"
           size="lg"
           onClick={handleSubmit}
-          disabled={submitting}
+          disabled={submitting || isUnderpaid}
         >
           <Banknote className="h-4 w-4" />
           {submitting ? 'Memproses Transaksi...' : 'Selesaikan Transaksi'}

@@ -106,9 +106,10 @@
   - Tombol Aksi Terpadu:
     - Utama (Solid): **`[ Pay Now • Rp XX,XXX → ]`**.
     - Sekunder (Outline): **`[ Save Open Bill ]`** (masuk ke Active Orders Line).
-- [ ] **Task 1.3.9: Fast Checkout & Payment Modal (Eksekusi ACID)**
+- [x] **Task 1.3.9: Fast Checkout & Payment Modal (Eksekusi ACID)**
   - Pilihan metode: Tunai (Cash), QRIS, EDC.
   - Mode Tunai: Tombol nominal cepat (Uang Pas, 20k, 50k, 100k) + kalkulasi otomatis uang kembalian (*change due*).
+  - Proteksi bayar kurang: uang tunai < total → tombol Selesaikan dinonaktifkan + pesan "Uang Kurang −Rp…".
   - Eksekusi transaksi checkout ke backend: Order berstatus `PAID` otomatis terhapus dari Active Orders line dan panel keranjang kembali bersih.
 - [ ] **Task 1.3.10: Slide-Over Drawer: Order History & 1-Tap Reprint Receipt**
   - Dibuka via ikon `[ 🧾 Order History ]` pada rel navigasi kiri tanpa me-reload halaman kasir atau menghapus keranjang yang sedang diketik.
