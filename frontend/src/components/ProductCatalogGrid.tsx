@@ -134,44 +134,44 @@ export default function ProductCatalogGrid({
         </div>
 
         {/* Body */}
-        <div className="mt-2.5 flex flex-1 flex-col justify-between">
-          <div>
-            <h3
+        <div className="mt-2.5 flex flex-1 flex-col">
+          <h3
+            className={cn(
+              'line-clamp-2 min-h-[2.5em] text-sm font-semibold leading-[1.25] tracking-tight transition-colors',
+              soldOut ? 'text-muted-foreground' : 'text-foreground group-hover:text-primary',
+            )}
+          >
+            {p.name}
+          </h3>
+          {p.description && (
+            <p
               className={cn(
-                'line-clamp-1 text-xs font-bold tracking-tight transition-colors sm:text-sm',
-                soldOut ? 'text-muted-foreground' : 'text-foreground group-hover:text-primary',
+                'mt-0.5 line-clamp-1 text-xs leading-normal',
+                soldOut ? 'text-muted-foreground/70' : 'text-muted-foreground',
               )}
             >
-              {p.name}
-            </h3>
-            {p.description && (
-              <p
+              {p.description}
+            </p>
+          )}
+
+          <div className="mt-auto pt-2.5">
+            <div className="flex items-center justify-between gap-2 border-t border-border/50 pt-2">
+              <span
                 className={cn(
-                  'mt-0.5 line-clamp-1 text-[11px] leading-normal',
-                  soldOut ? 'text-muted-foreground/70' : 'text-muted-foreground',
+                  'text-sm font-bold tracking-tight tabular-nums',
+                  soldOut ? 'text-muted-foreground/80' : 'text-foreground',
                 )}
               >
-                {p.description}
-              </p>
-            )}
-          </div>
-
-          <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-border/50 pt-2">
-            <span
-              className={cn(
-                'text-xs font-extrabold tracking-tight tabular-nums sm:text-sm',
-                soldOut ? 'text-muted-foreground/80' : 'text-foreground',
-              )}
-            >
-              {formatRupiah(p.price)}
-            </span>
-            {soldOut ? (
-              <span className="text-[10px] font-semibold italic text-muted-foreground">Habis</span>
-            ) : (
-              <span className="flex h-7 items-center rounded-lg bg-primary px-2.5 text-[11px] font-bold text-primary-foreground shadow-xs transition-transform active:scale-95">
-                Add +
+                {formatRupiah(p.price)}
               </span>
-            )}
+              {soldOut ? (
+                <span className="text-[10px] font-semibold italic text-muted-foreground">Sold out</span>
+              ) : (
+                <span className="flex h-7 items-center rounded-lg bg-primary px-2.5 text-[11px] font-bold text-primary-foreground shadow-xs transition-transform active:scale-95">
+                  Add +
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
