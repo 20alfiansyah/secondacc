@@ -190,7 +190,7 @@ export default function OrderDetailsPanel({
       {/* Segmented toggle Dine In / Takeaway */}
       <div className="mb-4">
         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Tipe Pesanan
+          Order Type
         </label>
         <div className="grid grid-cols-2 gap-1 rounded-xl border border-border/80 bg-secondary/40 p-1">
           {(['DINE_IN', 'TAKE_AWAY'] as OrderType[]).map((t) => {
@@ -223,13 +223,13 @@ export default function OrderDetailsPanel({
           <Input
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
-            placeholder="Nama pelanggan (wajib)"
+            placeholder="Customer name (required)"
             className={cn('h-10 bg-card text-sm', nameMissing && 'border-destructive/70 focus-visible:border-destructive')}
             aria-invalid={nameMissing}
           />
           {nameMissing && (
             <p className="mt-1 text-[11px] font-medium text-destructive">
-              Nama pelanggan wajib diisi sebelum menyimpan.
+              Customer name is required before saving.
             </p>
           )}
         </div>
@@ -273,7 +273,7 @@ export default function OrderDetailsPanel({
                 onClick={onClearCart}
                 className="flex h-10 items-center rounded-lg px-2 text-[11px] font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
               >
-                Kosongkan
+                Clear all
               </button>
             )}
           </div>
@@ -283,9 +283,9 @@ export default function OrderDetailsPanel({
               <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-muted/60 text-muted-foreground/60">
                 <ShoppingBag className="h-5 w-5" />
               </div>
-              <p className="text-sm font-semibold text-foreground">Belum ada item</p>
+              <p className="text-sm font-semibold text-foreground">No items yet</p>
               <p className="mt-0.5 max-w-[200px] text-xs text-muted-foreground">
-                Pilih menu di katalog untuk menambahkan pesanan.
+                Pick items from the menu catalog to add to this order.
               </p>
             </div>
           ) : (
@@ -307,7 +307,7 @@ export default function OrderDetailsPanel({
         {/* Ringkasan finansial */}
         <div>
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Ringkasan
+            Summary
           </label>
           <div className="rounded-2xl border border-border/70 bg-background/60 p-3.5 shadow-subtle">
             <div className="flex items-center justify-between text-xs">
@@ -344,7 +344,7 @@ export default function OrderDetailsPanel({
           onClick={onSaveOpenBill}
         >
           <Receipt className="h-4 w-4" />
-          {saving ? 'Menyimpan...' : 'Save Open Bill'}
+          {saving ? 'Saving...' : 'Save Open Bill'}
         </Button>
       </div>
     </div>
@@ -399,7 +399,7 @@ function CartLineItem({
             <button
               onClick={() => onDecrease(item.id)}
               className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted text-foreground transition-colors active:scale-90"
-              aria-label="Kurangi kuantiti"
+              aria-label="Decrease quantity"
             >
               <Minus className="h-4 w-4" />
             </button>
@@ -409,7 +409,7 @@ function CartLineItem({
             <button
               onClick={() => onIncrease(item.id)}
               className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-muted text-foreground transition-colors active:scale-90"
-              aria-label="Tambah kuantiti"
+              aria-label="Increase quantity"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -417,8 +417,8 @@ function CartLineItem({
           <button
             onClick={() => onRemoveItem(item.id)}
             className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive transition-colors active:scale-90"
-            title="Hapus baris ini"
-            aria-label="Hapus item"
+            title="Remove this line"
+            aria-label="Remove item"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -431,7 +431,7 @@ function CartLineItem({
           <input
             value={item.notes ?? ''}
             onChange={(e) => onSetNotes(item.id, e.target.value)}
-            placeholder="Edit catatan..."
+            placeholder="Edit note..."
             className="w-full bg-transparent text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
           />
         </div>

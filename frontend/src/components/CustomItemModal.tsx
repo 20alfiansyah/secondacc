@@ -16,8 +16,8 @@ interface CustomItemModalProps {
 /** Opsi dinamis sesuai Task 1.3.7 — satu pill aktif per grup (single-select). */
 const SUGAR_LEVELS = ['Less', 'Normal', 'No'] as const
 const ICE_LEVELS = ['Less', 'Normal', 'No'] as const
-const SPICE_LEVELS = ['Tidak Pedas', 'Sedang', 'Pedas'] as const
-const QUICK_FOOD_NOTES = ['Pisah Sambal', 'Tanpa Bawang'] as const
+const SPICE_LEVELS = ['Not Spicy', 'Medium', 'Spicy'] as const
+const QUICK_FOOD_NOTES = ['Sambal on the side', 'No onions'] as const
 
 /** Deteksi golongan produk dari kategori (per PRD: minuman vs makanan). */
 function isDrinkCategory(categoryName: string): boolean {
@@ -121,7 +121,7 @@ export default function CustomItemModal({
       parts.push(`Sugar: ${sugar}`)
       parts.push(`Ice: ${ice}`)
     } else {
-      parts.push(`Pedas: ${spice}`)
+      parts.push(`Spice: ${spice}`)
       if (quickNote) parts.push(quickNote)
     }
     if (kitchenNote.trim()) parts.push(kitchenNote.trim())
@@ -143,11 +143,11 @@ export default function CustomItemModal({
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Utensils className="h-4 w-4" />
             </div>
-            <h2 className="text-sm font-bold text-foreground">Kustomisasi Pesanan</h2>
+            <h2 className="text-sm font-bold text-foreground">Customize Order</h2>
           </div>
           <button
             onClick={onClose}
-            aria-label="Tutup"
+            aria-label="Close"
             className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <X className="h-4 w-4" />
@@ -179,23 +179,23 @@ export default function CustomItemModal({
           {drink ? (
             <>
               <ChipGroup
-                label="Gula (Sugar Level)"
+                label="Sugar Level"
                 options={SUGAR_LEVELS}
                 value={sugar}
                 onSelect={setSugar}
               />
-              <ChipGroup label="Es (Ice Level)" options={ICE_LEVELS} value={ice} onSelect={setIce} />
+              <ChipGroup label="Ice Level" options={ICE_LEVELS} value={ice} onSelect={setIce} />
             </>
           ) : (
             <>
               <ChipGroup
-                label="Tingkat Pedas"
+                label="Spice Level"
                 options={SPICE_LEVELS}
                 value={spice}
                 onSelect={setSpice}
               />
               <ChipGroup
-                label="Catatan Cepat"
+                label="Quick Notes"
                 options={QUICK_FOOD_NOTES}
                 value={quickNote}
                 onSelect={setQuickNote}
@@ -204,15 +204,15 @@ export default function CustomItemModal({
             </>
           )}
 
-          {/* Catatan dapur bebas */}
+          {/* Kitchen note (free text) */}
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Catatan Dapur
+              Kitchen Note
             </label>
             <textarea
               value={kitchenNote}
               onChange={(e) => setKitchenNote(e.target.value)}
-              placeholder="Tulis catatan bebas untuk dapur..."
+              placeholder="Add a note for the kitchen..."
               rows={3}
               className="w-full resize-none rounded-xl border border-input/80 bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
@@ -221,13 +221,13 @@ export default function CustomItemModal({
           {/* Stepper qty */}
           <div className="flex items-center justify-between rounded-2xl border border-border/80 bg-secondary/30 p-3">
             <span className="text-xs font-bold uppercase tracking-wider text-foreground">
-              Jumlah
+              Quantity
             </span>
             <div className="flex items-center gap-2 rounded-xl border border-border/80 bg-card p-1">
               <button
                 type="button"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                aria-label="Kurangi jumlah"
+                aria-label="Decrease quantity"
                 className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-muted text-foreground transition-colors active:scale-90"
               >
                 <Minus className="h-4 w-4" />
@@ -238,7 +238,7 @@ export default function CustomItemModal({
               <button
                 type="button"
                 onClick={() => setQuantity((q) => q + 1)}
-                aria-label="Tambah jumlah"
+                aria-label="Increase quantity"
                 className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-muted text-foreground transition-colors active:scale-90"
               >
                 <Plus className="h-4 w-4" />
@@ -262,9 +262,9 @@ export default function CustomItemModal({
           </Button>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
             <kbd className="rounded border border-border/70 bg-background px-1 text-[10px]">Enter</kbd>{' '}
-            tambahkan •{' '}
+            to add •{' '}
             <kbd className="rounded border border-border/70 bg-background px-1 text-[10px]">Esc</kbd>{' '}
-            batal
+            to cancel
           </p>
         </div>
       </div>

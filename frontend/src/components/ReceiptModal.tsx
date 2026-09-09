@@ -14,7 +14,7 @@ interface ReceiptModalProps {
 function formatDate(iso: string | null): string {
   if (!iso) return ''
   const d = new Date(iso)
-  return d.toLocaleString('id-ID', {
+  return d.toLocaleString('en-US', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -31,7 +31,7 @@ export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
         <div className="flex items-center justify-between border-b border-border/70 px-5 py-3.5 bg-muted/40">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-bold text-foreground">Struk Transaksi</h2>
+            <h2 className="text-sm font-bold text-foreground">Receipt</h2>
           </div>
           <div className="flex items-center gap-1.5">
             <Button
@@ -40,7 +40,7 @@ export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
               className="h-8 rounded-xl px-3 font-semibold shadow-xs"
             >
               <Printer className="h-3.5 w-3.5" />
-              Cetak
+              Print
             </Button>
             <button
               onClick={onClose}
@@ -63,7 +63,7 @@ export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
               </p>
               {order.customerName && (
                 <p className="receipt__meta text-[11px] text-muted-foreground">
-                  Pelanggan: {order.customerName}
+                  Customer: {order.customerName}
                 </p>
               )}
               <p className="receipt__meta text-[11px] text-muted-foreground">
@@ -97,7 +97,7 @@ export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
               <span className="tabular-nums font-medium">{formatRupiah(order.grandTotal)}</span>
             </div>
             <div className="mt-1 flex justify-between text-sm font-bold text-foreground">
-              <span>Total Tagihan</span>
+              <span>Grand Total</span>
               <span className="receipt__total tabular-nums text-primary font-black">
                 {formatRupiah(order.grandTotal)}
               </span>
@@ -108,18 +108,18 @@ export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
             {order.payment && (
               <>
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Metode Bayar</span>
+                  <span>Payment Method</span>
                   <span className="font-semibold text-foreground">{order.payment.methodName}</span>
                 </div>
                 <div className="mt-0.5 flex justify-between text-xs text-muted-foreground">
-                  <span>Uang Diterima</span>
+                  <span>Cash Received</span>
                   <span className="tabular-nums font-semibold text-foreground">
                     {formatRupiah(order.payment.amountPaid)}
                   </span>
                 </div>
                 {order.payment.changeDue > 0 && (
                   <div className="mt-0.5 flex justify-between text-xs text-emerald-700 font-bold">
-                    <span>Kembalian</span>
+                    <span>Change</span>
                     <span className="tabular-nums font-black text-emerald-700">
                       {formatRupiah(order.payment.changeDue)}
                     </span>
@@ -129,7 +129,7 @@ export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
             )}
 
             <div className="receipt__footer mt-4 border-t border-dashed border-border pt-3 text-center text-[11px] text-muted-foreground">
-              Terima kasih atas kunjungan Anda! 🙏
+              Thank you for your visit! 🙏
             </div>
           </div>
         </div>

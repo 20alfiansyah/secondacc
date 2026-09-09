@@ -19,11 +19,11 @@ function dayKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-/** Format jam pendek (mis. 21:04) untuk baris tabel. */
+/** Short time format (e.g. 21:04) for table rows. */
 function formatTime(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
 /**
@@ -122,14 +122,14 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
               <div>
                 <h2 className="text-base font-bold text-foreground">Order History</h2>
                 <p className="text-[11px] text-muted-foreground">
-                  Transaksi selesai — reprint struk thermal
+                  Completed transactions — reprint thermal receipts
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
               className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              aria-label="Tutup"
+              aria-label="Close"
             >
               <X className="h-5 w-5" />
             </button>
@@ -142,14 +142,14 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari invoice / nama pelanggan..."
+                placeholder="Search invoice / customer name..."
                 className="h-10 bg-background pl-9 text-sm"
               />
             </div>
             <div className="grid grid-cols-3 gap-1 rounded-xl border border-border/80 bg-secondary/40 p-1">
               {(
                 [
-                  ['ALL', 'Semua'],
+                  ['ALL', 'All'],
                   ['TODAY', 'Today'],
                   ['YESTERDAY', 'Yesterday'],
                 ] as [DateFilter, string][]
@@ -177,14 +177,14 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
               <div className="flex h-32 items-center justify-center text-muted-foreground">
                 <div className="flex flex-col items-center gap-2">
                   <Receipt className="h-6 w-6 animate-pulse text-primary/60" />
-                  <p className="text-sm font-medium">Memuat riwayat...</p>
+                  <p className="text-sm font-medium">Loading history...</p>
                 </div>
               </div>
             ) : filtered.length === 0 ? (
               <div className="flex h-32 flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 p-6 text-center text-muted-foreground">
                 <History className="mb-2 h-7 w-7 opacity-40" />
-                <p className="text-sm font-medium text-foreground">Belum ada transaksi</p>
-                <p className="text-xs">Transaksi yang sudah dibayar akan tampil di sini.</p>
+                <p className="text-sm font-medium text-foreground">No transactions yet</p>
+                <p className="text-xs">Paid transactions will appear here.</p>
               </div>
             ) : (
               <ul className="space-y-2.5">
@@ -200,7 +200,7 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
                           {order.invoiceNumber}
                         </p>
                         <p className="truncate text-[11px] text-muted-foreground">
-                          {order.customerName?.trim() || 'Pelanggan'} •{' '}
+                          {order.customerName?.trim() || 'Customer'} •{' '}
                           {order.orderType === 'TAKE_AWAY' ? 'Takeaway' : 'Dine In'}
                         </p>
                       </div>
@@ -231,7 +231,7 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
                           className="h-11 gap-1.5 px-3 text-xs"
                         >
                           <Printer className="h-3.5 w-3.5" />
-                          {loadingReceipt === order.id ? 'Menyiapkan...' : 'Reprint'}
+                          {loadingReceipt === order.id ? 'Preparing...' : 'Reprint'}
                         </Button>
                       </div>
                     </div>

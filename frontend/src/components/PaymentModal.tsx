@@ -26,9 +26,9 @@ interface PaymentModalProps {
 }
 
 const METHOD_META: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = [
-  { key: 'CASH', label: 'Tunai (Cash)', icon: Banknote },
+  { key: 'CASH', label: 'Cash', icon: Banknote },
   { key: 'THIRD_PARTY', label: 'QRIS / E-Wallet', icon: QrCode },
-  { key: 'EDC', label: 'Mesin EDC / Kartu', icon: CreditCard },
+  { key: 'EDC', label: 'EDC / Card', icon: CreditCard },
 ]
 
 export default function PaymentModal({
@@ -41,7 +41,7 @@ export default function PaymentModal({
   onClose,
 }: PaymentModalProps) {
   const [method, setMethod] = useState<PaymentMethod>('CASH')
-  const [selectedMethodName, setSelectedMethodName] = useState('Tunai')
+  const [selectedMethodName, setSelectedMethodName] = useState('Cash')
   const [cash, setCash] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
 
@@ -70,7 +70,7 @@ export default function PaymentModal({
   function handleSubmit() {
     setError(null)
     if (!gender) {
-      setError('Pilih jenis kelamin pelanggan (P / L) di panel ORDER DETAIL terlebih dahulu.')
+      setError('Select the customer gender in the Order Details panel first.')
       return
     }
 
@@ -79,12 +79,12 @@ export default function PaymentModal({
       try {
         calculateChange(grandTotal, amountPaid)
       } catch {
-        setError('Nominal uang tunai tidak mencukupi atau tidak valid.')
+        setError('Cash amount is insufficient or invalid.')
         return
       }
       onSubmit({
         customerGender: gender,
-        payment: { category: 'CASH', methodName: 'Tunai', amountPaid },
+        payment: { category: 'CASH', methodName: 'Cash', amountPaid },
       })
       return
     }
@@ -102,9 +102,9 @@ export default function PaymentModal({
         {/* Modal Header */}
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-foreground">Pembayaran Kasir</h2>
+            <h2 className="text-lg font-bold text-foreground">Checkout</h2>
             <p className="text-xs text-muted-foreground">
-              {tableNumber ? `Pesanan Meja ${tableNumber}` : 'Pesanan'} • {itemCount} item
+              {tableNumber ? `Table ${tableNumber}` : 'Order'} • {itemCount} items
             </p>
           </div>
           <button
@@ -118,7 +118,7 @@ export default function PaymentModal({
         {/* Total Tagihan Card */}
         <div className="mb-5 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-center shadow-subtle">
           <span className="text-xs font-semibold uppercase tracking-wider text-primary">
-            Total Tagihan
+            Amount Due
           </span>
           <div className="mt-1 text-3xl font-black tracking-tight text-primary tabular-nums">
             {formatRupiah(grandTotal)}
@@ -128,7 +128,7 @@ export default function PaymentModal({
         {/* Metode Pembayaran */}
         <div className="mb-4">
           <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Metode Pembayaran
+            Payment Method
           </label>
           <div className="grid grid-cols-3 gap-2">
             {METHOD_META.map((m) => {
@@ -162,7 +162,7 @@ export default function PaymentModal({
           <div className="mb-5 space-y-3 rounded-2xl border border-border/80 bg-background/50 p-3.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Uang Diterima (Tunai)
+                Cash Received
               </span>
             </div>
 
@@ -178,7 +178,7 @@ export default function PaymentModal({
                     : 'border-border/80 bg-card hover:bg-accent text-foreground',
                 )}
               >
-                Uang Pas
+                Exact
               </button>
               {QUICK_CASH.map((v) => (
                 <button
@@ -202,7 +202,7 @@ export default function PaymentModal({
               <Input
                 type="number"
                 inputMode="numeric"
-                placeholder="Masukkan nominal lain..."
+                placeholder="Enter another amount..."
                 value={cash}
                 onChange={(e) => setCash(e.target.value)}
                 className="h-10 bg-card tabular-nums text-sm font-semibold"
@@ -213,7 +213,7 @@ export default function PaymentModal({
             {changeDue !== null && (
               <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-emerald-900 animate-in fade-in duration-150">
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">
-                  Uang Kembalian
+                  Change Due
                 </span>
                 <span className="text-lg font-black tracking-tight tabular-nums text-emerald-700">
                   {formatRupiah(changeDue)}
@@ -225,7 +225,7 @@ export default function PaymentModal({
             {shortfall !== null && (
               <div className="flex items-center justify-between rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 animate-in fade-in duration-150">
                 <span className="text-xs font-bold uppercase tracking-wider text-destructive">
-                  Uang Kurang
+                  Shortage
                 </span>
                 <span className="text-sm font-bold tabular-nums text-destructive">
                   −{formatRupiah(shortfall)}
@@ -250,7 +250,7 @@ export default function PaymentModal({
           disabled={submitting || isUnderpaid}
         >
           <Banknote className="h-4 w-4" />
-          {submitting ? 'Memproses Transaksi...' : 'Selesaikan Transaksi'}
+          {submitting ? 'Processing Payment...' : 'Complete Transaction'}
         </Button>
       </div>
     </div>

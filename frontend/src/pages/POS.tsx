@@ -170,7 +170,7 @@ export default function POS() {
   function handleViewActiveOrder(orderId: number) {
     const summary = activeOrders.find((o) => o.id === orderId)
     if (!summary) {
-      showFeedback('Pesanan tidak ditemukan.', true)
+      showFeedback('Order not found.', true)
       return
     }
     setPanelMode('open')
@@ -195,11 +195,11 @@ export default function POS() {
   // ---- Save Open Bill (simpan order baru dari keranjang) ----
   async function handleSaveOpenBill() {
     if (!customerName.trim()) {
-      showFeedback('Nama pelanggan wajib diisi sebelum menyimpan.', true)
+      showFeedback('Customer name is required before saving.', true)
       return
     }
     if (items.length === 0) {
-      showFeedback('Pesanan minimal berisi 1 item.', true)
+      showFeedback('Order must contain at least 1 item.', true)
       return
     }
     setSaving(true)
@@ -217,10 +217,10 @@ export default function POS() {
       })
       clear() // keranjang reset otomatis setelah sukses
       await loadData() // refresh: Active Orders Line bertambah
-      showFeedback(`Pesanan ${saved.invoiceNumber} disimpan ke Active Orders.`)
+      showFeedback(`Order ${saved.invoiceNumber} saved to Active Orders.`)
       setMobileCartOpen(false)
     } catch {
-      showFeedback('Gagal menyimpan pesanan. Silakan coba lagi.', true)
+      showFeedback('Failed to save the order. Please try again.', true)
     } finally {
       setSaving(false)
     }
@@ -239,12 +239,12 @@ export default function POS() {
       } else {
         // Order baru belum pernah di-open-bill: buat dulu, lalu bayar (create-then-pay)
         if (!customerName.trim()) {
-          showFeedback('Nama pelanggan wajib diisi.', true)
+          showFeedback('Customer name is required.', true)
           setSubmittingPayment(false)
           return
         }
         if (items.length === 0) {
-          showFeedback('Pesanan minimal berisi 1 item.', true)
+          showFeedback('Order must contain at least 1 item.', true)
           setSubmittingPayment(false)
           return
         }
@@ -275,7 +275,7 @@ export default function POS() {
       await loadData() // refresh: kartu OPEN_BILL hilang, paid history bertambah
       setReceipt(done) // tampilkan pratinjau struk setelah transaksi sukses
     } catch {
-      showFeedback('Gagal memproses pembayaran. Silakan coba lagi.', true)
+      showFeedback('Failed to process the payment. Please try again.', true)
     } finally {
       setSubmittingPayment(false)
     }
@@ -283,7 +283,7 @@ export default function POS() {
 
   // ---- Lock Register (kunci sesi kasir; implementasi penuh di task shift) ----
   function lockRegister() {
-    showFeedback('Lock Register belum tersedia di fase ini.')
+    showFeedback('Lock Register is not available in this phase.')
   }
 
   const isNewPanel = panelMode === 'new'
