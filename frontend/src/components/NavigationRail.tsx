@@ -18,19 +18,20 @@ import {
   UtensilsCrossed,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import type { Role } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 
 interface NavigationRailProps {
-  /** Buka slide-over drawer riwayat transaksi (Task 1.3.10). */
+  /** Open the transaction history slide-over drawer (Task 1.3.10). */
   onOpenHistory: () => void
-  /** Kunci register (kunci sesi kasir saat ini, tanpa logout). */
+  /** Lock the register (end current cashier session without logging out). */
   onLockRegister: () => void
-  /** Callback opsional jika kasir mengklik menu yang belum tersedia. */
+  /** Optional callback when a menu that is not available yet is clicked. */
   onFeatureNotice?: (featureName: string) => void
 }
 
-/** Ambil inisial nama (mis. "Nahid Zaman" -> "NZ", "Siti" -> "S") untuk avatar. */
+/** Get name initials (e.g. "Nahid Zaman" -> "NZ", "Siti" -> "S") for the avatar. */
 function initialsOf(name: string): string {
   return name
     .split(/\s+/)
@@ -44,16 +45,33 @@ interface NavItem {
   id: string
   label: string
   icon: LucideIcon
+  /** Roles allowed to see this item. The list is filtered per logged-in user. */
+  roles: Role[]
   badge?: string
   badgeColor?: string
   active?: boolean
   onClick: () => void
 }
 
+interface NavGroup {
+  id: string
+  label: string
+  items: NavItem[]
+}
+
+/** Human-readable role label for the profile card. */
+function roleLabel(role: Role | undefined): string {
+  return role === 'ADMIN' ? 'Administrator' : 'Cashier'
+}
+
+const COLLAPSE_KEY = 'cafe_pos_sidebar_collapsed'
+
 /**
- * RestroBit-style Collapsible Sidebar Navigation Rail.
- * Mendukung mode penuh (~240px) dengan profile card, header group menu, dan badge,
- * serta mode ringkas rail (~64px) dengan animasi transisi yang mulus.
+ * Collapsible, role-aware navigation rail.
+ * Expanded (~240px): icon + label, profile card, grouped menus.
+ * Collapsed (~72px): icons only. State persists in localStorage and the width
+ * transitions smoothly. CASHIER users only see Register (POS) and Order
+ * History; the remaining menus are reserved for ADMIN (Phase 2+).
  */
 export default function NavigationRail({
   onOpenHistory,
@@ -63,10 +81,10 @@ export default function NavigationRail({
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
 
-  // State collapsed yang dipertahankan di localStorage
+  // Collapsed state persisted in localStorage
   const [collapsed, setCollapsed] = useState(() => {
     try {
-      return localStorage.getItem('cafe_pos_sidebar_collapsed') === 'true'
+      return localStorage.getItem(COLLAPSE_KEY) === 'true'
     } catch {
       return false
     }
@@ -76,7 +94,7 @@ export default function NavigationRail({
     setCollapsed((prev) => {
       const next = !prev
       try {
-        localStorage.setItem('cafe_pos_sidebar_collapsed', String(next))
+        localStorage.setItem(COLLAPSE_KEY, String(next))
       } catch {
         // ignore
       }
@@ -85,107 +103,125 @@ export default function NavigationRail({
   }
 
   function handleNotice(name: string) {
-    if (onFeatureNotice) {
-      onFeatureNotice(name)
-    }
+    onFeatureNotice?.(name)
   }
 
-  // Grup 1: Menu Utama
-  const mainItems: NavItem[] = [
+  const role = user?.role ?? 'CASHIER'
+
+  // Full menu structure — each item declares which roles may see it.
+  // Groups whose items are all filtered out are hidden entirely.
+  const groups: NavGroup[] = [
     {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-      onClick: () => {
-        if (user?.role === 'ADMIN') {
-          navigate('/dashboard')
-        } else {
-          handleNotice('Dashboard Admin hanya dapat diakses oleh Administrator.')
-        }
-      },
+      id: 'main',
+      label: 'Main',
+      items: [
+        {
+          id: 'dashboard',
+          label: 'Dashboard',
+          icon: LayoutDashboard,
+          roles: ['ADMIN'],
+          onClick: () => navigate('/dashboard'),
+        },
+        {
+          id: 'pos',
+          label: 'Register',
+          icon: Store,
+          roles: ['ADMIN', 'CASHIER'],
+          active: true,
+          onClick: () => navigate('/pos'),
+        },
+        {
+          id: 'table',
+          label: 'Tables',
+          icon: UtensilsCrossed,
+          roles: ['ADMIN'],
+          onClick: () => handleNotice('Table management arrives in the reservation phase.'),
+        },
+        {
+          id: 'reservations',
+          label: 'Reservations',
+          icon: CalendarClock,
+          roles: ['ADMIN'],
+          onClick: () => handleNotice('Table reservations arrive in a later phase.'),
+        },
+      ],
     },
     {
-      id: 'pos',
-      label: 'POS',
-      icon: Store,
-      active: true,
-      onClick: () => navigate('/pos'),
+      id: 'offering',
+      label: 'Offering',
+      items: [
+        {
+          id: 'history',
+          label: 'Order History',
+          icon: History,
+          roles: ['ADMIN', 'CASHIER'],
+          onClick: onOpenHistory,
+        },
+        {
+          id: 'payments',
+          label: 'Payments',
+          icon: CreditCard,
+          roles: ['ADMIN'],
+          badge: 'New',
+          badgeColor: 'bg-primary text-primary-foreground',
+          onClick: () => handleNotice('Active payment channels live in cashier settings.'),
+        },
+        {
+          id: 'customer',
+          label: 'Customers',
+          icon: Users,
+          roles: ['ADMIN'],
+          onClick: () => handleNotice('Customer list & CRM integrate in the transaction panel.'),
+        },
+      ],
     },
     {
-      id: 'table',
-      label: 'Table',
-      icon: UtensilsCrossed,
-      onClick: () => handleNotice('Manajemen Meja (Table) akan hadir di fase reservasi.'),
-    },
-    {
-      id: 'reservations',
-      label: 'Reservations',
-      icon: CalendarClock,
-      onClick: () => handleNotice('Fitur Reservasi Meja akan hadir di fase berikutnya.'),
+      id: 'backoffice',
+      label: 'Back Office',
+      items: [
+        {
+          id: 'reports',
+          label: 'Reports',
+          icon: BarChart3,
+          roles: ['ADMIN'],
+          onClick: () => handleNotice('Daily sales reports are available in the Admin Dashboard.'),
+        },
+        {
+          id: 'setting',
+          label: 'Settings',
+          icon: Settings,
+          roles: ['ADMIN'],
+          onClick: () => handleNotice('System settings can be configured by an Admin.'),
+        },
+      ],
     },
   ]
 
-  // Grup 2: Offering / Operasional
-  const offeringItems: NavItem[] = [
-    {
-      id: 'history',
-      label: 'Order History',
-      icon: History,
-      onClick: onOpenHistory,
-    },
-    {
-      id: 'payments',
-      label: 'Payments',
-      icon: CreditCard,
-      badge: 'New',
-      badgeColor: 'bg-primary text-primary-foreground',
-      onClick: () => handleNotice('Daftar Channel Pembayaran aktif di pengaturan kasir.'),
-    },
-    {
-      id: 'customer',
-      label: 'Customer',
-      icon: Users,
-      onClick: () => handleNotice('Daftar Pelanggan & CRM terintegrasi di panel transaksi.'),
-    },
-  ]
-
-  // Grup 3: Back Office
-  const backOfficeItems: NavItem[] = [
-    {
-      id: 'reports',
-      label: 'Reports',
-      icon: BarChart3,
-      onClick: () => handleNotice('Laporan Penjualan harian tersedia di Dashboard Admin.'),
-    },
-    {
-      id: 'setting',
-      label: 'Setting',
-      icon: Settings,
-      onClick: () => handleNotice('Pengaturan sistem dapat dikonfigurasi oleh Admin.'),
-    },
-  ]
+  const visibleGroups = groups
+    .map((g) => ({ ...g, items: g.items.filter((item) => item.roles.includes(role)) }))
+    .filter((g) => g.items.length > 0)
 
   return (
     <aside
       className={cn(
-        'relative z-40 flex h-full shrink-0 flex-col border-r border-border/70 bg-card py-3.5 transition-all duration-300 ease-in-out select-none',
-        collapsed ? 'w-16 items-center px-2' : 'w-60 px-3.5',
+        'relative z-40 flex h-full shrink-0 flex-col border-r border-border/70 bg-card py-3.5 transition-[width] duration-300 ease-in-out select-none',
+        collapsed ? 'w-[72px] items-center px-2.5' : 'w-60 px-3.5',
       )}
     >
-      {/* ===== Header Brand & Collapse Toggle ===== */}
+      {/* ===== Brand & collapse toggle ===== */}
       <div
         className={cn(
           'flex items-center',
-          collapsed ? 'flex-col gap-2 justify-center w-full' : 'justify-between px-1',
+          collapsed ? 'w-full flex-col justify-center gap-2' : 'justify-between px-1',
         )}
       >
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex min-w-0 items-center gap-2.5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs">
             <Coffee className="h-4 w-4" />
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-bold tracking-tight text-foreground leading-tight">
+              <h1 className="truncate text-sm font-bold leading-tight tracking-tight text-foreground">
                 RestroBit
               </h1>
               <span className="text-[10px] font-semibold text-primary">Point of Sale</span>
@@ -196,21 +232,22 @@ export default function NavigationRail({
         <button
           type="button"
           onClick={toggleCollapse}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          title={collapsed ? 'Buka Sidebar' : 'Tutup Sidebar'}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
         </button>
       </div>
 
-      {/* ===== User Profile Card (RestroBit Style) ===== */}
+      {/* ===== User profile (avatar + name + role when expanded) ===== */}
       {collapsed ? (
         <div
           className="mt-3.5 flex flex-col items-center"
-          title={`${user?.name || 'Kasir'} • ${user?.role === 'ADMIN' ? 'Administrator' : 'Kasir Shift'}`}
+          title={`${user?.name || 'Cashier'} • ${roleLabel(user?.role)}`}
         >
           <div className="relative">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary border border-primary/20">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-xs font-bold text-primary">
               {user?.name ? initialsOf(user.name) : <User className="h-4 w-4" />}
             </div>
             <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card bg-emerald-500" />
@@ -220,74 +257,52 @@ export default function NavigationRail({
         <div className="mt-3.5 rounded-2xl border border-border/70 bg-secondary/40 p-2.5 shadow-subtle">
           <div className="flex items-center gap-2.5">
             <div className="relative">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary border border-primary/20">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-xs font-bold text-primary">
                 {user?.name ? initialsOf(user.name) : <User className="h-4 w-4" />}
               </div>
               <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-card bg-emerald-500" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-bold text-foreground">
-                {user?.name || 'Kasir Shift'}
+                {user?.name || 'Cashier'}
               </p>
               <p className="truncate text-[10px] font-medium text-muted-foreground">
-                {user?.role === 'ADMIN' ? 'Administrator' : 'Kasir / Staf'}
+                {roleLabel(user?.role)}
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* ===== Navigation Items Section (Scrollable) ===== */}
-      <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-y-auto pr-0.5 scrollbar-none space-y-1">
-        {/* Grup 1: Main Menu */}
-        <div className="space-y-1">
-          {mainItems.map((item) => (
-            <NavButton key={item.id} item={item} collapsed={collapsed} />
-          ))}
-        </div>
-
-        {/* Grup 2: Offering */}
-        <div className="pt-2">
-          {collapsed ? (
-            <div className="my-2 h-px w-6 bg-border/60 mx-auto" />
-          ) : (
-            <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-              Offering
-            </p>
-          )}
-          <div className="space-y-1">
-            {offeringItems.map((item) => (
-              <NavButton key={item.id} item={item} collapsed={collapsed} />
-            ))}
+      {/* ===== Navigation groups (scrollable, filtered by role) ===== */}
+      <div className="scrollbar-none mt-4 flex min-h-0 flex-1 flex-col space-y-1 overflow-y-auto pr-0.5">
+        {visibleGroups.map((group, index) => (
+          <div key={group.id} className={cn(index > 0 && 'pt-2')}>
+            {index > 0 &&
+              (collapsed ? (
+                <div className="mx-auto my-2 h-px w-6 bg-border/60" />
+              ) : (
+                <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
+                  {group.label}
+                </p>
+              ))}
+            <div className="space-y-1">
+              {group.items.map((item) => (
+                <NavButton key={item.id} item={item} collapsed={collapsed} />
+              ))}
+            </div>
           </div>
-        </div>
-
-        {/* Grup 3: Back Office */}
-        <div className="pt-2">
-          {collapsed ? (
-            <div className="my-2 h-px w-6 bg-border/60 mx-auto" />
-          ) : (
-            <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-              Back Office
-            </p>
-          )}
-          <div className="space-y-1">
-            {backOfficeItems.map((item) => (
-              <NavButton key={item.id} item={item} collapsed={collapsed} />
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* ===== Bottom Action Buttons ===== */}
-      <div className="mt-auto pt-3 border-t border-border/70 space-y-1">
-        {/* Lock Register */}
+      {/* ===== Bottom actions ===== */}
+      <div className="mt-auto space-y-1 border-t border-border/70 pt-3">
         <button
           type="button"
           onClick={onLockRegister}
           className={cn(
-            'flex items-center rounded-xl text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-150 active:scale-[0.98]',
-            collapsed ? 'h-9 w-9 justify-center' : 'h-9 w-full gap-3 px-3 justify-start',
+            'flex items-center rounded-xl text-xs font-medium text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground active:scale-[0.98]',
+            collapsed ? 'h-9 w-full justify-center' : 'h-9 w-full justify-start gap-3 px-3',
           )}
           title={collapsed ? 'Lock Register' : undefined}
         >
@@ -295,15 +310,14 @@ export default function NavigationRail({
           {!collapsed && <span className="truncate">Lock Register</span>}
         </button>
 
-        {/* Logout / Sign Out */}
         <button
           type="button"
           onClick={logout}
           className={cn(
-            'flex items-center rounded-xl text-xs font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-150 active:scale-[0.98]',
-            collapsed ? 'h-9 w-9 justify-center' : 'h-9 w-full gap-3 px-3 justify-start',
+            'flex items-center rounded-xl text-xs font-medium text-muted-foreground transition-all duration-150 hover:bg-destructive/10 hover:text-destructive active:scale-[0.98]',
+            collapsed ? 'h-9 w-full justify-center' : 'h-9 w-full justify-start gap-3 px-3',
           )}
-          title={collapsed ? 'Sign Out / Logout' : undefined}
+          title={collapsed ? 'Sign Out' : undefined}
         >
           <LogOut className="h-4 w-4 shrink-0" />
           {!collapsed && <span className="truncate">Sign Out</span>}
@@ -313,7 +327,7 @@ export default function NavigationRail({
   )
 }
 
-/** Tombol item navigasi tunggal yang otomatis menyesuaikan saat collapsed vs expanded. */
+/** Single navigation button; adapts to collapsed vs expanded and uses a soft-gray row fill when active. */
 function NavButton({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const Icon = item.icon
   const isActive = item.active
@@ -323,20 +337,21 @@ function NavButton({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
       type="button"
       onClick={item.onClick}
       title={collapsed ? item.label : undefined}
+      aria-current={isActive ? 'page' : undefined}
       className={cn(
         'group flex items-center rounded-xl text-xs font-semibold transition-all duration-150 active:scale-[0.98]',
-        collapsed ? 'h-10 w-10 justify-center' : 'h-10 w-full justify-between px-3',
+        collapsed ? 'h-10 w-full justify-center' : 'h-10 w-full justify-between px-3',
         isActive
-          ? 'bg-primary text-primary-foreground shadow-xs'
-          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+          ? 'bg-accent text-foreground'
+          : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
       )}
     >
-      <div className={cn('flex items-center', collapsed ? 'justify-center' : 'gap-3 min-w-0')}>
+      <div className={cn('flex items-center', collapsed ? 'justify-center' : 'min-w-0 gap-3')}>
         <Icon
           className={cn(
             'h-4 w-4 shrink-0 transition-colors',
             isActive
-              ? 'text-primary-foreground'
+              ? 'text-primary'
               : 'text-muted-foreground group-hover:text-foreground',
           )}
         />
