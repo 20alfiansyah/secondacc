@@ -1,6 +1,8 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Banknote,
+  Calendar,
+  Clock,
   Flame,
   Minus,
   Plus,
@@ -61,7 +63,7 @@ function formatDateTime(iso: string | null): string {
   if (!iso) return ''
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleString('id-ID', {
+  return d.toLocaleString('en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -107,6 +109,28 @@ export default function OrderDetailsPanel({
 }: OrderDetailsPanelProps) {
   const isOpen = mode === 'open'
 
+  // Live date & time shown in the ticket header (moved from the removed POS top bar)
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const todayLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat('en-US', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }).format(now),
+    [now],
+  )
+  const timeLabel = useMemo(
+    () => new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }).format(now),
+    [now],
+  )
+
   const subtotal = useMemo(
     () => items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
     [items],
@@ -117,16 +141,16 @@ export default function OrderDetailsPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Header: nomor tiket + tanggal/jam */}
+      {/* Header: ticket number + date/time (live for new tickets) */}
       <div className="mb-4 flex items-start justify-between gap-2">
         <div>
           <h2 className="text-base font-bold tracking-tight text-foreground">
-            {isOpen && orderNumber != null ? `Order ${padOrder(orderNumber)}` : 'Pesanan Baru'}
+            {isOpen && orderNumber != null ? `Order ${padOrder(orderNumber)}` : 'New Order'}
           </h2>
           {isOpen ? (
             <p className="text-[11px] text-muted-foreground">{formatDateTime(createdAt)}</p>
           ) : (
-            <p className="text-[11px] text-muted-foreground">Belum disimpan — tiket baru</p>
+            <p className="text-[11px] text-muted-foreground">Not saved yet — new ticket</p>
           )}
         </div>
         <div className="flex items-center gap-1.5">
@@ -135,6 +159,18 @@ export default function OrderDetailsPanel({
               Open Bill
             </span>
           )}
+        </div>
+      </div>
+
+      {/* Date/time bar (lives inside the ticket panel) */}
+      <div className="mb-4 flex items-center justify-between rounded-xl border border-border/70 bg-secondary/40 px-3 py-2">
+        <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
+          <Calendar className="h-3.5 w-3.5 text-primary" />
+          <span>{todayLabel}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary tabular-nums">
+          <Clock className="h-3.5 w-3.5" />
+          <span>{timeLabel}</span>
         </div>
       </div>
 

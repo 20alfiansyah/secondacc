@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowUp,
-  Calendar,
   CheckCircle2,
-  Clock,
   Coffee,
   Receipt,
   Search,
@@ -58,30 +56,6 @@ export default function POS() {
   function scrollToQueue() {
     leftColRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
   }
-
-  // Live Date & Time untuk Header
-  const [currentDateTime, setCurrentDateTime] = useState(new Date())
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentDateTime(new Date()), 1000)
-    return () => clearInterval(timer)
-  }, [])
-
-  const formattedDate = useMemo(() => {
-    return new Intl.DateTimeFormat('id-ID', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }).format(currentDateTime)
-  }, [currentDateTime])
-
-  const formattedTime = useMemo(() => {
-    const h = String(currentDateTime.getHours()).padStart(2, '0')
-    const m = String(currentDateTime.getMinutes()).padStart(2, '0')
-    const s = String(currentDateTime.getSeconds()).padStart(2, '0')
-    return `${h}:${m}:${s}`
-  }, [currentDateTime])
 
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -325,55 +299,6 @@ export default function POS() {
 
       {/* ===== Main Column (semua zona lainnya) ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* ===== Clean Header: Tanggal, Hari, & Waktu ===== */}
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border/70 bg-card/80 px-4 sm:px-6">
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <Calendar className="h-3.5 w-3.5 text-primary" />
-              <span>{formattedDate}</span>
-            </div>
-            <span className="text-muted-foreground/40 text-xs">•</span>
-            <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-primary tabular-nums">
-              <Clock className="h-3.5 w-3.5" />
-              <span>{formattedTime}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={scrollToQueue}
-              className={cn(
-                'hidden items-center gap-1.5 rounded-full border border-border/80 bg-secondary/50 px-3 py-1 text-xs font-medium text-muted-foreground transition-all md:flex',
-                activeOrders.length > 0 && 'cursor-pointer hover:border-primary/40 hover:bg-secondary hover:text-foreground',
-                isQueueScrolledOut && activeOrders.length > 0 && 'border-primary/40 bg-primary/10 text-primary font-semibold',
-              )}
-              title={activeOrders.length > 0 ? 'Scroll to Active Orders Queue' : undefined}
-            >
-              <span className="flex items-center gap-1 text-primary">
-                <span className="h-2 w-2 rounded-full bg-primary" />
-                {activeOrders.length} Active Orders
-              </span>
-              {isQueueScrolledOut && activeOrders.length > 0 && (
-                <ArrowUp className="ml-0.5 h-3 w-3 text-primary animate-bounce" />
-              )}
-            </button>
-            {/* Mobile Cart Button trigger in Header */}
-            <button
-              onClick={() => setMobileCartOpen(true)}
-              className="relative flex h-9 items-center gap-1.5 rounded-xl border border-border/80 bg-card px-2.5 text-xs font-bold text-foreground lg:hidden"
-            >
-              <ShoppingBag className="h-3.5 w-3.5 text-primary" />
-              <span>Cart</span>
-              {cartItemCount > 0 && (
-                <span className="rounded-full bg-primary px-1.5 py-0.2 text-[10px] font-bold text-primary-foreground tabular-nums">
-                  {cartItemCount}
-                </span>
-              )}
-            </button>
-          </div>
-        </header>
-
       {/* ===== Main Content Area ===== */}
       <div className="grid flex-1 grid-cols-1 gap-5 overflow-hidden p-4 sm:p-5 lg:grid-cols-[1fr_360px]">
         {/* ===== Left Column: Order Queue & Menu Catalog Sections ===== */}
