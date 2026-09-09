@@ -27,3 +27,6 @@ Thumbs.db
 
 # Prisma generated artifacts
 prisma/migrations/dev.db*
+
+# Hermes local files
+.hermes/

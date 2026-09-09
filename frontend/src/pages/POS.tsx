@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ArrowUp,
+  Calendar,
   CheckCircle2,
+  Clock,
   Coffee,
   Receipt,
   Search,
@@ -22,7 +25,6 @@ import type {
   CategoryFilter,
   SortOption,
 } from '@/components/CategoryFilterBar'
-import { useAuthStore } from '@/store/authStore'
 import { useCartStore } from '@/store/cartStore'
 import { formatRupiah } from '@/utils/format'
 import { Button } from '@/components/ui/button'
@@ -41,8 +43,45 @@ import OrderDetailsPanel from '@/components/OrderDetailsPanel'
 import type { CheckoutResult } from '@/api/client'
 
 export default function POS() {
-  const { user } = useAuthStore()
   const { items, increase, decrease, addItem, setNotes, removeItem, clear } = useCartStore()
+
+  const leftColRef = useRef<HTMLDivElement>(null)
+  const [isQueueScrolledOut, setIsQueueScrolledOut] = useState(false)
+
+  function handleLeftColScroll(e: React.UIEvent<HTMLDivElement>) {
+    const isPast = e.currentTarget.scrollTop > 80
+    if (isPast !== isQueueScrolledOut) {
+      setIsQueueScrolledOut(isPast)
+    }
+  }
+
+  function scrollToQueue() {
+    leftColRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // Live Date & Time untuk Header
+  const [currentDateTime, setCurrentDateTime] = useState(new Date())
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentDateTime(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const formattedDate = useMemo(() => {
+    return new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(currentDateTime)
+  }, [currentDateTime])
+
+  const formattedTime = useMemo(() => {
+    const h = String(currentDateTime.getHours()).padStart(2, '0')
+    const m = String(currentDateTime.getMinutes()).padStart(2, '0')
+    const s = String(currentDateTime.getSeconds()).padStart(2, '0')
+    return `${h}:${m}:${s}`
+  }, [currentDateTime])
 
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -277,44 +316,54 @@ export default function POS() {
 
   return (
     <div className="flex h-svh bg-background selection:bg-primary/20 selection:text-primary">
-      {/* ===== Zone 1: Slim Left Navigation Rail ===== */}
-      <NavigationRail onOpenHistory={() => setHistoryOpen(true)} onLockRegister={lockRegister} />
+      {/* ===== Zone 1: RestroBit-style Collapsible Sidebar ===== */}
+      <NavigationRail
+        onOpenHistory={() => setHistoryOpen(true)}
+        onLockRegister={lockRegister}
+        onFeatureNotice={(msg) => showFeedback(msg)}
+      />
 
       {/* ===== Main Column (semua zona lainnya) ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* ===== Sleek Header ===== */}
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-border/70 bg-card/80 px-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-xs">
-              <Coffee className="h-5 w-5" />
+        {/* ===== Clean Header: Tanggal, Hari, & Waktu ===== */}
+        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border/70 bg-card/80 px-4 sm:px-6">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+              <Calendar className="h-3.5 w-3.5 text-primary" />
+              <span>{formattedDate}</span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-bold tracking-tight text-foreground">Cafe POS</h1>
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Live
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Kasir: <span className="font-medium text-foreground">{user?.name || 'Staf'}</span>
-              </p>
+            <span className="text-muted-foreground/40 text-xs">•</span>
+            <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-primary tabular-nums">
+              <Clock className="h-3.5 w-3.5" />
+              <span>{formattedTime}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="hidden items-center rounded-full border border-border/80 bg-secondary/50 px-3.5 py-1 text-xs font-medium text-muted-foreground md:flex">
+            <button
+              type="button"
+              onClick={scrollToQueue}
+              className={cn(
+                'hidden items-center gap-1.5 rounded-full border border-border/80 bg-secondary/50 px-3 py-1 text-xs font-medium text-muted-foreground transition-all md:flex',
+                activeOrders.length > 0 && 'cursor-pointer hover:border-primary/40 hover:bg-secondary hover:text-foreground',
+                isQueueScrolledOut && activeOrders.length > 0 && 'border-primary/40 bg-primary/10 text-primary font-semibold',
+              )}
+              title={activeOrders.length > 0 ? 'Scroll to Active Orders Queue' : undefined}
+            >
               <span className="flex items-center gap-1 text-primary">
                 <span className="h-2 w-2 rounded-full bg-primary" />
                 {activeOrders.length} Active Orders
               </span>
-            </div>
+              {isQueueScrolledOut && activeOrders.length > 0 && (
+                <ArrowUp className="ml-0.5 h-3 w-3 text-primary animate-bounce" />
+              )}
+            </button>
             {/* Mobile Cart Button trigger in Header */}
             <button
               onClick={() => setMobileCartOpen(true)}
-              className="relative flex h-11 items-center gap-2 rounded-xl border border-border/80 bg-card px-3 text-xs font-bold text-foreground lg:hidden"
+              className="relative flex h-9 items-center gap-1.5 rounded-xl border border-border/80 bg-card px-2.5 text-xs font-bold text-foreground lg:hidden"
             >
-              <ShoppingBag className="h-4 w-4 text-primary" />
+              <ShoppingBag className="h-3.5 w-3.5 text-primary" />
               <span>Cart</span>
               {cartItemCount > 0 && (
                 <span className="rounded-full bg-primary px-1.5 py-0.2 text-[10px] font-bold text-primary-foreground tabular-nums">
@@ -328,7 +377,11 @@ export default function POS() {
       {/* ===== Main Content Area ===== */}
       <div className="grid flex-1 grid-cols-1 gap-5 overflow-hidden p-4 sm:p-5 lg:grid-cols-[1fr_360px]">
         {/* ===== Left Column: Order Queue & Menu Catalog Sections ===== */}
-        <div className="flex min-h-0 flex-col gap-5">
+        <div
+          ref={leftColRef}
+          onScroll={handleLeftColScroll}
+          className="relative flex min-h-0 flex-col gap-5 overflow-y-auto pr-1 scroll-smooth"
+        >
           {/* SECTION 1 — Order Queue (open bills waiting for payment) */}
           <ActiveOrdersLine
             orders={activeOrders}
@@ -356,7 +409,24 @@ export default function POS() {
             icon={UtensilsCrossed}
             title="Menu Catalog"
             subtitle="All items across the menu"
-            className="flex-1"
+            className="flex-1 shrink-0"
+            right={
+              isQueueScrolledOut && activeOrders.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={scrollToQueue}
+                  className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-bold text-primary transition-all hover:bg-primary hover:text-primary-foreground active:scale-95 animate-in fade-in"
+                  title="Scroll to Active Orders Queue"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                  </span>
+                  <span>{activeOrders.length} In Queue</span>
+                  <ArrowUp className="h-3 w-3" />
+                </button>
+              ) : undefined
+            }
           >
             {/* Toolbar filter katalog: search, pills, sort/status, popover Categories */}
             <CategoryFilterBar
@@ -370,10 +440,14 @@ export default function POS() {
               onAvailabilityChange={setAvailabilityFilter}
               sortOption={sortOption}
               onSortChange={setSortOption}
+              activeOrdersCount={activeOrders.length}
+              isQueueScrolledOut={isQueueScrolledOut}
+              onScrollToQueue={scrollToQueue}
+              className="sticky top-0 z-20 -mx-4 -mt-4 bg-card/95 px-4 pt-4 pb-2 backdrop-blur-md sm:-mx-5 sm:-mt-5 sm:px-5 border-b border-border/40"
             />
 
             {/* Grid produk + section headers kategori */}
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="min-h-0 flex-1 pt-2">
               {loading ? (
                 <div className="flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground">
                   <Coffee className="h-8 w-8 animate-bounce text-primary/60" />

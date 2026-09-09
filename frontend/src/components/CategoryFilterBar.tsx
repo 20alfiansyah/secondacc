@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ArrowUp,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
@@ -75,6 +76,10 @@ export default function CategoryFilterBar({
   onAvailabilityChange,
   sortOption,
   onSortChange,
+  activeOrdersCount,
+  isQueueScrolledOut,
+  onScrollToQueue,
+  className,
 }: {
   categories: Category[]
   products: Product[]
@@ -86,6 +91,10 @@ export default function CategoryFilterBar({
   onAvailabilityChange: (f: AvailabilityFilter) => void
   sortOption: SortOption
   onSortChange: (s: SortOption) => void
+  activeOrdersCount?: number
+  isQueueScrolledOut?: boolean
+  onScrollToQueue?: () => void
+  className?: string
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const scrollerRef = useRef<HTMLDivElement>(null)
@@ -166,11 +175,11 @@ export default function CategoryFilterBar({
   }
 
   return (
-    <div className="mb-4 space-y-3.5">
+    <div className={cn('mb-4 space-y-3.5', className)}>
       {/* Row: live search + toolbar selectors */}
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
           <Input
             ref={inputRef}
             value={search}
@@ -178,32 +187,48 @@ export default function CategoryFilterBar({
             onFocus={() => setInputFocused(true)}
             onBlur={() => setInputFocused(false)}
             placeholder="Search products..."
-            className="h-12 rounded-2xl pl-10 pr-12 bg-card shadow-subtle border-border/80 text-sm"
+            className="h-10 rounded-xl pl-9 pr-10 bg-card shadow-subtle border-border/80 text-xs sm:text-sm"
           />
           {search ? (
             <button
               onClick={() => onSearchChange('')}
               aria-label="Bersihkan pencarian"
-              className="absolute right-1.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </button>
           ) : (
             !inputFocused && (
-              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 flex h-5 items-center rounded-md border border-border/70 bg-background px-1.5 text-[10px] font-semibold text-muted-foreground/70">
+              <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 flex h-5 items-center rounded-md border border-border/70 bg-background px-1.5 text-[10px] font-semibold text-muted-foreground/70">
                 /
               </kbd>
             )
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex h-12 items-center gap-1.5 rounded-xl border border-border/80 bg-card px-3 shadow-subtle text-sm">
-            <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
+        <div className="flex items-center gap-1.5">
+          {/* Compact Pill: Scroll back to queue when scrolled past */}
+          {isQueueScrolledOut && activeOrdersCount && activeOrdersCount > 0 ? (
+            <button
+              type="button"
+              onClick={onScrollToQueue}
+              className="flex h-10 items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3 text-xs font-bold text-primary shadow-subtle transition-all duration-150 hover:bg-primary hover:text-primary-foreground active:scale-95 animate-in fade-in"
+              title="Scroll to Active Orders Queue"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+              </span>
+              <span className="tabular-nums">{activeOrdersCount} in Queue</span>
+              <ArrowUp className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+          <div className="flex h-10 items-center gap-1 rounded-xl border border-border/80 bg-card px-2.5 shadow-subtle text-xs sm:text-sm">
+            <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <select
               value={availabilityFilter}
               onChange={(e) => onAvailabilityChange(e.target.value as AvailabilityFilter)}
-              className="bg-transparent text-sm font-semibold text-foreground focus:outline-none cursor-pointer"
+              className="bg-transparent text-xs sm:text-sm font-semibold text-foreground focus:outline-none cursor-pointer"
             >
               {(Object.keys(FILTER_LABEL) as AvailabilityFilter[]).map((k) => (
                 <option key={k} value={k}>
@@ -213,12 +238,12 @@ export default function CategoryFilterBar({
             </select>
           </div>
 
-          <div className="flex h-12 items-center gap-1.5 rounded-xl border border-border/80 bg-card px-3 shadow-subtle text-sm">
-            <ArrowUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div className="flex h-10 items-center gap-1 rounded-xl border border-border/80 bg-card px-2.5 shadow-subtle text-xs sm:text-sm">
+            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <select
               value={sortOption}
               onChange={(e) => onSortChange(e.target.value as SortOption)}
-              className="bg-transparent text-sm font-semibold text-foreground focus:outline-none cursor-pointer"
+              className="bg-transparent text-xs sm:text-sm font-semibold text-foreground focus:outline-none cursor-pointer"
             >
               {(Object.keys(SORT_LABEL) as SortOption[]).map((k) => (
                 <option key={k} value={k}>
@@ -230,21 +255,21 @@ export default function CategoryFilterBar({
         </div>
       </div>
 
-      {/* Carousel pill — tinggi tetap ~42px, panah saat overflow */}
+      {/* Carousel pill — tinggi tetap ~36px, panah saat overflow */}
       <div className="group/bar relative flex items-center">
         <button
           onClick={() => scrollBy(-1)}
           disabled={!canLeft}
           aria-label="Scroll categories left"
-          className="absolute -left-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground shadow-subtle transition-all duration-150 hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 md:flex"
+          className="absolute -left-3 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground shadow-subtle transition-all duration-150 hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 md:flex"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className="h-4 w-4" />
         </button>
 
         <div
           ref={scrollerRef}
           onScroll={updateArrows}
-          className="flex h-12 items-center gap-2.5 overflow-x-auto scrollbar-none"
+          className="flex h-10 items-center gap-2 overflow-x-auto scrollbar-none"
         >
           {pills.map((pill) => {
             const isActive = activeCategory === pill.value
@@ -253,7 +278,7 @@ export default function CategoryFilterBar({
                 key={pill.key}
                 onClick={() => select(pill.value)}
                 className={cn(
-                  'group flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-all duration-150 active:scale-[0.97]',
+                  'group flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-all duration-150 active:scale-[0.97]',
                   isActive
                     ? 'border-primary shadow-sm bg-primary text-primary-foreground'
                     : 'border-border/80 bg-card text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground',
@@ -261,13 +286,13 @@ export default function CategoryFilterBar({
               >
                 {pill.icon && (
                   <span className={cn(isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground')}>
-                    <pill.icon className="h-4 w-4" />
+                    <pill.icon className="h-3.5 w-3.5" />
                   </span>
                 )}
                 <span className="whitespace-nowrap">{pill.label}</span>
                 <span
                   className={cn(
-                    'rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums',
+                    'rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums',
                     isActive
                       ? 'bg-primary-foreground/20 text-primary-foreground'
                       : 'bg-muted text-muted-foreground',
@@ -284,16 +309,16 @@ export default function CategoryFilterBar({
             <button
               onClick={() => setGridOpen((v) => !v)}
               className={cn(
-                'flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-all duration-150 active:scale-[0.97]',
+                'flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-all duration-150 active:scale-[0.97]',
                 gridOpen
                   ? 'border-primary bg-primary/10 text-primary'
                   : 'border-border/80 bg-card text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground',
               )}
             >
-              <LayoutGrid className="h-4 w-4" />
+              <LayoutGrid className="h-3.5 w-3.5" />
               <span className="whitespace-nowrap">Categories</span>
               <ChevronRight
-                className={cn('h-4 w-4 transition-transform duration-150', gridOpen && 'rotate-90')}
+                className={cn('h-3.5 w-3.5 transition-transform duration-150', gridOpen && 'rotate-90')}
               />
             </button>
 
