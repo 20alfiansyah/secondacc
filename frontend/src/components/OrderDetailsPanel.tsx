@@ -189,7 +189,7 @@ export default function OrderDetailsPanel({
 
       {/* Segmented toggle Dine In / Takeaway */}
       <div className="mb-4">
-        <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Tipe Pesanan
         </label>
         <div className="grid grid-cols-2 gap-1 rounded-xl border border-border/80 bg-secondary/40 p-1">
@@ -217,7 +217,7 @@ export default function OrderDetailsPanel({
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
         {/* Customer name (wajib) */}
         <div>
-          <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Customer Name <span className="text-destructive">*</span>
           </label>
           <Input
@@ -236,7 +236,7 @@ export default function OrderDetailsPanel({
 
         {/* Quick gender selector */}
         <div>
-          <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Demografi (Gender)
           </label>
           <div className="grid grid-cols-2 gap-2.5">
@@ -265,7 +265,7 @@ export default function OrderDetailsPanel({
         {/* Daftar item keranjang */}
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Items ({itemCount})
             </label>
             {items.length > 0 && (
@@ -306,19 +306,19 @@ export default function OrderDetailsPanel({
 
         {/* Ringkasan finansial */}
         <div>
-          <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Ringkasan
           </label>
           <div className="rounded-2xl border border-border/70 bg-background/60 p-3.5 shadow-subtle">
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-xs">
               <span className="font-medium text-muted-foreground">Subtotal</span>
               <span className="font-semibold text-foreground tabular-nums">
                 {formatRupiah(subtotal)}
               </span>
             </div>
             <div className="mt-2 flex items-center justify-between border-t border-border/70 pt-2.5">
-              <span className="text-base font-bold text-foreground">Grand Total</span>
-              <span className="text-xl font-black text-primary tabular-nums">
+              <span className="text-sm font-bold text-foreground">Grand Total</span>
+              <span className="text-lg font-bold text-primary tabular-nums">
                 {formatRupiah(subtotal)}
               </span>
             </div>

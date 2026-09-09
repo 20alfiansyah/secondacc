@@ -188,7 +188,7 @@ export default function ProductCatalogGrid({
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <SectionIcon label={section.title} />
               </span>
-              <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 {section.title}
               </h2>
               <span className="rounded-full bg-muted px-2 py-0.2 text-[10px] font-bold text-muted-foreground tabular-nums">

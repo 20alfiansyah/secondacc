@@ -36,7 +36,7 @@ const Section = React.forwardRef<
         )}
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">{title}</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{title}</h2>
             {badge}
           </div>
           {subtitle && (
