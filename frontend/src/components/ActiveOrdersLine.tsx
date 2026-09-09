@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, ClipboardList, Coffee, Search, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ClipboardList, Coffee } from 'lucide-react'
 import type { OrderSummary, OrderType } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { formatRupiah } from '@/utils/format'
-import { Input } from '@/components/ui/input'
+import { SearchInput } from '@/components/ui/SearchInput'
 import { Section } from '@/components/ui/Section'
 
 type OrderFilter = 'all' | OrderType
@@ -110,25 +110,13 @@ export default function ActiveOrdersLine({
       bodyClassName="p-4 sm:p-5"
       className="shrink-0"
     >
-      {/* Search bar di dalam section body */}
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search orders by ID or customer..."
-          className="h-10 rounded-xl bg-background pl-9 pr-8 text-sm border-border/80"
-        />
-        {query && (
-          <button
-            onClick={() => setQuery('')}
-            aria-label="Clear search"
-            className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
-      </div>
+      {/* Search bar (identical to the Menu Catalog search) */}
+      <SearchInput
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search orders by ID or customer..."
+        className="mb-4 w-full max-w-[300px]"
+      />
 
       {/* Carousel 1-baris dengan panah saat overflow */}
       <div className="group/line relative">

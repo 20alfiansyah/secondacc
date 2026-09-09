@@ -10,16 +10,14 @@ import {
   Filter,
   Flame,
   LayoutGrid,
-  Search,
   Sparkles,
   Star,
   Utensils,
-  X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { Category, Product } from '@/api/client'
 import { cn } from '@/lib/utils'
-import { Input } from '@/components/ui/input'
+import { SearchInput } from '@/components/ui/SearchInput'
 
 export type CategoryFilter = 'all' | 'recommended' | 'best-seller' | number
 export type AvailabilityFilter = 'all' | 'available' | 'sold-out'
@@ -100,7 +98,6 @@ export default function CategoryFilterBar({
   const scrollerRef = useRef<HTMLDivElement>(null)
   const [canLeft, setCanLeft] = useState(false)
   const [canRight, setCanRight] = useState(false)
-  const [inputFocused, setInputFocused] = useState(false)
   const [gridOpen, setGridOpen] = useState(false)
 
   const counts = useMemo(() => {
@@ -178,33 +175,14 @@ export default function CategoryFilterBar({
     <div className={cn('mb-4 space-y-3.5', className)}>
       {/* Row: live search + toolbar selectors */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
-          <Input
-            ref={inputRef}
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            onFocus={() => setInputFocused(true)}
-            onBlur={() => setInputFocused(false)}
-            placeholder="Search products..."
-            className="h-10 rounded-xl pl-9 pr-10 bg-card shadow-subtle border-border/80 text-xs sm:text-sm"
-          />
-          {search ? (
-            <button
-              onClick={() => onSearchChange('')}
-              aria-label="Bersihkan pencarian"
-              className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          ) : (
-            !inputFocused && (
-              <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 flex h-5 items-center rounded-md border border-border/70 bg-background px-1.5 text-[10px] font-semibold text-muted-foreground/70">
-                /
-              </kbd>
-            )
-          )}
-        </div>
+        <SearchInput
+          ref={inputRef}
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Search products..."
+          hint="/"
+          className="w-full max-w-[300px]"
+        />
 
         <div className="flex items-center gap-1.5">
           {/* Compact Pill: Scroll back to queue when scrolled past */}
