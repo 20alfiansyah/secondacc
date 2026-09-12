@@ -6,7 +6,6 @@ import {
   Receipt,
   Search,
   ShoppingBag,
-  UtensilsCrossed,
   X,
 } from 'lucide-react'
 import TopBar from '@/components/TopBar'
@@ -339,7 +338,7 @@ export default function POS() {
 
           {/* SECTION 2 — Menu Catalog: full filter toolbar lives here */}
           <Section
-            icon={UtensilsCrossed}
+            icon="restaurant"
             title="Menu Catalog"
             subtitle="All items across the menu"
             className="flex-1 shrink-0"

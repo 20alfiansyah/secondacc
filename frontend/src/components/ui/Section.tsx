@@ -1,6 +1,6 @@
 import * as React from 'react'
-import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Icon from '@/components/ui/Icon'
 
 /**
  * Section — container card untuk membagi konten utama jadi blok yang jelas
@@ -12,7 +12,8 @@ import { cn } from '@/lib/utils'
 const Section = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
-    icon?: LucideIcon
+    /** Material Symbols glyph name (rendered via ui/Icon). */
+    icon?: string
     title: string
     subtitle?: string
     badge?: React.ReactNode
@@ -20,7 +21,7 @@ const Section = React.forwardRef<
     bodyClassName?: string
     children: React.ReactNode
   }
->(({ icon: Icon, title, subtitle, badge, right, bodyClassName, className, children, ...props }, ref) => (
+>(({ icon, title, subtitle, badge, right, bodyClassName, className, children, ...props }, ref) => (
   <div
     ref={ref}
     className={cn('flex min-h-0 flex-col rounded-2xl border border-border/70 bg-card shadow-card', className)}
@@ -29,9 +30,9 @@ const Section = React.forwardRef<
     {/* Header section */}
     <div className="flex shrink-0 items-center gap-3 px-4 pt-4 sm:px-5">
       <div className="flex items-center gap-2.5">
-        {Icon && (
+        {icon && (
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Icon className="h-[18px] w-[18px]" />
+            <Icon name={icon} className="text-[19px]" />
           </span>
         )}
         <div className="min-w-0">
