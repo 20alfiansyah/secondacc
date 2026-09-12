@@ -9,7 +9,7 @@ import {
   UtensilsCrossed,
   X,
 } from 'lucide-react'
-import type { CustomerGender, OrderType, Product } from '@/api/client'
+import TopBar from '@/components/TopBar'
 import {
   checkoutRequest,
   fetchActiveOrders,
@@ -17,7 +17,14 @@ import {
   fetchProducts,
   openBillRequest,
 } from '@/api/client'
-import type { Category, OpenBillItemInput, OrderSummary } from '@/api/client'
+import type {
+  Category,
+  CustomerGender,
+  OpenBillItemInput,
+  OrderSummary,
+  OrderType,
+  Product,
+} from '@/api/client'
 import type {
   AvailabilityFilter,
   CategoryFilter,
@@ -300,6 +307,7 @@ export default function POS() {
       {/* ===== Main Column (semua zona lainnya) ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
       {/* ===== Main Content Area ===== */}
+      <TopBar page="Register" />
       <div className="grid flex-1 grid-cols-1 gap-5 overflow-hidden p-4 sm:p-5 lg:grid-cols-[1fr_360px]">
         {/* ===== Left Column: Order Queue & Menu Catalog Sections ===== */}
         <div
