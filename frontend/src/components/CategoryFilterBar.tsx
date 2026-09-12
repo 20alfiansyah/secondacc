@@ -116,21 +116,18 @@ export default function CategoryFilterBar({
           </div>
         </div>
 
-        <div className="flex h-10 flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition hover:border-slate-300">
+        <button
+          type="button"
+          onClick={() => {
+            const order: SortOption[] = ['default', 'price-asc', 'price-desc', 'name-asc']
+            onSortChange(order[(order.indexOf(sortOption) + 1) % order.length]!)
+          }}
+          title="Urutkan produk"
+          className="flex flex-shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 shadow-xs transition hover:border-slate-300"
+        >
           <span className="material-symbols-outlined text-sm text-[#447C84]">tune</span>
-          <select
-            value={sortOption}
-            onChange={(e) => onSortChange(e.target.value as SortOption)}
-            aria-label="Sort products"
-            className="cursor-pointer bg-transparent text-[11px] font-medium text-slate-700 focus:outline-none"
-          >
-            {(Object.keys(SORT_SHORT_LABEL) as SortOption[]).map((k) => (
-              <option key={k} value={k}>
-                {SORT_SHORT_LABEL[k]}
-              </option>
-            ))}
-          </select>
-        </div>
+          <span className="text-[11px] font-medium">Sort: {SORT_SHORT_LABEL[sortOption]}</span>
+        </button>
       </div>
 
       {/* Category pills */}

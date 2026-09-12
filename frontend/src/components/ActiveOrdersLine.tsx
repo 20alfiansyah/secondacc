@@ -64,9 +64,9 @@ export default function ActiveOrdersLine({
     value === 'all' ? orders.length : orders.filter((o) => o.orderType === value).length
 
   return (
-    <section className="space-y-3 flex-shrink-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      {/* Header row */}
-      <div className="flex items-center justify-between">
+    <section className="flex-shrink-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs transition-all duration-200">
+      {/* Header band */}
+      <div className="flex items-center justify-between border-b border-slate-100 bg-[#F8FAFC] px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[20px] text-[#447C84]">
@@ -74,6 +74,10 @@ export default function ActiveOrdersLine({
             </span>
             <span className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
               ACTIVE TICKETS
+            </span>
+            <span className="flex items-center gap-1.5 rounded-full border border-[#b9e2d3] bg-[#edf7f3] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[#2d5258]">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#65AF92]" />
+              {orders.length} Active
             </span>
           </div>
           <div className="hidden h-4 w-px bg-slate-200 md:block" />
@@ -84,9 +88,9 @@ export default function ActiveOrdersLine({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          title={open ? 'Collapse Active Tickets' : 'Expand Active Tickets'}
+          title="Toggle Active Tickets Tray"
           aria-expanded={open}
-          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 shadow-xs transition active:scale-95 hover:bg-slate-100 hover:text-slate-900"
+          className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-200 text-slate-500 shadow-xs transition active:scale-95 hover:bg-slate-100 hover:text-slate-900"
         >
           <span className="material-symbols-outlined text-[18px]">
             {open ? 'expand_less' : 'expand_more'}
@@ -94,12 +98,10 @@ export default function ActiveOrdersLine({
         </button>
       </div>
 
-      {!open && null}
-
       {open && (
-        <div className="space-y-3 transition-all duration-200">
-          {/* Filter tabs */}
-          <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
+        <div>
+          {/* Filter tabs bar */}
+          <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto border-b border-slate-100 bg-white px-4 py-2">
             {FILTERS.map((tab) => {
               const isActive = filter === tab.value
               return (
@@ -128,7 +130,7 @@ export default function ActiveOrdersLine({
           </div>
 
           {/* Ticket cards grid */}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 bg-slate-50/50 p-3.5 md:grid-cols-3">
             {filteredOrders.length === 0 ? (
               <div className="col-span-full flex items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-4 text-muted-foreground">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100/60 text-slate-400">
@@ -191,7 +193,7 @@ export default function ActiveOrdersLine({
                       </p>
                     </div>
 
-                    <div className="-mx-3.5 -mb-3.5 mt-3 flex items-center justify-between rounded-b-[10px] border-t border-slate-100 bg-white px-3.5 py-2.5">
+                    <div className="-mx-3.5 -mb-3.5 mt-3 flex items-center justify-between rounded-b-[10px] border-t border-slate-100 bg-slate-50/70 px-3.5 py-2.5">
                       <span className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Total Due
                       </span>

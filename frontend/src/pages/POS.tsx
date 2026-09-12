@@ -25,12 +25,14 @@ import PaymentModal from '@/components/PaymentModal'
 import ReceiptModal from '@/components/ReceiptModal'
 import CustomItemModal from '@/components/CustomItemModal'
 import OrderHistoryDrawer from '@/components/OrderHistoryDrawer'
-import NavigationRail from '@/components/NavigationRail'
+import NavigationRail, { SIDEBAR_TOGGLE_EVENT } from '@/components/NavigationRail'
 import ActiveOrdersLine from '@/components/ActiveOrdersLine'
 import CategoryFilterBar from '@/components/CategoryFilterBar'
 import ProductCatalogGrid from '@/components/ProductCatalogGrid'
 import OrderDetailsPanel from '@/components/OrderDetailsPanel'
 import type { CheckoutResult } from '@/api/client'
+
+const PANEL_TOGGLE_EVENT = 'cafe_pos:toggle-panel'
 
 export default function POS() {
   const { items, increase, decrease, addItem, setNotes, removeItem, clear } = useCartStore()
@@ -80,6 +82,15 @@ export default function POS() {
     })
   }
 
+  // Alt+O dari keyboard shortcut men-trigger event ini.
+  useEffect(() => {
+    function onPanelToggle() {
+      togglePanelCollapsed()
+    }
+    window.addEventListener(PANEL_TOGGLE_EVENT, onPanelToggle)
+    return () => window.removeEventListener(PANEL_TOGGLE_EVENT, onPanelToggle)
+  }, [])
+
   // Field customer (diisi di panel)
   const [customerName, setCustomerName] = useState('')
   const [customerGender, setCustomerGender] = useState<CustomerGender | null>(null)
@@ -102,7 +113,10 @@ export default function POS() {
     setActiveOrders(orderData)
   }
 
+  // Collapse tray MENU CATALOG (spec screen1: tombol chevron di header band).
+  const [catalogOpen, setCatalogOpen] = useState(true)
   useEffect(() => {
+
     let cancelled = false
     async function init() {
       try {
@@ -115,6 +129,22 @@ export default function POS() {
     return () => {
       cancelled = true
     }
+  }, [])
+
+  // Keyboard shortcuts spec screen1: Alt+S toggle sidebar, Alt+O toggle panel order.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!e.altKey || e.ctrlKey || e.metaKey) return
+      if (e.key === 's' || e.key === 'S') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent(SIDEBAR_TOGGLE_EVENT))
+      } else if (e.key === 'o' || e.key === 'O') {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent(PANEL_TOGGLE_EVENT))
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
   }, [])
 
   // Filtering & Sorting — pills kategori + search + sort (spec Stitch).
@@ -319,24 +349,45 @@ export default function POS() {
         />
 
         {/* ===== Menu Catalog section (flex-1, grid scroll di dalam) ===== */}
-        <section className="flex min-h-0 flex-1 flex-col space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          {/* Header row */}
-          <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-200/80 pb-1">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[20px] text-[#447C84]">
-                restaurant_menu
-              </span>
-              <span className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
-                MENU CATALOG
+        <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+          {/* Header band */}
+          <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 bg-[#F8FAFC] px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px] text-[#447C84]">
+                  restaurant_menu
+                </span>
+                <span className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
+                  MENU CATALOG
+                </span>
+                <span className="rounded-full border border-[#b9e2d3] bg-[#edf7f3] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[#2d5258]">
+                  {products.length} Items
+                </span>
+              </div>
+              <div className="hidden h-4 w-px bg-slate-200 md:block" />
+              <span className="hidden text-[11px] font-medium text-slate-500 md:inline-block">
+                Quick selection &amp; fulfillment
               </span>
             </div>
-            <span className="rounded-full border border-[#b9e2d3] bg-[#edf7f3] px-2.5 py-0.5 font-display text-[10px] font-bold tabular-nums text-[#2d5258]">
-              {products.length} Items
-            </span>
+            <button
+              type="button"
+              onClick={() => setCatalogOpen((v) => !v)}
+              title="Toggle Menu Catalog"
+              aria-expanded={catalogOpen}
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-200 text-slate-500 shadow-xs transition active:scale-95 hover:bg-slate-100 hover:text-slate-900"
+            >
+              <span className="material-symbols-outlined text-[18px]">
+                {catalogOpen ? 'expand_less' : 'expand_more'}
+              </span>
+            </button>
           </div>
 
-          {/* Toolbar filter katalog: search + kbd ⌘K + sort + pills kategori */}
-          <CategoryFilterBar
+          {catalogOpen && (
+          <>
+
+            {/* Toolbar band: search + kbd ⌘K + sort + pills kategori */}
+            <div className="flex-shrink-0 space-y-3 border-b border-slate-100 p-3.5">
+              <CategoryFilterBar
             categories={categories}
             products={products}
             activeCategory={activeCategory}
@@ -346,9 +397,11 @@ export default function POS() {
             sortOption={sortOption}
             onSortChange={setSortOption}
           />
+            </div>
+
 
           {/* Grid produk + header per kategori */}
-          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto pr-1">
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-4">
             {loading ? (
               <div className="flex h-64 flex-col items-center justify-center gap-2 text-slate-400">
                 <Icon name="coffee" className="animate-bounce text-3xl text-[#447C84]/60" />
@@ -370,6 +423,8 @@ export default function POS() {
               />
             )}
           </div>
+          </>
+          )}
         </section>
       </main>
 

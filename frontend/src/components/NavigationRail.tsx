@@ -38,6 +38,7 @@ interface NavGroup {
 }
 
 const COLLAPSE_KEY = 'cafe_pos_sidebar_collapsed'
+export const SIDEBAR_TOGGLE_EVENT = 'cafe_pos:toggle-sidebar'
 
 /**
  * Collapsible left sidebar (Stitch screen1 markup 1:1): brand header + LIVE
@@ -66,6 +67,23 @@ export default function NavigationRail({
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000)
     return () => window.clearInterval(timer)
+  }, [])
+
+  // Alt+S dari POS men-trigger event ini untuk collapse/expand sidebar.
+  useEffect(() => {
+    function onToggle() {
+      setCollapsed((prev) => {
+        const next = !prev
+        try {
+          localStorage.setItem(COLLAPSE_KEY, String(next))
+        } catch {
+          // ignore
+        }
+        return next
+      })
+    }
+    window.addEventListener(SIDEBAR_TOGGLE_EVENT, onToggle)
+    return () => window.removeEventListener(SIDEBAR_TOGGLE_EVENT, onToggle)
   }, [])
 
   function toggleCollapse() {
@@ -148,6 +166,8 @@ export default function NavigationRail({
         collapsed ? 'w-[4.5rem]' : 'w-[240px]',
       )}
     >
+      <div className="flex flex-col">
+
       {/* ===== Brand header with logo + LIVE badge ===== */}
       <div
         className={cn(
@@ -202,6 +222,7 @@ export default function NavigationRail({
           </div>
         ))}
       </nav>
+      </div>
 
       {/* ===== Footer: shift row + user card ===== */}
       <div

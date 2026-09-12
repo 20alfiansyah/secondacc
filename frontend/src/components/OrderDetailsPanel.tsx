@@ -194,7 +194,10 @@ export default function OrderDetailsPanel({
 
   const subtotal = useMemo(() => items.reduce((sum, l) => sum + l.product.price * l.quantity, 0), [items])
   const tax = Math.round(subtotal * 0.1)
-  const grandTotalDisplay = subtotal + tax
+  // Display-only (spec Stitch): Service Charge 5% ikut tampil di grand total
+  // visual, TIDAK dikirim ke backend (payload checkout tetap subtotal).
+  const service = Math.round(subtotal * 0.05)
+  const grandTotalDisplay = subtotal + tax + service
   const hasItems = items.length > 0
 
   // Auto-cancel notes editor saat item/panel berubah radikal (items berubah).
@@ -313,24 +316,18 @@ export default function OrderDetailsPanel({
             })}
           </div>
         </div>
-
         {/* Selected Items */}
         <div className="space-y-2 border-t border-slate-100 pt-1">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="font-display text-xs font-medium uppercase tracking-wider text-slate-500">
-                SELECTED ITEMS ({items.reduce((sum, l) => sum + l.quantity, 0)})
-              </span>
-            </div>
+          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400 font-display pb-0.5">
+            <span>Selected Items ({items.reduce((sum, l) => sum + l.quantity, 0)})</span>
             {hasItems && (
               <button
                 type="button"
                 onClick={onClearCart}
                 title="Clear all"
-                className="flex cursor-pointer items-center gap-1 rounded p-1 text-xs font-semibold text-rose-600 transition-colors hover:bg-slate-100"
+                className="cursor-pointer rounded-lg p-1 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
               >
-                <span className="material-symbols-outlined text-base text-rose-600">delete</span>
-                <span className="text-rose-600">Clear all</span>
+                <TrashIcon className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -352,8 +349,9 @@ export default function OrderDetailsPanel({
               {items.map((line) => (
                 <div
                   key={line.id}
-                  className="group space-y-2.5 rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-xs transition hover:border-[#447C84]"
+                  className="group space-y-2.5 rounded-xl border border-slate-200/80 bg-white p-3 shadow-xs transition hover:border-[#447C84]"
                 >
+                  {/* Header row: nama + @price kiri, line total kanan */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <h4 className="truncate text-xs font-bold tracking-tight text-slate-900">
@@ -363,85 +361,78 @@ export default function OrderDetailsPanel({
                         @ {formatRupiah(line.product.price)}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => onRemoveItem(line.id)}
-                      title="Remove item"
-                      className="shrink-0 cursor-pointer rounded p-1 text-slate-300 transition hover:bg-rose-50 hover:text-rose-600"
-                    >
-                      <TrashIcon className="h-3.5 w-3.5" />
-                    </button>
+                    <span className="shrink-0 text-xs font-bold tabular-nums text-slate-900">
+                      {formatRupiah(line.product.price * line.quantity)}
+                    </span>
                   </div>
 
-                  {/* Chips catatan + tombol edit */}
-                  {(line.notes?.trim() || editingNotesId === line.id) && (
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {line.notes?.trim() && editingNotesId !== line.id && (
-                        <span className="rounded-md border border-[#b9e2d3] bg-[#edf7f3] px-2 py-0.5 text-[10px] font-medium text-[#2d5258]">
+                  {editingNotesId === line.id ? (
+                    <div className="flex w-full items-center gap-1">
+                      <input
+                        autoFocus
+                        value={notesDraft}
+                        onChange={(e) => setNotesDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') commitNotes(line.id)
+                          if (e.key === 'Escape') setEditingNotesId(null)
+                        }}
+                        onBlur={() => commitNotes(line.id)}
+                        placeholder="e.g. less sugar, no ice…"
+                        className="h-7 w-full rounded-md border border-slate-200 bg-white px-2 text-[11px] text-slate-800 focus:border-[#447C84] focus:outline-none focus:ring-1 focus:ring-[#447C84]/30"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[11px]">
+                      {/* Kiri: chip catatan (klik utk edit) / + Add notes */}
+                      {line.notes?.trim() ? (
+                        <button
+                          type="button"
+                          onClick={() => beginEditNotes(line)}
+                          title="Edit notes"
+                          className="max-w-[60%] cursor-pointer truncate rounded-md border border-[#b9e2d3] bg-[#edf7f3] px-2 py-0.5 text-[10px] font-medium text-[#2d5258]"
+                        >
                           {line.notes}
-                        </span>
-                      )}
-                      {editingNotesId === line.id ? (
-                        <div className="flex w-full items-center gap-1">
-                          <input
-                            autoFocus
-                            value={notesDraft}
-                            onChange={(e) => setNotesDraft(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') commitNotes(line.id)
-                              if (e.key === 'Escape') setEditingNotesId(null)
-                            }}
-                            onBlur={() => commitNotes(line.id)}
-                            placeholder="e.g. less sugar, no ice…"
-                            className="h-7 w-full rounded-md border border-slate-200 bg-white px-2 text-[11px] text-slate-800 focus:border-[#447C84] focus:outline-none focus:ring-1 focus:ring-[#447C84]/30"
-                          />
-                        </div>
+                        </button>
                       ) : (
                         <button
                           type="button"
                           onClick={() => beginEditNotes(line)}
-                          className="cursor-pointer rounded text-[10px] font-medium text-slate-500 transition hover:text-[#447C84]"
+                          className="cursor-pointer rounded text-[10px] font-medium text-slate-400 transition hover:text-[#447C84]"
                         >
-                          + Edit notes
+                          + Add notes
                         </button>
                       )}
-                    </div>
-                  )}
-                  {!line.notes?.trim() && editingNotesId !== line.id && (
-                    <button
-                      type="button"
-                      onClick={() => beginEditNotes(line)}
-                      className="cursor-pointer rounded text-[10px] font-medium text-slate-500 transition hover:text-[#447C84]"
-                    >
-                      + Add notes
-                    </button>
-                  )}
 
-                  {/* Footer item: total harga + stepper teks */}
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-[11px]">
-                    <span className="text-xs font-bold text-slate-900">
-                      {formatRupiah(line.product.price * line.quantity)}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => onDecrease(line.id)}
-                        className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold text-slate-600 transition hover:bg-slate-100 active:scale-95"
-                      >
-                        −
-                      </button>
-                      <span className="w-4 text-center text-xs font-bold tabular-nums text-slate-900">
-                        {line.quantity}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => onIncrease(line.id)}
-                        className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold text-slate-600 transition hover:bg-slate-100 active:scale-95"
-                      >
-                        +
-                      </button>
+                      {/* Kanan: delete rose + stepper */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => onRemoveItem(line.id)}
+                          title="Remove item"
+                          className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50 active:scale-95"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">delete</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDecrease(line.id)}
+                          className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold text-slate-600 transition hover:bg-slate-100 active:scale-95"
+                        >
+                          −
+                        </button>
+                        <span className="w-4 text-center text-xs font-bold tabular-nums text-slate-900">
+                          {line.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onIncrease(line.id)}
+                          className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold text-slate-600 transition hover:bg-slate-100 active:scale-95"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -470,6 +461,11 @@ export default function OrderDetailsPanel({
               <span>Resto Tax (PB1 10%)</span>
               <span className="font-medium tabular-nums text-slate-700">{formatRupiah(tax)}</span>
             </div>
+            {/* Display-only (spec Stitch): Service Charge 5%, belum dikirim ke backend. */}
+            <div className="flex items-center justify-between text-slate-500">
+              <span>Service Charge (5%)</span>
+              <span className="font-medium tabular-nums text-slate-700">{formatRupiah(service)}</span>
+            </div>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-200/80 pt-2.5">
             <div className="flex flex-col">
@@ -477,7 +473,7 @@ export default function OrderDetailsPanel({
                 GRAND TOTAL
               </span>
               <span className="text-[10px] font-medium text-slate-400">
-                {items.reduce((sum, l) => sum + l.quantity, 0)} items
+                {items.reduce((sum, l) => sum + l.quantity, 0)} items included
               </span>
             </div>
             <div className="font-display text-2xl font-extrabold tabular-nums tracking-tight text-slate-900">
@@ -491,15 +487,14 @@ export default function OrderDetailsPanel({
             type="button"
             disabled={!hasItems || saving}
             onClick={onPay}
-            className="flex h-12 w-full cursor-pointer items-center justify-between rounded-xl border border-[#396a71] bg-[#447C84] px-4 text-sm font-bold text-white shadow-btn-bismark transition-all duration-200 hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+            style={{ background: 'linear-gradient(135deg, #447C84 0%, #53949e 100%)' }}
+            className="flex h-12 w-full cursor-pointer items-center justify-between rounded-xl border border-[#396a71] px-4 text-sm font-bold text-white shadow-btn-bismark transition-all duration-200 hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
           >
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[20px]">payments</span>
-              <span className="font-display font-bold tracking-wide">
-                {mode === 'open' ? 'Pay Ticket' : 'Pay Now'}
-              </span>
+              <span className="font-display font-bold tracking-wide">Pay Now</span>
             </div>
-            <span className="font-display font-extrabold tabular-nums tracking-tight text-white">
+            <span className="font-display text-[15px] font-extrabold tracking-wide tabular-nums text-white">
               {formatRupiah(grandTotalDisplay)}
             </span>
           </button>
