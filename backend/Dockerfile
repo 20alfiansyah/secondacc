@@ -1,19 +1,31 @@
-# ---- Build stage ----
+# ---- Build stage: full dev deps, compile app + seed ----
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Cache node_modules terlebih dahulu
 COPY package*.json ./
 RUN npm ci
 
-# Salin source & build
-# (node_modules penuh dipertahankan: entrypoint memakai prisma CLI & ts-node
-#  untuk `migrate deploy` + seed, yang merupakan devDependencies.)
-COPY . .
-RUN npx prisma generate \
-  && npm run build
+COPY prisma ./prisma
+RUN npx prisma generate
 
-# ---- Production stage ----
+COPY . .
+# dist = app (nest build), dist-seed = seed hasil compile CommonJS
+# (runtime tanpa ts-node: prisma db seed dijalankan dari dist-seed).
+RUN npm run build \
+  && npx tsc -p tsconfig.seed.json
+
+# ---- Deps stage: produksi saja + prisma client tergenerate ----
+FROM node:20-alpine AS deps
+WORKDIR /app
+
+COPY package*.json ./
+COPY prisma ./prisma
+# prisma CLI kini dependencies (dipakai entrypoint untuk `migrate deploy`).
+RUN npm ci --omit=dev \
+  && npm cache clean --force \
+  && npx prisma generate
+
+# ---- Production stage: image ramping, non-root ----
 FROM node:20-alpine AS production
 ENV NODE_ENV=production
 WORKDIR /app
@@ -21,9 +33,10 @@ WORKDIR /app
 # Jalankan sebagai user non-root
 RUN addgroup -S app && adduser -S app -G app
 
-COPY --from=build --chown=app:app /app/node_modules ./node_modules
+COPY --from=deps --chown=app:app /app/node_modules ./node_modules
 COPY --from=build --chown=app:app /app/package.json ./package.json
 COPY --from=build --chown=app:app /app/dist ./dist
+COPY --from=build --chown=app:app /app/dist-seed ./dist-seed
 COPY --from=build --chown=app:app /app/prisma ./prisma
 
 # Entrypoint: jalankan migrasi + seed (opsional) lalu start server

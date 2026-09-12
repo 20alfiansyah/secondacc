@@ -12,13 +12,11 @@ if [ "${SKIP_MIGRATE:-0}" != "1" ]; then
 fi
 
 # Seed data awal (opsional). Set SKIP_SEED=1 untuk melewati.
-# Jalankan via ts-node/register dengan modul CommonJS paksa, agar kompatibel
-# dengan Node 20 / ESM resolution dalam image (tanpa ini seed error
-# "Unknown file extension .ts").
+# Memakai seed hasil compile (dist-seed/seed.js) — runtime image TIDAK punya
+# ts-node. Seed membaca SEED_ADMIN_PASSWORD / SEED_CASHIER_PASSWORD dari env.
 if [ "${SKIP_SEED:-0}" != "1" ]; then
   echo "🌱 Seeding database..."
-  TS_NODE_COMPILER_OPTIONS='{"module":"commonjs"}' \
-    node -r ts-node/register prisma/seed.ts
+  node dist-seed/seed.js
 fi
 
 # Panggil command utama (node dist/main.js)
