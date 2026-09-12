@@ -7,11 +7,12 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { Role } from '@prisma/client';
 
 export interface JwtPayload {
   sub: number;
   username: string;
-  role: string;
+  role: Role;
 }
 
 export interface AuthenticatedRequest extends Request {

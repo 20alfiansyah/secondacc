@@ -13,10 +13,12 @@ import {
 import { OrdersService } from './orders.service';
 import { CheckoutDto, OpenBillDto } from './dto/orders.dto';
 import { JwtAuthGuard, AuthenticatedRequest } from '../auth/jwt-auth.guard';
-import { OrderStatus } from '@prisma/client';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { OrderStatus, Role } from '@prisma/client';
 
 @Controller('orders')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
@@ -49,7 +51,8 @@ export class OrdersController {
     return { success: true, order };
   }
 
-  /** Batalkan open bill + kosongkan meja (docs/6_API_CONTRACTS.md). */
+  // Void transaksi = keputusan finansial: ADMIN saja.
+  @Roles(Role.ADMIN)
   @Patch(':id/cancel')
   async cancel(@Param('id', ParseIntPipe) id: number) {
     const order = await this.ordersService.cancel(id);
