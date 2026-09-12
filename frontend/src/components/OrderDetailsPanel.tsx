@@ -28,7 +28,6 @@ interface OrderDetailsPanelProps {
   onSetNotes: (id: string, notes: string) => void
   onRemoveItem: (id: string) => void
   onClearCart: () => void
-  onNewOrder: () => void
   onPay: () => void
   onSaveOpenBill: () => void
   saving: boolean
@@ -150,9 +149,9 @@ function GenderIcon({ value, active }: { value: CustomerGender; active: boolean 
   )
 }
 
-const TYPE_OPTIONS: { value: OrderType; label: string }[] = [
-  { value: 'DINE_IN', label: 'Dine In' },
-  { value: 'TAKE_AWAY', label: 'Takeaway' },
+const TYPE_OPTIONS: { value: OrderType; label: string; icon: string }[] = [
+  { value: 'DINE_IN', label: 'Dine In', icon: 'restaurant' },
+  { value: 'TAKE_AWAY', label: 'Takeaway', icon: 'takeout_dining' },
 ]
 
 /**
@@ -183,7 +182,6 @@ export default function OrderDetailsPanel({
   onSetNotes,
   onRemoveItem,
   onClearCart,
-  onNewOrder,
   onPay,
   onSaveOpenBill,
   saving,
@@ -193,11 +191,10 @@ export default function OrderDetailsPanel({
   const [notesDraft, setNotesDraft] = useState('')
 
   const subtotal = useMemo(() => items.reduce((sum, l) => sum + l.product.price * l.quantity, 0), [items])
+  // Display-only: backend belum menghitung PB1 — grand total visual = subtotal + tax,
+  // payload checkout tetap subtotal.
   const tax = Math.round(subtotal * 0.1)
-  // Display-only (spec Stitch): Service Charge 5% ikut tampil di grand total
-  // visual, TIDAK dikirim ke backend (payload checkout tetap subtotal).
-  const service = Math.round(subtotal * 0.05)
-  const grandTotalDisplay = subtotal + tax + service
+  const grandTotalDisplay = subtotal + tax
   const hasItems = items.length > 0
 
   // Auto-cancel notes editor saat item/panel berubah radikal (items berubah).
@@ -224,9 +221,9 @@ export default function OrderDetailsPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[20px] text-[#447C84]">receipt_long</span>
-            <h3 className="font-display text-base font-bold tracking-tight text-slate-900">
+            <h2 className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
               {mode === 'open' && orderNumber !== null ? `Ticket ${padOrder(orderNumber)}` : 'New Order'}
-            </h3>
+            </h2>
           </div>
         </div>
         {/* Info row: tanggal & jam */}
@@ -252,30 +249,40 @@ export default function OrderDetailsPanel({
             ORDER TYPE
           </label>
           <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200/60 bg-slate-100/90 p-1">
-            {TYPE_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setOrderType(opt.value)}
-                className={cn(
-                  'cursor-pointer rounded-lg py-2 text-xs font-semibold transition-all active:scale-[0.98]',
-                  orderType === opt.value
-                    ? 'bg-white text-[#447C84] shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700',
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
+            {TYPE_OPTIONS.map((opt) => {
+              const isActive = orderType === opt.value
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setOrderType(opt.value)}
+                  className={cn(
+                    'flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2 font-display text-xs transition-all active:scale-[0.98]',
+                    isActive
+                      ? 'border border-slate-200/60 bg-white font-bold text-[#2d5258] shadow-xs'
+                      : 'font-semibold text-slate-600 hover:bg-white/50 hover:text-slate-900',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'material-symbols-outlined text-[16px]',
+                      isActive ? 'text-[#447C84]' : 'text-slate-400',
+                    )}
+                  >
+                    {opt.icon}
+                  </span>
+                  {opt.label}
+                </button>
+              )
+            })}
           </div>
         </div>
 
         {/* Customer Name */}
         <div className="space-y-1.5">
           <label className="flex items-center justify-between font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            <span>CUSTOMER NAME</span>
-            <span className="font-medium normal-case tracking-normal text-slate-400">
-              {customerName.length}/40
+            <span>
+              CUSTOMER NAME <span className="text-rose-600">*</span>
             </span>
           </label>
           <div className="relative">
@@ -303,10 +310,10 @@ export default function OrderDetailsPanel({
                   type="button"
                   onClick={() => setCustomerGender(active ? null : g.v)}
                   className={cn(
-                    'flex cursor-pointer items-center justify-center gap-2 rounded-xl border py-2.5 text-xs font-semibold transition-all active:scale-[0.98]',
+                    'flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2 font-display text-xs transition-all active:scale-[0.98]',
                     active
-                      ? 'border-[#447C84] bg-[#edf7f3] text-[#2d5258] shadow-sm'
-                      : 'border-slate-200 bg-white text-slate-500 shadow-xs hover:border-slate-300 hover:bg-slate-50',
+                      ? 'border-[#447C84] bg-[#edf7f3] font-bold text-[#2d5258] shadow-xs'
+                      : 'border-slate-200 bg-white font-semibold text-slate-700 shadow-xs hover:bg-slate-50',
                   )}
                 >
                   <GenderIcon value={g.v} active={active} />
@@ -317,17 +324,19 @@ export default function OrderDetailsPanel({
           </div>
         </div>
         {/* Selected Items */}
-        <div className="space-y-2 border-t border-slate-100 pt-1">
+        <div className="space-y-2.5 border-t border-slate-100 pt-1">
           <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400 font-display pb-0.5">
             <span>Selected Items ({items.reduce((sum, l) => sum + l.quantity, 0)})</span>
             {hasItems && (
               <button
                 type="button"
                 onClick={onClearCart}
-                title="Clear all"
-                className="cursor-pointer rounded-lg p-1 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                title="Clear all items"
+                aria-label="Clear all items"
+                className="flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-600"
               >
-                <TrashIcon className="h-4 w-4" />
+                <TrashIcon className="h-3.5 w-3.5" />
+                <span className="text-[11px] font-semibold text-rose-600">Clear all</span>
               </button>
             )}
           </div>
@@ -349,21 +358,27 @@ export default function OrderDetailsPanel({
               {items.map((line) => (
                 <div
                   key={line.id}
-                  className="group space-y-2.5 rounded-xl border border-slate-200/80 bg-white p-3 shadow-xs transition hover:border-[#447C84]"
+                  className="group space-y-2.5 rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-xs transition hover:border-[#447C84]"
                 >
-                  {/* Header row: nama + @price kiri, line total kanan */}
+                  {/* Header row: nama + @price kiri, tombol hapus kanan */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <h4 className="truncate text-xs font-bold tracking-tight text-slate-900">
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold leading-tight text-slate-900">
                         {line.product.name}
                       </h4>
-                      <p className="text-[11px] text-slate-500">
+                      <p className="mt-0.5 text-[11px] tabular-nums text-slate-400">
                         @ {formatRupiah(line.product.price)}
                       </p>
                     </div>
-                    <span className="shrink-0 text-xs font-bold tabular-nums text-slate-900">
-                      {formatRupiah(line.product.price * line.quantity)}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onRemoveItem(line.id)}
+                      title="Remove item"
+                      aria-label="Remove item"
+                      className="flex cursor-pointer items-center justify-center rounded-lg p-1 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
                   </div>
 
                   {editingNotesId === line.id ? (
@@ -382,56 +397,54 @@ export default function OrderDetailsPanel({
                       />
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[11px]">
-                      {/* Kiri: chip catatan (klik utk edit) / + Add notes */}
-                      {line.notes?.trim() ? (
+                    <>
+                      {/* Baris catatan: chip + "+ Edit notes" / "+ Add notes" */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {line.notes?.trim() && (
+                          <button
+                            type="button"
+                            onClick={() => beginEditNotes(line)}
+                            title="Edit notes"
+                            className="max-w-[60%] cursor-pointer truncate rounded-md border border-[#b9e2d3] bg-[#edf7f3] px-2 py-0.5 text-[10px] font-medium text-[#2d5258]"
+                          >
+                            {line.notes}
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => beginEditNotes(line)}
-                          title="Edit notes"
-                          className="max-w-[60%] cursor-pointer truncate rounded-md border border-[#b9e2d3] bg-[#edf7f3] px-2 py-0.5 text-[10px] font-medium text-[#2d5258]"
+                          className="cursor-pointer text-[10px] font-medium text-slate-500 transition hover:text-[#447C84]"
                         >
-                          {line.notes}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => beginEditNotes(line)}
-                          className="cursor-pointer rounded text-[10px] font-medium text-slate-400 transition hover:text-[#447C84]"
-                        >
-                          + Add notes
-                        </button>
-                      )}
-
-                      {/* Kanan: delete rose + stepper */}
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => onRemoveItem(line.id)}
-                          title="Remove item"
-                          className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50 active:scale-95"
-                        >
-                          <span className="material-symbols-outlined text-[13px]">delete</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDecrease(line.id)}
-                          className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold text-slate-600 transition hover:bg-slate-100 active:scale-95"
-                        >
-                          −
-                        </button>
-                        <span className="w-4 text-center text-xs font-bold tabular-nums text-slate-900">
-                          {line.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => onIncrease(line.id)}
-                          className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold text-slate-600 transition hover:bg-slate-100 active:scale-95"
-                        >
-                          +
+                          {line.notes?.trim() ? '+ Edit notes' : '+ Add notes'}
                         </button>
                       </div>
-                    </div>
+
+                      {/* Baris total: line total kiri, stepper kanan */}
+                      <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-[11px]">
+                        <span className="text-xs font-bold tabular-nums text-slate-900">
+                          {formatRupiah(line.product.price * line.quantity)}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => onDecrease(line.id)}
+                            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold tabular-nums text-slate-700 transition hover:bg-slate-100"
+                          >
+                            -
+                          </button>
+                          <span className="w-4 text-center text-xs font-bold tabular-nums text-slate-900">
+                            {line.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => onIncrease(line.id)}
+                            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold tabular-nums text-slate-700 transition hover:bg-slate-100"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
               ))}
@@ -461,11 +474,6 @@ export default function OrderDetailsPanel({
               <span>Resto Tax (PB1 10%)</span>
               <span className="font-medium tabular-nums text-slate-700">{formatRupiah(tax)}</span>
             </div>
-            {/* Display-only (spec Stitch): Service Charge 5%, belum dikirim ke backend. */}
-            <div className="flex items-center justify-between text-slate-500">
-              <span>Service Charge (5%)</span>
-              <span className="font-medium tabular-nums text-slate-700">{formatRupiah(service)}</span>
-            </div>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-200/80 pt-2.5">
             <div className="flex flex-col">
@@ -473,7 +481,7 @@ export default function OrderDetailsPanel({
                 GRAND TOTAL
               </span>
               <span className="text-[10px] font-medium text-slate-400">
-                {items.reduce((sum, l) => sum + l.quantity, 0)} items included
+                {items.reduce((sum, l) => sum + l.quantity, 0)} items
               </span>
             </div>
             <div className="font-display text-2xl font-extrabold tabular-nums tracking-tight text-slate-900">
@@ -487,24 +495,15 @@ export default function OrderDetailsPanel({
             type="button"
             disabled={!hasItems || saving}
             onClick={onPay}
-            style={{ background: 'linear-gradient(135deg, #447C84 0%, #53949e 100%)' }}
-            className="flex h-12 w-full cursor-pointer items-center justify-between rounded-xl border border-[#396a71] px-4 text-sm font-bold text-white shadow-btn-bismark transition-all duration-200 hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+            className="flex h-12 w-full cursor-pointer items-center justify-between rounded-xl border border-[#396a71] bg-[#447C84] px-4 text-sm font-bold text-white shadow-btn-bismark transition-all duration-200 hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
           >
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[20px]">payments</span>
               <span className="font-display font-bold tracking-wide">Pay Now</span>
             </div>
-            <span className="font-display text-[15px] font-extrabold tracking-wide tabular-nums text-white">
+            <span className="font-display font-extrabold tabular-nums tracking-tight text-white">
               {formatRupiah(grandTotalDisplay)}
             </span>
-          </button>
-          <button
-            type="button"
-            onClick={onNewOrder}
-            className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-xs transition active:scale-95 hover:bg-slate-100"
-          >
-            <span className="material-symbols-outlined text-[16px] text-slate-500">add_shopping_cart</span>
-            <span>New Order</span>
           </button>
           <button
             type="button"

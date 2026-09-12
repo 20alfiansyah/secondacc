@@ -452,11 +452,11 @@ export default function POS() {
         {panelCollapsed ? (
           /* ---- Collapsed rail vertikal 68px (spec: w-[4.25rem]) ---- */
           <div className="flex h-full w-full select-none flex-col items-center justify-between border-l border-slate-200/80 bg-slate-50/90 py-3.5">
-            <div className="flex w-full flex-col items-center gap-2.5 px-1.5">
+            <div className="flex w-full flex-col items-center gap-2.5 px-2">
               <button
                 type="button"
                 onClick={handleNewOrder}
-                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-[#396a71] bg-[#447C84] text-white shadow-sm transition active:scale-95 hover:bg-[#396a71]"
+                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-[#2d5258] bg-[#447C84] text-white shadow-sm transition active:scale-95 hover:bg-[#396a71]"
                 title="New Order"
               >
                 <Icon name="add" className="text-lg" />
@@ -476,7 +476,7 @@ export default function POS() {
               <button
                 type="button"
                 onClick={togglePanelCollapsed}
-                className="w-full cursor-pointer rounded-xl border border-[#b9e2d3] bg-[#edf7f3] px-1 py-2 text-center shadow-xs transition hover:bg-accent"
+                className="w-full cursor-pointer rounded-xl border border-[#b9e2d3] bg-[#edf7f3] px-1 py-2 text-center shadow-xs transition hover:bg-[#e2f2ec]"
                 title={`${cartItemCount} items in current order`}
               >
                 <span className="text-base font-bold leading-none tabular-nums text-[#2d5258]">
@@ -532,7 +532,6 @@ export default function POS() {
               onSetNotes={setNotes}
               onRemoveItem={removeItem}
               onClearCart={clear}
-              onNewOrder={handleNewOrder}
               onPay={() => setPayOpen(true)}
               onSaveOpenBill={handleSaveOpenBill}
               saving={saving}
@@ -597,7 +596,6 @@ export default function POS() {
                 onSetNotes={setNotes}
                 onRemoveItem={removeItem}
                 onClearCart={clear}
-                onNewOrder={handleNewOrder}
                 onPay={() => setPayOpen(true)}
                 onSaveOpenBill={handleSaveOpenBill}
                 saving={saving}
