@@ -9,7 +9,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       await this.$connect();
       console.log('✅ Connected to PostgreSQL database successfully.');
     } catch (error) {
-      console.warn('⚠️ Warning: Could not connect to PostgreSQL immediately. Make sure PostgreSQL is running.');
+      // Tidak melempar: app tetap start (DB mungkin baru siap beberapa detik
+      // kemudian, mis. docker compose). Catat penyebabnya untuk diagnosa.
+      console.warn(
+        `⚠️ Warning: Could not connect to PostgreSQL immediately: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   }
 

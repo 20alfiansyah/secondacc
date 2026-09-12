@@ -3,14 +3,31 @@ import { TablesService } from './tables.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrderStatus } from '@prisma/client';
 
-function tableRow(overrides: Partial<any> = {}) {
+interface ActiveOrderRow {
+  id: number;
+  invoiceNumber: string;
+  subtotal: bigint;
+  grandTotal: bigint;
+  status: OrderStatus;
+  items: { quantity: number }[];
+}
+
+function tableRow(
+  overrides: Partial<{
+    id: number;
+    tableNumber: string;
+    qrIdentifier: string;
+    isOccupied: boolean;
+    orders: ActiveOrderRow[];
+  }> = {},
+) {
   return {
-    id: overrides.id ?? 1,
-    tableNumber: overrides.tableNumber ?? 'Meja 01',
-    qrIdentifier: overrides.qrIdentifier ?? 'tb-01-uuid',
-    isOccupied: overrides.isOccupied ?? true,
+    id: 1,
+    tableNumber: 'Meja 01',
+    qrIdentifier: 'tb-01-uuid',
+    isOccupied: true,
     updatedAt: new Date(),
-    orders: overrides.orders ?? [],
+    orders: [] as ActiveOrderRow[],
     ...overrides,
   };
 }

@@ -3,22 +3,37 @@ import { NotFoundException } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-function productRow(overrides: Partial<any> = {}) {
+interface CategoryRow {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+function productRow(
+  overrides: Partial<{
+    id: number;
+    name: string;
+    price: bigint;
+    categoryId: number;
+    category: CategoryRow;
+    description: string;
+    imageUrl: string | null;
+    isAvailable: boolean;
+  }> = {},
+) {
   return {
-    id: overrides.id ?? 10,
-    name: overrides.name ?? 'Nasi Goreng Spesial',
-    price: overrides.price ?? BigInt(28000),
-    categoryId: overrides.categoryId ?? 2,
-    category:
-      overrides.category ??
-      ({ id: 2, name: 'Makanan Berat', slug: 'makanan-berat' } as any),
-    description: overrides.description ?? 'Nasi goreng telur + ayam suwir',
-    imageUrl: overrides.imageUrl ?? null,
-    isAvailable: overrides.isAvailable ?? true,
+    id: 10,
+    name: 'Nasi Goreng Spesial',
+    price: BigInt(28000),
+    categoryId: 2,
+    category: { id: 2, name: 'Makanan Berat', slug: 'makanan-berat' },
+    description: 'Nasi goreng telur + ayam suwir',
+    imageUrl: null,
+    isAvailable: true,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
-  } as any;
+  };
 }
 
 describe('ProductsService (list + filter + toggle availability)', () => {

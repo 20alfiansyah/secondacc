@@ -2,8 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
-// Support BigInt serialization in JSON responses
-(BigInt.prototype as any).toJSON = function () {
+// BigInt tidak punya toJSON bawaan — perluas prototipe agar JSON.stringify
+// mengembalikan number (uang rupiah selalu integer aman JSON).
+type BigIntWithToJSON = { toJSON: (this: bigint) => number };
+const bigIntProto = BigInt.prototype as unknown as BigIntWithToJSON;
+bigIntProto.toJSON = function (this: bigint) {
   return Number(this);
 };
 
