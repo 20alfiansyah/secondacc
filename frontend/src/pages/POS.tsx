@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import TopBar from '@/components/TopBar'
 import Icon from '@/components/ui/Icon'
+import TopBar from '@/components/TopBar'
 import {
   checkoutRequest,
   fetchActiveOrders,
@@ -24,7 +24,6 @@ import type {
 import { useCartStore } from '@/store/cartStore'
 import { formatRupiah } from '@/utils/format'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import PaymentModal from '@/components/PaymentModal'
 import ReceiptModal from '@/components/ReceiptModal'
@@ -79,6 +78,27 @@ export default function POS() {
   const [panelMode, setPanelMode] = useState<'new' | 'open'>('new')
   const [openOrder, setOpenOrder] = useState<OrderSummary | null>(null)
   const [orderType, setOrderType] = useState<OrderType>('DINE_IN')
+
+  // Panel kanan bisa diciutkan jadi rail vertikal (persist localStorage)
+  const [panelCollapsed, setPanelCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('cafe_pos_panel_collapsed') === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  function togglePanelCollapsed() {
+    setPanelCollapsed((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('cafe_pos_panel_collapsed', String(next))
+      } catch {
+        // ignore
+      }
+      return next
+    })
+  }
 
   // Field customer (diisi di panel)
   const [customerName, setCustomerName] = useState('')
@@ -297,9 +317,8 @@ export default function POS() {
 
       {/* ===== Main Column (semua zona lainnya) ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
-      {/* ===== Main Content Area ===== */}
       <TopBar page="Register" />
-      <div className="grid flex-1 grid-cols-1 gap-5 overflow-hidden p-4 sm:p-5 lg:grid-cols-[1fr_360px]">
+      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden p-4 sm:p-5 lg:flex-row lg:gap-0">
         {/* ===== Left Column: Order Queue & Menu Catalog Sections ===== */}
         <div
           ref={leftColRef}
@@ -399,33 +418,118 @@ export default function POS() {
           </Section>
         </div>
 
-        {/* ===== Right Column (Desktop): ORDER DETAIL Panel (Zone 3, Task 1.3.8) ===== */}
-        <Card className="hidden lg:flex min-h-0 flex-col overflow-hidden border-border/80 bg-card shadow-card">
-          <CardContent className="flex h-full min-h-0 flex-col p-4">
-            <OrderDetailsPanel
-              mode={panelMode}
-              orderNumber={isNewPanel ? null : openOrder?.id ?? null}
-              createdAt={isNewPanel ? null : openOrder?.createdAt ?? null}
-              items={items}
-              customerName={customerName}
-              setCustomerName={setCustomerName}
-              customerGender={customerGender}
-              setCustomerGender={setCustomerGender}
-              orderType={orderType}
-              setOrderType={setOrderType}
-              onIncrease={increase}
-              onDecrease={decrease}
-              onSetNotes={setNotes}
-              onRemoveItem={removeItem}
-              onClearCart={clear}
-              onNewOrder={handleNewOrder}
-              onPay={() => setPayOpen(true)}
-              onSaveOpenBill={handleSaveOpenBill}
-              saving={saving}
-              validationError={null}
+        {/* ===== Right Column (Desktop): ORDER DETAIL Panel / Collapsed Rail ===== */}
+        <aside className="relative hidden shrink-0 border-l border-slate-200/80 bg-white lg:flex lg:min-h-0 lg:flex-col">
+          {/* Floating toggle di boundary panel */}
+          <button
+            type="button"
+            onClick={togglePanelCollapsed}
+            className="group absolute -left-3 top-1/2 z-40 flex h-12 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-md transition-all hover:bg-slate-50 hover:text-primary"
+            title="Toggle Order Panel"
+          >
+            <Icon
+              name={panelCollapsed ? 'chevron_left' : 'chevron_right'}
+              className="text-[16px] transition-transform group-hover:scale-110"
             />
-          </CardContent>
-        </Card>
+          </button>
+
+          {panelCollapsed ? (
+            /* ---- Collapsed rail vertikal 64px ---- */
+            <div className="flex h-full w-16 select-none flex-col items-center justify-between border-l border-slate-200/80 bg-slate-50/90 py-3.5">
+              <div className="flex w-full flex-col items-center gap-2.5 px-2">
+                <button
+                  type="button"
+                  onClick={handleNewOrder}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary-dark bg-primary text-white shadow-sm transition active:scale-95 hover:bg-primary-hover"
+                  title="New Order"
+                >
+                  <Icon name="add" className="text-lg" />
+                </button>
+                <div className="h-px w-7 bg-slate-200/80" />
+                <div
+                  className={cn(
+                    'w-full rounded-lg border px-2 py-1 text-center font-bold text-[11px] tabular-nums shadow-xs',
+                    panelMode === 'open'
+                      ? 'border-primary-dark bg-primary text-white'
+                      : 'border-slate-200 bg-slate-100 text-slate-500',
+                  )}
+                  title={panelMode === 'open' ? 'Active Ticket' : 'New Ticket'}
+                >
+                  {panelMode === 'open' && openOrder ? `#${String(openOrder.id).padStart(3, '0')}` : 'NEW'}
+                </div>
+                <button
+                  type="button"
+                  onClick={togglePanelCollapsed}
+                  className="flex w-full flex-col items-center justify-center gap-0.5 rounded-xl border border-live-border bg-live-light px-1 py-2 text-center shadow-xs transition hover:bg-accent"
+                  title={`${cartItemCount} items in current order`}
+                >
+                  <span className="text-base font-bold leading-none tabular-nums text-primary-dark">
+                    {cartItemCount}
+                  </span>
+                  <Icon name="shopping_bag" className="text-[13px] text-primary" />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={togglePanelCollapsed}
+                className="my-3 flex flex-1 flex-col items-center justify-center gap-3 rounded-xl px-1 py-4 transition hover:bg-slate-100/90"
+                title="Klik untuk rincian pesanan"
+              >
+                <span
+                  className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400"
+                  style={{ writingMode: 'vertical-rl' }}
+                >
+                  Order Summary
+                </span>
+                <span className="h-px w-4 bg-slate-300/80" />
+                <span
+                  className="text-[13px] font-bold tracking-tight tabular-nums text-primary-dark"
+                  style={{ writingMode: 'vertical-rl' }}
+                >
+                  {formatRupiah(cartSubtotal)}
+                </span>
+              </button>
+
+              <div className="flex w-full flex-col items-center gap-2 px-2 pb-1">
+                <button
+                  type="button"
+                  onClick={togglePanelCollapsed}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-md transition active:scale-95 hover:bg-primary-hover"
+                  title="Buka & Bayar Sekarang"
+                >
+                  <Icon name="payments" className="text-lg" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* ---- Panel penuh 380px ---- */
+            <div className="flex h-full min-h-0 w-[380px] flex-col">
+              <OrderDetailsPanel
+                mode={panelMode}
+                orderNumber={isNewPanel ? null : openOrder?.id ?? null}
+                createdAt={isNewPanel ? null : openOrder?.createdAt ?? null}
+                items={items}
+                customerName={customerName}
+                setCustomerName={setCustomerName}
+                customerGender={customerGender}
+                setCustomerGender={setCustomerGender}
+                orderType={orderType}
+                setOrderType={setOrderType}
+                onIncrease={increase}
+                onDecrease={decrease}
+                onSetNotes={setNotes}
+                onRemoveItem={removeItem}
+                onClearCart={clear}
+                onNewOrder={handleNewOrder}
+                onPay={() => setPayOpen(true)}
+                onSaveOpenBill={handleSaveOpenBill}
+                saving={saving}
+                validationError={null}
+              />
+            </div>
+          )}
+        </aside>
       </div>
 
       {/* ===== Floating Mobile/Tablet Cart Bar (Bottom) ===== */}

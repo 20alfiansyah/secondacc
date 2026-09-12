@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowUp } from 'lucide-react'
 import type { Category, Product } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { SearchInput } from '@/components/ui/SearchInput'
@@ -181,7 +180,7 @@ export default function CategoryFilterBar({
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
               </span>
               <span className="tabular-nums">{activeOrdersCount} in Queue</span>
-              <ArrowUp className="h-3.5 w-3.5" />
+              <Icon name="arrow_upward" className="text-sm" />
             </button>
           ) : null}
           <div className="flex h-10 items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 shadow-xs transition hover:border-slate-300">
