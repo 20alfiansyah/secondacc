@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CustomerGender, OrderStatus, PaymentCategory } from '@prisma/client';
+import { CustomerGender, OrderStatus, PaymentCategory, Prisma } from '@prisma/client';
 
 function prismaMock() {
   // Klien transaksi (dioper $transaction ke callback) — semua mutasi memakainya.
@@ -19,7 +19,7 @@ function prismaMock() {
 
   const mock = {
     user: { findUnique: jest.fn() },
-    cafeTable: { findUnique: jest.fn(), update: jest.fn() },
+    cafeTable: { findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
     product: { findMany: jest.fn() },
     // order (klien luar) dipakai generateInvoiceNumber -> prisma.order.findFirst;
     // tx.order memakai object yang sama supaya stub satu sumber.
@@ -109,7 +109,7 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
         grandTotal: BigInt(56000),
       });
       tx.orderItem.createMany.mockResolvedValue({ count: 1 });
-      tx.cafeTable.update.mockResolvedValue(tableRow({ isOccupied: true }));
+      tx.cafeTable.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await service.openBill(
         {
@@ -146,8 +146,8 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
         }),
       );
       expect(tx.orderItem.createMany).toHaveBeenCalled();
-      expect(tx.cafeTable.update).toHaveBeenCalledWith({
-        where: { id: 1 },
+      expect(tx.cafeTable.updateMany).toHaveBeenCalledWith({
+        where: { id: 1, isOccupied: false },
         data: { isOccupied: true },
       });
     });
@@ -157,6 +157,7 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
       prismaMock_.cafeTable.findUnique.mockResolvedValue(tableRow());
       prismaMock_.product.findMany.mockResolvedValue([productRow()]);
       prismaMock_.order.findFirst.mockResolvedValue({ invoiceNumber: 'INV-20260905-0000' });
+      tx.cafeTable.updateMany.mockResolvedValue({ count: 1 });
       tx.order.create.mockResolvedValue({
         id: 46,
         invoiceNumber: 'INV-20260905-0001',
@@ -206,6 +207,62 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
           { sub: 1, username: 'kasir1', role: 'CASHIER' },
         ),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('menolak bila meja diklaim request konkuren (updateMany count = 0)', async () => {
+      // Outer check lolos (isOccupied masih false saat dibaca), tapi di dalam
+      // transaksi meja sudah diklaim request lain -> otoritatif check menolak.
+      prismaMock_.user.findUnique.mockResolvedValue(cashierRow());
+      prismaMock_.cafeTable.findUnique.mockResolvedValue(tableRow());
+      prismaMock_.product.findMany.mockResolvedValue([productRow()]);
+      prismaMock_.order.findFirst.mockResolvedValue({ invoiceNumber: 'INV-20260905-0000' });
+      tx.cafeTable.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.openBill(
+          { tableId: 1, items: [{ productId: 10, quantity: 2 }] },
+          { sub: 1, username: 'kasir1', role: 'CASHIER' },
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(tx.order.create).not.toHaveBeenCalled();
+    });
+
+    it('regenerate invoice & retry bila terjadi P2002 (openBill konkuren)', async () => {
+      prismaMock_.user.findUnique.mockResolvedValue(cashierRow());
+      prismaMock_.cafeTable.findUnique.mockResolvedValue(tableRow());
+      prismaMock_.product.findMany.mockResolvedValue([productRow()]);
+      prismaMock_.order.findFirst.mockResolvedValue({ invoiceNumber: 'INV-20260905-0044' });
+      tx.cafeTable.updateMany.mockResolvedValue({ count: 1 });
+      tx.order.create.mockResolvedValue({
+        id: 45,
+        invoiceNumber: 'INV-20260905-0045',
+        tableId: 1,
+        status: OrderStatus.OPEN_BILL,
+        customerName: null,
+        subtotal: BigInt(56000),
+        grandTotal: BigInt(56000),
+      });
+      tx.orderItem.createMany.mockResolvedValue({ count: 1 });
+      // Attempt pertama: duplikat invoice (P2002) -> retry; attempt kedua sukses.
+      prismaMock_.$transaction
+        .mockImplementationOnce(() =>
+          Promise.reject(
+            new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+              code: 'P2002',
+              clientVersion: 'test',
+            }),
+          ),
+        )
+        .mockImplementationOnce((fn) => fn(tx));
+
+      const result = await service.openBill(
+        { tableId: 1, items: [{ productId: 10, quantity: 2 }] },
+        { sub: 1, username: 'kasir1', role: 'CASHIER' },
+      );
+
+      expect(result.invoiceNumber).toBe('INV-20260905-0045');
+      expect(prismaMock_.$transaction).toHaveBeenCalledTimes(2);
+      expect(tx.order.create).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -292,6 +349,103 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
           data: expect.objectContaining({ customerName: 'Budi' }),
         }),
       );
+    });
+
+    it('menolak pembayaran tunai kurang dari grandTotal (400, bukan 500)', async () => {
+      tx.order.findFirst.mockResolvedValue({
+        id: 45,
+        invoiceNumber: 'INV-20260905-0045',
+        tableId: 1,
+        status: OrderStatus.OPEN_BILL,
+        subtotal: BigInt(56000),
+        grandTotal: BigInt(56000),
+        items: [{ quantity: 2, unitPrice: BigInt(28000), subtotal: BigInt(56000) }],
+      });
+
+      await expect(
+        service.checkout(45, {
+          customerGender: CustomerGender.L,
+          payment: { category: PaymentCategory.CASH, methodName: 'Tunai', amountPaid: 50000 },
+        }),
+      ).rejects.toThrow(BadRequestException);
+      // Tidak ada payment yang tercatat untuk nominal kurang
+      expect(tx.payment.create).not.toHaveBeenCalled();
+    });
+
+    it('menolak pembayaran non-tunai yang nominalnya tidak sama dengan grandTotal', async () => {
+      tx.order.findFirst.mockResolvedValue({
+        id: 45,
+        invoiceNumber: 'INV-20260905-0045',
+        tableId: 1,
+        status: OrderStatus.OPEN_BILL,
+        subtotal: BigInt(56000),
+        grandTotal: BigInt(56000),
+        items: [{ quantity: 2, unitPrice: BigInt(28000), subtotal: BigInt(56000) }],
+      });
+
+      await expect(
+        service.checkout(45, {
+          customerGender: CustomerGender.L,
+          payment: { category: PaymentCategory.EDC, methodName: 'EDC BCA', amountPaid: 56001 },
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(tx.payment.create).not.toHaveBeenCalled();
+    });
+
+    it('menerima pembayaran non-tunai exact dan mencatat changeDue 0', async () => {
+      tx.order.findFirst.mockResolvedValue({
+        id: 45,
+        invoiceNumber: 'INV-20260905-0045',
+        tableId: 1,
+        status: OrderStatus.OPEN_BILL,
+        subtotal: BigInt(56000),
+        grandTotal: BigInt(56000),
+        items: [{ quantity: 2, unitPrice: BigInt(28000), subtotal: BigInt(56000) }],
+      });
+      tx.order.update.mockResolvedValue({
+        id: 45,
+        invoiceNumber: 'INV-20260905-0045',
+        status: OrderStatus.PAID,
+        customerName: 'Budi',
+        customerGender: CustomerGender.L,
+        subtotal: BigInt(56000),
+        grandTotal: BigInt(56000),
+        items: [
+          {
+            quantity: 2,
+            unitPrice: BigInt(28000),
+            subtotal: BigInt(56000),
+            notes: null,
+            product: { id: 10, name: 'Nasi Goreng Spesial' },
+          },
+        ],
+      });
+      tx.payment.create.mockResolvedValue({
+        id: 1,
+        orderId: 45,
+        category: PaymentCategory.EDC,
+        methodName: 'EDC BCA',
+        amountPaid: BigInt(56000),
+        changeDue: BigInt(0),
+        paidAt: new Date('2026-09-05T20:15:00Z'),
+      });
+
+      const result = await service.checkout(45, {
+        customerGender: CustomerGender.L,
+        payment: { category: PaymentCategory.EDC, methodName: 'EDC BCA', amountPaid: 56000 },
+      });
+
+      expect(result.order.payment).toMatchObject({
+        category: PaymentCategory.EDC,
+        amountPaid: 56000,
+        changeDue: 0,
+      });
+      expect(tx.payment.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          amountPaid: BigInt(56000),
+          changeDue: BigInt(0),
+        }),
+      });
     });
 
     it('menolak order yang bukan OPEN_BILL (status PAID) — filter status di query', async () => {

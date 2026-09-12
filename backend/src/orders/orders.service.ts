@@ -1,7 +1,12 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma, CustomerGender, OrderStatus, PaymentCategory } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FinancialCalculator } from './financial.calculator';
-import { CustomerGender, OrderStatus, PaymentCategory } from '@prisma/client';
 import { JwtPayload } from '../auth/jwt-auth.guard';
 
 export interface OpenBillItemInput {
@@ -28,14 +33,6 @@ export interface CheckoutInput {
   payment: PaymentInput;
 }
 
-interface TxPrisma {
-  orderItem: { createMany: (args: any) => Promise<any> };
-  cafeTable: { update: (args: any) => Promise<any> };
-  order: {
-    create: (args: any) => Promise<any>;
-    update: (args: any) => Promise<any>;
-  };
-}
 
 @Injectable()
 export class OrdersService {
@@ -57,6 +54,7 @@ export class OrdersService {
     if (!table) {
       throw new NotFoundException('Table not found');
     }
+    // Fast-fail untuk UX; validasi otoritatif dilakukan atomik di dalam transaksi.
     if (table.isOccupied) {
       throw new BadRequestException('Table is already occupied');
     }
@@ -78,124 +76,171 @@ export class OrdersService {
       })),
     );
 
-    const invoiceNumber = await this.generateInvoiceNumber();
+    // Transaksi ACID + retry P2002: nomor invoice di-generate DI DALAM transaksi,
+    // sehingga dua openBill konkuren yang sama-sama membaca seq yang sama tidak
+    // menghasilkan invoice duplikat — attempt kedua gagal unique constraint,
+    // di-retry dengan seq berikutnya (maks 3 percobaan).
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await this.prisma.$transaction(async (tx) => {
+          const invoiceNumber = await this.generateInvoiceNumber(tx);
 
-    // Semua mutasi dalam SATU transaksi ACID
-    return this.prisma.$transaction(async (tx) => {
-      const order = await (tx as any).order.create({
-        data: {
-          invoiceNumber,
-          tableId: input.tableId,
-          cashierId: cashier.id,
-          customerName: input.customerName ?? null,
-          status: OrderStatus.OPEN_BILL,
-          subtotal,
-          grandTotal,
-        },
-      });
+          // Klaim meja secara atomik (anti double open-bill): gagal bila
+          // antara validasi awal dan transaksi ini meja sudah diisi request lain.
+          const claimed = await tx.cafeTable.updateMany({
+            where: { id: input.tableId, isOccupied: false },
+            data: { isOccupied: true },
+          });
+          if (claimed.count === 0) {
+            throw new BadRequestException('Table is already occupied');
+          }
 
-      await (tx as any).orderItem.createMany({
-        data: input.items.map((item) => ({
-          orderId: order.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: priceMap.get(item.productId)!,
-          subtotal: priceMap.get(item.productId)! * BigInt(item.quantity),
-          notes: item.notes ?? null,
-        })),
-      });
+          const order = await tx.order.create({
+            data: {
+              invoiceNumber,
+              tableId: input.tableId,
+              cashierId: cashier.id,
+              customerName: input.customerName ?? null,
+              status: OrderStatus.OPEN_BILL,
+              subtotal,
+              grandTotal,
+            },
+          });
 
-      await (tx as any).cafeTable.update({
-        where: { id: input.tableId },
-        data: { isOccupied: true },
-      });
+          await tx.orderItem.createMany({
+            data: input.items.map((item) => ({
+              orderId: order.id,
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: priceMap.get(item.productId)!,
+              subtotal: priceMap.get(item.productId)! * BigInt(item.quantity),
+              notes: item.notes ?? null,
+            })),
+          });
 
-      return {
-        id: order.id,
-        invoiceNumber: order.invoiceNumber,
-        tableId: order.tableId,
-        status: order.status,
-        customerName: order.customerName,
-        subtotal: Number(order.subtotal),
-        grandTotal: Number(order.grandTotal),
-      };
-    });
+          return {
+            id: order.id,
+            invoiceNumber: order.invoiceNumber,
+            tableId: order.tableId,
+            status: order.status,
+            customerName: order.customerName,
+            subtotal: Number(order.subtotal),
+            grandTotal: Number(order.grandTotal),
+          };
+        });
+      } catch (error) {
+        // Invoice duplikat karena transaksi konkuren: regenerate & coba ulang.
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002' &&
+          attempt < 2
+        ) {
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new ConflictException('Gagal menghasilkan nomor invoice, coba lagi');
   }
 
   async checkout(orderId: number, input: CheckoutInput) {
-    // Muat order + items dalam transaksi agar konsisten
-    return this.prisma.$transaction(async (tx) => {
-      const order = await (tx as any).order.findFirst({
-        where: { id: orderId, status: OrderStatus.OPEN_BILL },
-        include: { items: true },
-      });
-      if (!order) {
-        throw new NotFoundException('Open bill order not found');
-      }
-
-      const grandTotal = order.grandTotal as bigint;
-
-      if (input.payment.category === PaymentCategory.CASH) {
-        FinancialCalculator.calculateChange(grandTotal, input.payment.amountPaid);
-      }
-
-      const updated = await (tx as any).order.update({
-        where: { id: order.id },
-        data: {
-          status: OrderStatus.PAID,
-          customerName: input.customerName ?? null,
-          customerGender: input.customerGender,
-        },
-        include: { items: { include: { product: true } } },
-      });
-
-      const payment = await (tx as any).payment.create({
-        data: {
-          orderId: order.id,
-          category: input.payment.category,
-          methodName: input.payment.methodName,
-          amountPaid: BigInt(input.payment.amountPaid),
-          changeDue:
-            input.payment.category === PaymentCategory.CASH
-              ? BigInt(input.payment.amountPaid) - grandTotal
-              : BigInt(0),
-        },
-      });
-
-      // Kosongkan meja jika order terkait meja
-      if (order.tableId != null) {
-        await (tx as any).cafeTable.update({
-          where: { id: order.tableId },
-          data: { isOccupied: false },
+    // Unique constraint Payment.orderId menutup checkout ganda secara atomik;
+    // P2002 dipetakan ke 409 agar kasir melihat "sudah dibayar", bukan 500.
+    try {
+      return await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const order = await tx.order.findFirst({
+          where: { id: orderId, status: OrderStatus.OPEN_BILL },
+          include: { items: true },
         });
-      }
+        if (!order) {
+          throw new NotFoundException('Open bill order not found');
+        }
 
-      const items = updated.items.map((item) => ({
-        productName: item.product.name,
-        quantity: item.quantity,
-        unitPrice: Number(item.unitPrice),
-        notes: item.notes ?? null,
-      }));
+        const grandTotal = order.grandTotal;
+        const amountPaid = BigInt(input.payment.amountPaid);
 
-      return {
-        order: {
-          id: updated.id,
-          invoiceNumber: updated.invoiceNumber,
-          status: updated.status,
-          customerName: updated.customerName,
-          customerGender: updated.customerGender,
-          grandTotal: Number(updated.grandTotal),
-          items,
-          payment: {
-            category: payment.category,
-            methodName: payment.methodName,
-            amountPaid: Number(payment.amountPaid),
-            changeDue: Number(payment.changeDue),
-            paidAt: payment.paidAt,
+        if (input.payment.category === PaymentCategory.CASH) {
+          // Error kalkulasi domain dipetakan ke 400 (bukan 500) supaya kasir
+          // melihat nominal yang kurang.
+          try {
+            FinancialCalculator.calculateChange(grandTotal, amountPaid);
+          } catch (error) {
+            throw new BadRequestException(
+              error instanceof Error ? error.message : 'Nominal pembayaran tidak valid',
+            );
+          }
+        } else if (amountPaid !== grandTotal) {
+          // Non-tunai (QRIS/EDC) selalu exact: order PAID dengan amountPaid
+          // 0/salah korupsi omzet & target bulanan.
+          throw new BadRequestException(
+            'Nominal pembayaran non-tunai harus sama persis dengan total tagihan',
+          );
+        }
+
+        const updated = await tx.order.update({
+          where: { id: order.id },
+          data: {
+            status: OrderStatus.PAID,
+            customerName: input.customerName ?? null,
+            customerGender: input.customerGender,
           },
-        },
-      };
-    });
+          include: { items: { include: { product: true } } },
+        });
+
+        const payment = await tx.payment.create({
+          data: {
+            orderId: order.id,
+            category: input.payment.category,
+            methodName: input.payment.methodName,
+            amountPaid,
+            changeDue:
+              input.payment.category === PaymentCategory.CASH
+                ? amountPaid - grandTotal
+                : BigInt(0),
+          },
+        });
+
+        // Kosongkan meja jika order terkait meja
+        if (order.tableId != null) {
+          await tx.cafeTable.update({
+            where: { id: order.tableId },
+            data: { isOccupied: false },
+          });
+        }
+
+        const items = updated.items.map((item) => ({
+          productName: item.product.name,
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice),
+          notes: item.notes ?? null,
+        }));
+
+        return {
+          order: {
+            id: updated.id,
+            invoiceNumber: updated.invoiceNumber,
+            status: updated.status,
+            customerName: updated.customerName,
+            customerGender: updated.customerGender,
+            grandTotal: Number(updated.grandTotal),
+            items,
+            payment: {
+              category: payment.category,
+              methodName: payment.methodName,
+              amountPaid: Number(payment.amountPaid),
+              changeDue: Number(payment.changeDue),
+              paidAt: payment.paidAt,
+            },
+          },
+        };
+      });
+    } catch (error) {
+      // Checkout konkuren pada order yang sama: P2002 (payment.orderId unique).
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('Order sudah dibayar');
+      }
+      throw error;
+    }
   }
 
   /**
@@ -278,7 +323,7 @@ export class OrdersService {
   }
 
   /** Generate nomor invoice format: INV-YYYYMMDD-NNNN */
-  private async generateInvoiceNumber(): Promise<string> {
+  private async generateInvoiceNumber(tx: Prisma.TransactionClient): Promise<string> {
     const now = new Date();
     const yyyymmdd = [
       now.getFullYear(),
@@ -287,7 +332,7 @@ export class OrdersService {
     ].join('');
 
     const prefix = `INV-${yyyymmdd}-`;
-    const last = await this.prisma.order.findFirst({
+    const last = await tx.order.findFirst({
       where: { invoiceNumber: { startsWith: prefix } },
       orderBy: { invoiceNumber: 'desc' },
       select: { invoiceNumber: true },
