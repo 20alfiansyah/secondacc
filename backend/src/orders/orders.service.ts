@@ -350,7 +350,7 @@ export class OrdersService {
     });
   }
 
-  /** Generate nomor invoice format: INV-YYYYMMDD-NNNN */
+  /** Generate nomor invoice format: INV-YYYYMMDD-NNNN (seq tumbuh melewati 4 digit). */
   private async generateInvoiceNumber(tx: Prisma.TransactionClient): Promise<string> {
     const now = new Date();
     const yyyymmdd = [
@@ -360,13 +360,17 @@ export class OrdersService {
     ].join('');
 
     const prefix = `INV-${yyyymmdd}-`;
-    const last = await tx.order.findFirst({
+    const rows = await tx.order.findMany({
       where: { invoiceNumber: { startsWith: prefix } },
-      orderBy: { invoiceNumber: 'desc' },
       select: { invoiceNumber: true },
     });
 
-    const lastSeq = last ? Number(last.invoiceNumber.slice(prefix.length)) : 0;
+    // Ambil max SEKUENS NUMERIK, bukan urutan string: secara leksikal
+    // 'INV-...-9999' > 'INV-...-10000', padahal 10000 adalah seq terakhir.
+    const lastSeq = rows.reduce((max, row) => {
+      const seq = Number(row.invoiceNumber.slice(prefix.length));
+      return Number.isFinite(seq) && seq > max ? seq : max;
+    }, 0);
     const seq = String(lastSeq + 1).padStart(4, '0');
 
     return `${prefix}${seq}`;

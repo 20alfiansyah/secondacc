@@ -124,10 +124,10 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
       prismaMock_.user.findUnique.mockResolvedValue(cashierRow());
       prismaMock_.cafeTable.findUnique.mockResolvedValue(tableRow());
       prismaMock_.product.findMany.mockResolvedValue([productRow()]);
-      // generateInvoiceNumber: invoice terakhir (seq 0044) -> yang baru 0045
-      prismaMock_.order.findFirst.mockResolvedValue({
-        invoiceNumber: `INV-${yyyymmdd}-0044`,
-      });
+      // generateInvoiceNumber: max seq hari ini 0044 -> yang baru 0045
+      prismaMock_.order.findMany.mockResolvedValue([
+        { invoiceNumber: `INV-${yyyymmdd}-0044` },
+      ]);
       tx.order.create.mockResolvedValue({
         id: 45,
         invoiceNumber,
@@ -185,7 +185,7 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
       prismaMock_.user.findUnique.mockResolvedValue(cashierRow());
       prismaMock_.cafeTable.findUnique.mockResolvedValue(tableRow());
       prismaMock_.product.findMany.mockResolvedValue([productRow()]);
-      prismaMock_.order.findFirst.mockResolvedValue({ invoiceNumber: 'INV-20260905-0000' });
+      prismaMock_.order.findMany.mockResolvedValue([{ invoiceNumber: 'INV-20260905-0000' }]);
       tx.cafeTable.updateMany.mockResolvedValue({ count: 1 });
       tx.order.create.mockResolvedValue({
         id: 46,
@@ -260,7 +260,7 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
       prismaMock_.user.findUnique.mockResolvedValue(cashierRow());
       prismaMock_.cafeTable.findUnique.mockResolvedValue(tableRow());
       prismaMock_.product.findMany.mockResolvedValue([productRow()]);
-      prismaMock_.order.findFirst.mockResolvedValue({ invoiceNumber: 'INV-20260905-0044' });
+      prismaMock_.order.findMany.mockResolvedValue([{ invoiceNumber: 'INV-20260905-0044' }]);
       tx.cafeTable.updateMany.mockResolvedValue({ count: 1 });
       tx.order.create.mockResolvedValue({
         id: 45,
@@ -292,6 +292,47 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
       expect(result.invoiceNumber).toBe('INV-20260905-0045');
       expect(prismaMock_.$transaction).toHaveBeenCalledTimes(2);
       expect(tx.order.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('seq > 9999: memakai max numerik, bukan urutan string (seq 10001, bukan duplikat 10000)', async () => {
+      prismaMock_.user.findUnique.mockResolvedValue(cashierRow());
+      prismaMock_.cafeTable.findUnique.mockResolvedValue(tableRow());
+      prismaMock_.product.findMany.mockResolvedValue([productRow()]);
+      // Urutan leksikal menempatkan '9999' > '10000' — generator harus tetap
+      // memilih 10000 sebagai seq terakhir agar tidak membuat duplikat.
+      // Prefix tanggal memakai tanggal lokal hari ini (sama dengan service).
+      const now = new Date();
+      const yyyymmdd = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, '0'),
+        String(now.getDate()).padStart(2, '0'),
+      ].join('');
+      prismaMock_.order.findMany.mockResolvedValue([
+        { invoiceNumber: `INV-${yyyymmdd}-9999` },
+        { invoiceNumber: `INV-${yyyymmdd}-10000` },
+      ]);
+      tx.cafeTable.updateMany.mockResolvedValue({ count: 1 });
+      tx.order.create.mockResolvedValue({
+        id: 47,
+        invoiceNumber: `INV-${yyyymmdd}-10001`,
+        tableId: 1,
+        status: OrderStatus.OPEN_BILL,
+        customerName: null,
+        subtotal: BigInt(56000),
+        grandTotal: BigInt(56000),
+      });
+      tx.orderItem.createMany.mockResolvedValue({ count: 1 });
+
+      await service.openBill(
+        { tableId: 1, items: [{ productId: 10, quantity: 2 }] },
+        { sub: 1, username: 'kasir1', role: 'CASHIER' },
+      );
+
+      expect(tx.order.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ invoiceNumber: `INV-${yyyymmdd}-10001` }),
+        }),
+      );
     });
   });
 
