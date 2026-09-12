@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { Banknote, CreditCard, QrCode, X } from 'lucide-react'
 import type { CustomerGender, PaymentCategory } from '@/api/client'
 import { formatRupiah } from '@/utils/format'
 import { calculateChange } from '@/utils/financial'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import Icon from '@/components/ui/Icon'
 
 const QUICK_CASH = [20000, 50000, 100000]
 
@@ -25,10 +24,10 @@ interface PaymentModalProps {
   onClose: () => void
 }
 
-const METHOD_META: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = [
-  { key: 'CASH', label: 'Cash', icon: Banknote },
-  { key: 'THIRD_PARTY', label: 'QRIS / E-Wallet', icon: QrCode },
-  { key: 'EDC', label: 'EDC / Card', icon: CreditCard },
+const METHOD_META: { key: PaymentMethod; label: string; icon: string }[] = [
+  { key: 'CASH', label: 'Cash', icon: 'payments' },
+  { key: 'THIRD_PARTY', label: 'QRIS / E-Wallet', icon: 'qr_code_2' },
+  { key: 'EDC', label: 'EDC / Card', icon: 'credit_card' },
 ]
 
 export default function PaymentModal({
@@ -98,41 +97,41 @@ export default function PaymentModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md rounded-3xl border border-border/80 bg-card p-6 shadow-modal animate-in zoom-in-95 duration-150">
+      <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-modal animate-in zoom-in-95 duration-150">
         {/* Modal Header */}
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-foreground">Checkout</h2>
-            <p className="text-xs text-muted-foreground">
+            <h2 className="font-display text-lg font-bold text-slate-900">Checkout</h2>
+            <p className="text-xs text-slate-500">
               {tableNumber ? `Table ${tableNumber}` : 'Order'} • {itemCount} items
             </p>
           </div>
           <button
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            aria-label="Close"
+            className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
           >
-            <X className="h-4 w-4" />
+            <Icon name="close" className="text-lg" />
           </button>
         </div>
 
         {/* Total Tagihan Card */}
-        <div className="mb-5 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-center shadow-subtle">
-          <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+        <div className="mb-5 rounded-2xl border border-live-border bg-live-light p-4 text-center shadow-xs">
+          <span className="font-display text-xs font-semibold uppercase tracking-wider text-primary">
             Amount Due
           </span>
-          <div className="mt-1 text-3xl font-black tracking-tight text-primary tabular-nums">
+          <div className="mt-1 font-display text-3xl font-black tracking-tight text-primary-dark tabular-nums">
             {formatRupiah(grandTotal)}
           </div>
         </div>
 
         {/* Metode Pembayaran */}
         <div className="mb-4">
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <label className="mb-1.5 block font-display text-xs font-bold uppercase tracking-wider text-slate-400">
             Payment Method
           </label>
           <div className="grid grid-cols-3 gap-2">
             {METHOD_META.map((m) => {
-              const Icon = m.icon
               const isSelected = method === m.key
               return (
                 <button
@@ -146,10 +145,10 @@ export default function PaymentModal({
                     'flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-semibold transition-all duration-150 active:scale-95',
                     isSelected
                       ? 'border-primary bg-primary/10 text-primary shadow-xs'
-                      : 'border-border/80 bg-background text-muted-foreground hover:bg-accent hover:text-foreground',
+                      : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800',
                   )}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon name={m.icon} className="text-xl" />
                   <span className="text-center leading-tight">{m.label.split(' ')[0]}</span>
                 </button>
               )
@@ -159,9 +158,9 @@ export default function PaymentModal({
 
         {/* Cash Calculation Section */}
         {method === 'CASH' && (
-          <div className="mb-5 space-y-3 rounded-2xl border border-border/80 bg-background/50 p-3.5">
+          <div className="mb-5 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-3.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <span className="font-display text-xs font-bold uppercase tracking-wider text-slate-400">
                 Cash Received
               </span>
             </div>
@@ -174,8 +173,8 @@ export default function PaymentModal({
                 className={cn(
                   'flex h-11 items-center justify-center rounded-lg border px-2 text-xs font-bold transition-all active:scale-95',
                   parsedCash === grandTotal
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border/80 bg-card hover:bg-accent text-foreground',
+                    ? 'border-primary bg-primary text-white'
+                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
                 )}
               >
                 Exact
@@ -188,8 +187,8 @@ export default function PaymentModal({
                   className={cn(
                     'flex h-11 items-center justify-center rounded-lg border px-2 text-xs font-bold transition-all active:scale-95',
                     parsedCash === v
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border/80 bg-card hover:bg-accent text-foreground',
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
                   )}
                 >
                   {Math.round(v / 1000)}k
@@ -205,7 +204,7 @@ export default function PaymentModal({
                 placeholder="Enter another amount..."
                 value={cash}
                 onChange={(e) => setCash(e.target.value)}
-                className="h-10 bg-card tabular-nums text-sm font-semibold"
+                className="h-10 bg-white tabular-nums text-sm font-semibold"
               />
             </div>
 
@@ -242,18 +241,18 @@ export default function PaymentModal({
           </p>
         )}
 
-        {/* Submit Button */}
-        <Button
-          className="w-full h-12 text-sm font-bold shadow-sm"
-          size="lg"
+        {/* Submit Button — gradien bismark */}
+        <button
+          type="button"
           onClick={handleSubmit}
           disabled={submitting || isUnderpaid}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary-dark font-display text-sm font-bold text-white shadow-btn-bismark transition active:scale-[0.98] hover:brightness-105 disabled:pointer-events-none disabled:opacity-50"
+          style={{ background: 'linear-gradient(135deg, #447C84 0%, #53949e 100%)' }}
         >
-          <Banknote className="h-4 w-4" />
+          <Icon name="payments" className="text-lg" />
           {submitting ? 'Processing Payment...' : 'Complete Transaction'}
-        </Button>
+        </button>
       </div>
     </div>
   )
 }
-

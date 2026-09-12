@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { CupSoda } from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import Icon from '@/components/ui/Icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -54,7 +54,7 @@ export default function Login() {
       <Card className="relative w-full max-w-sm rounded-3xl border border-border/80 bg-card p-2 shadow-card transition-all">
         <CardHeader className="space-y-2 text-center pb-4">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-xs">
-            <CupSoda className="h-7 w-7" />
+            <Icon name="local_cafe" className="text-3xl" />
           </div>
           <div className="space-y-1">
             <CardTitle className="text-2xl font-extrabold tracking-tight text-foreground">

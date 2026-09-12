@@ -1,7 +1,6 @@
-import { CheckCircle2, Printer, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { CheckoutResult, OrderDetail } from '@/api/client'
 import { formatRupiah } from '@/utils/format'
-import { Button } from '@/components/ui/button'
 
 const CAFE_NAME = 'CAFE POS'
 
@@ -28,31 +27,32 @@ export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-full max-w-sm overflow-hidden rounded-3xl border border-border/80 bg-card shadow-modal animate-in zoom-in-95 duration-150">
         {/* Bar aksi (tidak ikut tercetak saat window.print) */}
-        <div className="flex items-center justify-between border-b border-border/70 px-5 py-3.5 bg-muted/40">
+        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-3.5">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-bold text-foreground">Receipt</h2>
+            <Icon name="check_circle" className="text-base text-primary" />
+            <h2 className="font-display text-sm font-bold text-slate-900">Receipt</h2>
           </div>
           <div className="flex items-center gap-1.5">
-            <Button
-              size="sm"
-              onClick={() => window.print()}
-              className="h-8 rounded-xl px-3 font-semibold shadow-xs"
-            >
-              <Printer className="h-3.5 w-3.5" />
-              Print
-            </Button>
             <button
-              onClick={onClose}
-              className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              type="button"
+              onClick={() => window.print()}
+              className="flex h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 font-display text-xs font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 active:scale-95"
             >
-              <X className="h-4 w-4" />
+              <Icon name="print" className="text-sm" />
+              Print
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
+            >
+              <Icon name="close" className="text-base" />
             </button>
           </div>
         </div>
 
         {/* Struk Fisik Thermal (area yang dicetak & dipratinjau) */}
-        <div className="p-6 bg-background">
+        <div className="p-6 bg-slate-50">
           <div className="receipt rounded-2xl border border-dashed border-border/80 bg-card p-4 shadow-subtle">
             <div className="receipt__head text-center">
               <p className="receipt__name text-base font-extrabold tracking-wider text-foreground">

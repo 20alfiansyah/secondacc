@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { History, Printer, Receipt, Search, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { OrderDetail, OrderSummary } from '@/api/client'
 import { fetchOrderDetail, fetchOrderHistory } from '@/api/client'
 import { formatRupiah } from '@/utils/format'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import ReceiptModal from '@/components/ReceiptModal'
@@ -118,27 +117,28 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border/70 px-5 py-4">
             <div className="flex items-center gap-2">
-              <History className="h-5 w-5 text-primary" />
+              <Icon name="receipt_long" className="text-xl text-primary" />
               <div>
-                <h2 className="text-base font-bold text-foreground">Order History</h2>
+                <h2 className="font-display text-base font-bold text-slate-900">Order History</h2>
                 <p className="text-[11px] text-muted-foreground">
                   Completed transactions — reprint thermal receipts
                 </p>
               </div>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               aria-label="Close"
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
             >
-              <X className="h-5 w-5" />
+              <Icon name="close" className="text-lg" />
             </button>
           </div>
 
           {/* Search + date filter */}
           <div className="space-y-2.5 border-b border-border/70 p-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+              <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -176,13 +176,13 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
             {loading ? (
               <div className="flex h-32 items-center justify-center text-muted-foreground">
                 <div className="flex flex-col items-center gap-2">
-                  <Receipt className="h-6 w-6 animate-pulse text-primary/60" />
+                  <Icon name="receipt_long" className="animate-pulse text-2xl text-primary/60" />
                   <p className="text-sm font-medium">Loading history...</p>
                 </div>
               </div>
             ) : filtered.length === 0 ? (
               <div className="flex h-32 flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 p-6 text-center text-muted-foreground">
-                <History className="mb-2 h-7 w-7 opacity-40" />
+                <Icon name="receipt_long" className="mb-2 text-3xl opacity-40" />
                 <p className="text-sm font-medium text-foreground">No transactions yet</p>
                 <p className="text-xs">Paid transactions will appear here.</p>
               </div>
@@ -223,16 +223,15 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
                         <span className="text-base font-black text-primary tabular-nums">
                           {formatRupiah(order.grandTotal)}
                         </span>
-                        <Button
-                          size="sm"
-                          variant="outline"
+                        <button
+                          type="button"
                           onClick={() => handleReprint(order.id)}
                           disabled={loadingReceipt === order.id}
-                          className="h-11 gap-1.5 px-3 text-xs"
+                          className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 font-display text-xs font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 active:scale-95 disabled:opacity-50"
                         >
-                          <Printer className="h-3.5 w-3.5" />
+                          <Icon name="print" className="text-sm" />
                           {loadingReceipt === order.id ? 'Preparing...' : 'Reprint'}
-                        </Button>
+                        </button>
                       </div>
                     </div>
                   </li>
