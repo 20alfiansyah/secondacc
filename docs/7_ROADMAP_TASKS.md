@@ -123,6 +123,25 @@
   - Verifikasi tampilan pada Tablet Portrait (3 kolom grid + floating bottom cart dock).
   - Verifikasi area sentuh tombol (*touch targets*) $\ge 44 \times 44\text{px}$.
 
+
+### Milestone 1.4: UI Refresh — Stitch Design "RestroBit POS" (Material Symbols)
+- [x] **Task 1.4.1: Design Tokens & Icon System**
+  - Font: Outfit (display) + Plus Jakarta Sans (body) + Material Symbols Outlined.
+  - Palette: primary `#447C84` (bismark), live `#65AF92`, bg `#F8FAFC`, shadow card/btn tokens.
+  - Komponen `ui/Icon.tsx` (wrapper Material Symbols); lucide-react dihapus total (clean cutover).
+- [x] **Task 1.4.2: NavigationRail + TopBar**
+  - Rail grup "Cashier Ops" / "Management & Ops" (role-gated), brand box, footer jam + user card (lock/sign-out), collapse persist.
+  - TopBar breadcrumb "POS / Register".
+- [x] **Task 1.4.3: Active Tickets + Katalog**
+  - Active Orders Line → "Active Tickets" collapsible grid.
+  - Section "Menu Catalog" + badge "N Items", CategoryFilterBar (pills kategori + count, sort/status, popover categories), ProductCatalogGrid (badge Best Seller gradien, Popular, tombol add hover).
+- [x] **Task 1.4.4: Order Details Panel + Modal & Checkout Restyle**
+  - Panel 380px: metadata tiket, segmented Dine In/Takeaway, gender selector glyph, item rows tanpa foto, note inline live-light, trash qty=1, ORDER SUMMARY (Subtotal + Grand Total), CTA "Pay Now • Rp…" gradien, Save Open Bill outline.
+  - Collapsed rail 64px: add/count/total vertical/payments.
+  - CustomItemModal: thumb 64px, chips live-light, Special Instructions (max 120 + counter), stepper 8×8, CTA "Add to Order • Rp…" gradien.
+  - PaymentModal (gradien bismark), ReceiptModal, OrderHistoryDrawer, Login & Dashboard → Material Symbols.
+  - Deviasi sadar dari desain: tanpa pajak PB1/service charge (backend belum ada fitur), tanpa pill Shift/Printer/Sync (tanpa fake data), search hint `/`.
+
 ---
 
 ## 🟡 FASE 2: Manajemen Akun & Pengaturan Sistem
