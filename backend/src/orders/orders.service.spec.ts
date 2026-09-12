@@ -4,39 +4,68 @@ import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CustomerGender, OrderStatus, PaymentCategory, Prisma } from '@prisma/client';
 
-function prismaMock() {
-  // Klien transaksi (dioper $transaction ke callback) — semua mutasi memakainya.
-  // id diisi setelah dibuat (order.order = mock.orderOrder) agar referensi terisi
-  // tanpa perlu urutan pendefinisian yang rapuh.
-  // Klien transaksi (dioper $transaction ke callback) — semua mutasi memakainya.
-  const orderMock = {
+interface OrderModelMock {
+  create: jest.Mock;
+  findFirst: jest.Mock;
+  update: jest.Mock;
+  findUnique: jest.Mock;
+  findMany: jest.Mock;
+}
+
+interface PrismaMock {
+  user: { findUnique: jest.Mock };
+  cafeTable: { findUnique: jest.Mock; update: jest.Mock; updateMany: jest.Mock };
+  product: { findMany: jest.Mock };
+  // order (klien luar) dipakai generateInvoiceNumber; tx.order memakai object
+  // yang sama supaya stub satu sumber.
+  order: OrderModelMock;
+  orderItem: { createMany: jest.Mock };
+  payment: { create: jest.Mock };
+  $transaction: jest.Mock;
+  txClient: {
+    order: OrderModelMock;
+    orderItem: { createMany: jest.Mock };
+    payment: { create: jest.Mock };
+    cafeTable: PrismaMock['cafeTable'];
+  };
+}
+
+function prismaMock(): PrismaMock {
+  const orderMock: OrderModelMock = {
     create: jest.fn(),
     findFirst: jest.fn(),
     update: jest.fn(),
     findUnique: jest.fn(),
     findMany: jest.fn(),
   };
+  const cafeTableMock: PrismaMock['cafeTable'] = {
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    updateMany: jest.fn(),
+  };
+  const orderItemMock = { createMany: jest.fn() };
+  const paymentMock = { create: jest.fn() };
 
-  const mock = {
+  const mock: PrismaMock = {
     user: { findUnique: jest.fn() },
-    cafeTable: { findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
+    cafeTable: cafeTableMock,
     product: { findMany: jest.fn() },
-    // order (klien luar) dipakai generateInvoiceNumber -> prisma.order.findFirst;
-    // tx.order memakai object yang sama supaya stub satu sumber.
     order: orderMock,
-    orderItem: { createMany: jest.fn() },
-    payment: { create: jest.fn() },
-    $transaction: jest.fn((fn: (tx: any) => Promise<any>) => fn(txClient)),
-  } as any;
-
-  const txClient = {
-    order: orderMock,
-    orderItem: mock.orderItem,
-    payment: mock.payment,
-    cafeTable: mock.cafeTable,
+    orderItem: orderItemMock,
+    payment: paymentMock,
+    $transaction: jest.fn(),
+    txClient: {
+      order: orderMock,
+      orderItem: orderItemMock,
+      payment: paymentMock,
+      cafeTable: cafeTableMock,
+    },
   };
 
-  mock.txClient = txClient;
+  // Default: oper txClient ke callback transaksi.
+  mock.$transaction.mockImplementation(
+    (fn: (tx: PrismaMock['txClient']) => Promise<unknown>) => fn(mock.txClient),
+  );
   return mock;
 }
 
@@ -44,7 +73,7 @@ function cashierRow() {
   return { id: 1, username: 'kasir1', name: 'Siti Kasir', role: 'CASHIER' };
 }
 
-function productRow(overrides: Partial<any> = {}) {
+function productRow(overrides: { id?: number; price?: bigint } = {}) {
   return {
     id: overrides.id ?? 10,
     name: 'Nasi Goreng Spesial',
@@ -54,7 +83,7 @@ function productRow(overrides: Partial<any> = {}) {
   };
 }
 
-function tableRow(overrides: Partial<any> = {}) {
+function tableRow(overrides: { isOccupied?: boolean } = {}) {
   return {
     id: 1,
     tableNumber: 'Meja 01',
@@ -65,8 +94,8 @@ function tableRow(overrides: Partial<any> = {}) {
 
 describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
   let service: OrdersService;
-  let prismaMock_;
-  let tx: any;
+  let prismaMock_: PrismaMock;
+  let tx: PrismaMock['txClient'];
 
   beforeAll(async () => {
     prismaMock_ = prismaMock();

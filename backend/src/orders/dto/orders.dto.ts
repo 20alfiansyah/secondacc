@@ -15,11 +15,11 @@ import { CustomerGender, PaymentCategory } from '@prisma/client';
 export class OpenBillItemDto {
   @IsInt()
   @IsPositive()
-  productId: number;
+  productId!: number;
 
   @IsInt()
   @Min(1)
-  quantity: number;
+  quantity!: number;
 
   @IsOptional()
   @IsString()
@@ -33,25 +33,25 @@ export class OpenBillDto {
 
   @IsInt()
   @IsPositive()
-  tableId: number;
+  tableId!: number;
 
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => OpenBillItemDto)
-  items: OpenBillItemDto[];
+  items!: OpenBillItemDto[];
 }
 
 export class PaymentDto {
   @IsEnum(PaymentCategory)
-  category: PaymentCategory;
+  category!: PaymentCategory;
 
   @IsString()
-  methodName: string;
+  methodName!: string;
 
   @IsInt()
   @Min(0)
-  amountPaid: number;
+  amountPaid!: number;
 }
 
 export class CheckoutDto {
@@ -60,9 +60,9 @@ export class CheckoutDto {
   customerName?: string;
 
   @IsEnum(CustomerGender)
-  customerGender: CustomerGender;
+  customerGender!: CustomerGender;
 
   @ValidateNested()
   @Type(() => PaymentDto)
-  payment: PaymentDto;
+  payment!: PaymentDto;
 }
