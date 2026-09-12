@@ -8,7 +8,7 @@ RUN npm ci
 
 # Salin source & build
 # (node_modules penuh dipertahankan: entrypoint memakai prisma CLI & ts-node
-#  untuk `db push` + seed, yang merupakan devDependencies.)
+#  untuk `migrate deploy` + seed, yang merupakan devDependencies.)
 COPY . .
 RUN npx prisma generate \
   && npm run build
@@ -28,7 +28,9 @@ COPY --from=build --chown=app:app /app/prisma ./prisma
 
 # Entrypoint: jalankan migrasi + seed (opsional) lalu start server
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Sanitasi CRLF (checkout Windows) agar shebang valid di Alpine, lalu executable.
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
+  && chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3000
 USER app

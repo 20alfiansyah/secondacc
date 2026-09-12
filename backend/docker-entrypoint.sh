@@ -1,13 +1,14 @@
 #!/bin/sh
 set -e
 
-# Jalankan migrasi database. Karena tidak ada folder migrations, gunakan
-# `prisma db push --accept-data-loss` untuk menyinkronkan schema Prisma
-# ke PostgreSQL secara non-interaktif. Opsional: set SKIP_DB_PUSH=1 untuk
-# melewati (misal DB sudah di-manage terpisah).
-if [ "${SKIP_DB_PUSH:-0}" != "1" ]; then
-  echo "⏳ Applying Prisma schema (db push)..."
-  npx prisma db push --accept-data-loss
+# Terapkan migrasi Prisma. Folder prisma/migrations wajib ter-commit di repo;
+# skema TIDAK lagi disinkronkan via `db push` di produksi.
+# Catatan one-time untuk database lama yang dibuat via `db push`:
+#   npx prisma migrate resolve --applied 20260912000000_init
+# Set SKIP_MIGRATE=1 untuk melewati (mis. DB di-manage terpisah).
+if [ "${SKIP_MIGRATE:-0}" != "1" ]; then
+  echo "⏳ Applying Prisma migrations..."
+  npx prisma migrate deploy
 fi
 
 # Seed data awal (opsional). Set SKIP_SEED=1 untuk melewati.
