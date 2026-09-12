@@ -278,14 +278,18 @@ export default function NavigationRail({
       <div className="scrollbar-none mt-4 flex min-h-0 flex-1 flex-col space-y-1 overflow-y-auto pr-0.5">
         {visibleGroups.map((group, index) => (
           <div key={group.id} className={cn(index > 0 && 'pt-2')}>
-            {index > 0 &&
-              (collapsed ? (
-                <div className="mx-auto my-2 h-px w-6 bg-border/60" />
-              ) : (
-                <p className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
-                  {group.label}
-                </p>
-              ))}
+            {collapsed ? (
+              index > 0 && <div className="mx-auto my-2 h-px w-6 bg-border/60" />
+            ) : (
+              <p
+                className={cn(
+                  'px-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70',
+                  index > 0 && 'pt-2',
+                )}
+              >
+                {group.label}
+              </p>
+            )}
             <div className="space-y-1">
               {group.items.map((item) => (
                 <NavButton key={item.id} item={item} collapsed={collapsed} />
