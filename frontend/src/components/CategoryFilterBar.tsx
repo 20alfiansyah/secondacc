@@ -1,23 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  ArrowUp,
-  ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
-  Coffee,
-  Cookie,
-  CupSoda,
-  Filter,
-  Flame,
-  LayoutGrid,
-  Sparkles,
-  Star,
-  Utensils,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { ArrowUp } from 'lucide-react'
 import type { Category, Product } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { SearchInput } from '@/components/ui/SearchInput'
+import Icon from '@/components/ui/Icon'
 
 export type CategoryFilter = 'all' | 'recommended' | 'best-seller' | number
 export type AvailabilityFilter = 'all' | 'available' | 'sold-out'
@@ -38,20 +24,20 @@ export const SORT_LABEL: Record<SortOption, string> = {
 
 const SCROLL_STEP = 260
 
-function pillIcon(name: string): LucideIcon {
+/** Material Symbols glyph per nama kategori (fallback: auto_awesome). */
+function categoryGlyph(name: string): string {
   const lower = name.toLowerCase()
-  if (lower.includes('kopi') || lower.includes('coffee')) return Coffee
-  if (lower.includes('makan') || lower.includes('heavy') || lower.includes('food')) return Utensils
-  if (lower.includes('snack') || lower.includes('cemilan') || lower.includes('roti')) return Cookie
+  if (lower.includes('kopi') || lower.includes('coffee')) return 'coffee'
+  if (lower.includes('makan') || lower.includes('heavy') || lower.includes('food')) return 'restaurant'
+  if (lower.includes('snack') || lower.includes('cemilan') || lower.includes('roti')) return 'cookie'
   if (lower.includes('non') || lower.includes('drink') || lower.includes('tea') || lower.includes('soda'))
-    return CupSoda
-  return Sparkles
+    return 'local_cafe'
+  return 'auto_awesome'
 }
 
 interface Pill {
   key: string
   label: string
-  icon?: LucideIcon
   count: number
   value: CategoryFilter
 }
@@ -111,15 +97,13 @@ export default function CategoryFilterBar({
       { key: 'all', label: 'All', count: counts.all, value: 'all' },
       {
         key: 'recommended',
-        label: 'Recommended',
-        icon: Star,
+        label: 'Popular',
         count: counts.recommended,
         value: 'recommended',
       },
       {
         key: 'best-seller',
         label: 'Best Seller',
-        icon: Flame,
         count: counts.bestSeller,
         value: 'best-seller',
       },
@@ -127,7 +111,6 @@ export default function CategoryFilterBar({
     const dynamic = categories.map((c) => ({
       key: `cat-${c.id}`,
       label: c.name,
-      icon: pillIcon(c.name),
       count: c.activeProductCount,
       value: c.id as CategoryFilter,
     }))
@@ -201,12 +184,12 @@ export default function CategoryFilterBar({
               <ArrowUp className="h-3.5 w-3.5" />
             </button>
           ) : null}
-          <div className="flex h-10 items-center gap-1 rounded-xl border border-border/80 bg-card px-2.5 shadow-subtle text-xs sm:text-sm">
-            <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <div className="flex h-10 items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 shadow-xs transition hover:border-slate-300">
+            <Icon name="filter_alt" className="text-[15px] text-primary" />
             <select
               value={availabilityFilter}
               onChange={(e) => onAvailabilityChange(e.target.value as AvailabilityFilter)}
-              className="bg-transparent text-xs sm:text-sm font-semibold text-foreground focus:outline-none cursor-pointer"
+              className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
             >
               {(Object.keys(FILTER_LABEL) as AvailabilityFilter[]).map((k) => (
                 <option key={k} value={k}>
@@ -216,12 +199,12 @@ export default function CategoryFilterBar({
             </select>
           </div>
 
-          <div className="flex h-10 items-center gap-1 rounded-xl border border-border/80 bg-card px-2.5 shadow-subtle text-xs sm:text-sm">
-            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <div className="flex h-10 items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 shadow-xs transition hover:border-slate-300">
+            <Icon name="tune" className="text-[15px] text-primary" />
             <select
               value={sortOption}
               onChange={(e) => onSortChange(e.target.value as SortOption)}
-              className="bg-transparent text-xs sm:text-sm font-semibold text-foreground focus:outline-none cursor-pointer"
+              className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
             >
               {(Object.keys(SORT_LABEL) as SortOption[]).map((k) => (
                 <option key={k} value={k}>
@@ -241,7 +224,7 @@ export default function CategoryFilterBar({
           aria-label="Scroll categories left"
           className="absolute -left-3 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground shadow-subtle transition-all duration-150 hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 md:flex"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <Icon name="chevron_left" className="text-[16px]" />
         </button>
 
         <div
@@ -256,24 +239,17 @@ export default function CategoryFilterBar({
                 key={pill.key}
                 onClick={() => select(pill.value)}
                 className={cn(
-                  'group flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-all duration-150 active:scale-[0.97]',
+                  'group flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-xs shadow-xs transition-all duration-150 active:scale-[0.97]',
                   isActive
-                    ? 'border-primary shadow-sm bg-primary text-primary-foreground'
-                    : 'border-border/80 bg-card text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground',
+                    ? 'bg-primary font-semibold text-primary-foreground'
+                    : 'border border-slate-200 bg-white font-medium text-slate-600 hover:bg-slate-50 hover:text-foreground',
                 )}
               >
-                {pill.icon && (
-                  <span className={cn(isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground')}>
-                    <pill.icon className="h-3.5 w-3.5" />
-                  </span>
-                )}
                 <span className="whitespace-nowrap">{pill.label}</span>
                 <span
                   className={cn(
-                    'rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums',
-                    isActive
-                      ? 'bg-primary-foreground/20 text-primary-foreground'
-                      : 'bg-muted text-muted-foreground',
+                    'rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
+                    isActive ? 'bg-primary-dark text-white' : 'bg-slate-100 text-slate-600',
                   )}
                 >
                   {pill.count}
@@ -293,10 +269,11 @@ export default function CategoryFilterBar({
                   : 'border-border/80 bg-card text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground',
               )}
             >
-              <LayoutGrid className="h-3.5 w-3.5" />
+              <Icon name="grid_view" className="text-[15px]" />
               <span className="whitespace-nowrap">Categories</span>
-              <ChevronRight
-                className={cn('h-3.5 w-3.5 transition-transform duration-150', gridOpen && 'rotate-90')}
+              <Icon
+                name="chevron_right"
+                className={cn('text-[15px] transition-transform duration-150', gridOpen && 'rotate-90')}
               />
             </button>
 
@@ -319,11 +296,8 @@ export default function CategoryFilterBar({
                                 : 'border-transparent text-muted-foreground hover:bg-accent hover:text-foreground',
                             )}
                           >
-                            <span className="text-muted-foreground/70">
-                              {(() => {
-                                const Icon = pillIcon(c.name)
-                                return <Icon className="h-4 w-4" />
-                              })()}
+                            <span className="text-slate-400">
+                              <Icon name={categoryGlyph(c.name)} className="text-[18px]" />
                             </span>
                             <span className="line-clamp-2 text-[11px] font-semibold leading-tight">
                               {c.name}
@@ -348,7 +322,7 @@ export default function CategoryFilterBar({
           aria-label="Scroll categories right"
           className="absolute -right-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground shadow-subtle transition-all duration-150 hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 md:flex"
         >
-          <ChevronRight className="h-5 w-5" />
+          <Icon name="chevron_right" className="text-[16px]" />
         </button>
       </div>
     </div>

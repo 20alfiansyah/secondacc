@@ -1,14 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  ArrowUp,
-  CheckCircle2,
-  Coffee,
-  Receipt,
-  Search,
-  ShoppingBag,
-  X,
-} from 'lucide-react'
 import TopBar from '@/components/TopBar'
+import Icon from '@/components/ui/Icon'
 import {
   checkoutRequest,
   fetchActiveOrders,
@@ -331,7 +323,7 @@ export default function POS() {
                   : 'border-primary/20 bg-primary/10 text-primary',
               )}
             >
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <Icon name="check_circle" className="text-base shrink-0" />
               <span>{feedback}</span>
             </div>
           )}
@@ -340,7 +332,12 @@ export default function POS() {
           <Section
             icon="restaurant"
             title="Menu Catalog"
-            subtitle="All items across the menu"
+            subtitle="Quick selection & fulfillment"
+            badge={
+              <span className="rounded-full border border-live-border bg-live-light px-2 py-0.5 text-[11px] font-semibold text-primary-dark tabular-nums">
+                {products.length} Items
+              </span>
+            }
             className="flex-1 shrink-0"
             right={
               isQueueScrolledOut && activeOrders.length > 0 ? (
@@ -355,7 +352,7 @@ export default function POS() {
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
                   </span>
                   <span>{activeOrders.length} In Queue</span>
-                  <ArrowUp className="h-3 w-3" />
+                  <Icon name="arrow_upward" className="text-xs" />
                 </button>
               ) : undefined
             }
@@ -382,12 +379,12 @@ export default function POS() {
             <div className="min-h-0 flex-1 pt-2">
               {loading ? (
                 <div className="flex h-64 flex-col items-center justify-center gap-2 text-muted-foreground">
-                  <Coffee className="h-8 w-8 animate-bounce text-primary/60" />
+                  <Icon name="coffee" className="text-3xl animate-bounce text-primary/60" />
                   <p className="text-sm font-medium">Loading menu...</p>
                 </div>
               ) : filteredProducts.length === 0 ? (
                 <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 p-8 text-center text-muted-foreground">
-                  <Search className="mb-2 h-8 w-8 opacity-40" />
+                  <Icon name="search" className="mb-2 text-3xl opacity-40" />
                   <p className="text-sm font-medium text-foreground">No menu found</p>
                   <p className="text-xs">Try a different keyword or change the status filter.</p>
                 </div>
@@ -446,7 +443,7 @@ export default function POS() {
           onClick={() => setMobileCartOpen(true)}
           className="h-11 px-5 font-bold shadow-sm"
         >
-          <ShoppingBag className="h-4 w-4" />
+          <Icon name="shopping_bag" className="text-base" />
           View Cart
           {cartItemCount > 0 && (
             <span className="ml-1 rounded-full bg-primary-foreground/20 px-1.5 py-0.2 text-xs font-bold text-primary-foreground">
@@ -462,14 +459,14 @@ export default function POS() {
           <div className="flex max-h-[90vh] w-full flex-col rounded-t-3xl border-t border-border/80 bg-card p-5 shadow-modal animate-in slide-in-from-bottom duration-200">
             <div className="mb-3 flex items-center justify-between border-b border-border/70 pb-3">
               <div className="flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-primary" />
+                <Icon name="receipt_long" className="text-lg text-primary" />
                 <h2 className="text-base font-bold text-foreground">Order Details</h2>
               </div>
               <button
                 onClick={() => setMobileCartOpen(false)}
                 className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               >
-                <X className="h-5 w-5" />
+                <Icon name="close" className="text-lg" />
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">

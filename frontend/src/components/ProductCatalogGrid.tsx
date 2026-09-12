@@ -1,8 +1,8 @@
-import { Flame, Sparkles, Star } from 'lucide-react'
 import type { Product } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { formatRupiah } from '@/utils/format'
 import { getProductImage } from '@/utils/productImages'
+import Icon from '@/components/ui/Icon'
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=500&auto=format&fit=crop&q=80'
@@ -18,6 +18,17 @@ function resolveProductImage(p: Product): string {
   return getProductImage(p.name, p.categoryName)
 }
 
+/** Material Symbols glyph per judul section grup katalog. */
+function sectionGlyph(label: string): string {
+  const lower = label.toLowerCase()
+  if (lower.includes('best seller') || lower.includes('best-seller')) return 'local_fire_department'
+  if (lower.includes('recommended')) return 'star'
+  if (lower.includes('coffee') || lower.includes('kopi')) return 'coffee'
+  if (lower.includes('makan') || lower.includes('food')) return 'restaurant'
+  if (lower.includes('snack') || lower.includes('cemilan') || lower.includes('roti')) return 'cookie'
+  return 'auto_awesome'
+}
+
 /** Grup section untuk tab "All": Recommended & Best Seller, lalu tiap kategori. */
 function groupBySections(products: Product[]): { title: string; items: Product[] }[] {
   const featured = products.filter((p) => p.isRecommended || p.isBestSeller)
@@ -25,11 +36,10 @@ function groupBySections(products: Product[]): { title: string; items: Product[]
 
   const byCategory = new Map<string, Product[]>()
   for (const p of products) {
-    if (shownIds.has(p.id)) continue // hindari duplikat kartu
-    const key = p.categoryName || 'Lainnya'
-    const list = byCategory.get(key)
-    if (list) list.push(p)
-    else byCategory.set(key, [p])
+    if (shownIds.has(p.id)) continue
+    const list = byCategory.get(p.categoryName) ?? []
+    list.push(p)
+    byCategory.set(p.categoryName, list)
   }
 
   const sections: { title: string; items: Product[] }[] = []
@@ -38,24 +48,10 @@ function groupBySections(products: Product[]): { title: string; items: Product[]
   return sections
 }
 
-function SectionIcon({ label }: { label: string }) {
-  const lower = label.toLowerCase()
-  if (lower.includes('recommended') && !lower.includes('coffee')) {
-    return <Star className="h-4 w-4" />
-  }
-  if (lower.includes('best seller') || lower.includes('best-seller')) {
-    return <Flame className="h-4 w-4" />
-  }
-  if (lower.includes('coffee') || lower.includes('kopi')) return <Sparkles className="h-4 w-4" />
-  return <Sparkles className="h-4 w-4" />
-}
-
 /**
- * Zone 2 — Bottom: Menu Catalog Grid with Category Section Headers (Task 1.3.6).
- * Tab "All" mengelompokkan produk di bawah header section + divider halus;
- * tab kategori spesifik menampilkan grid terfokus. Kartu pakai foto 1:1,
- * badge Recommended/Best Seller, badge + overlay grayscale Sold Out, dan klik
- * kartu me-wire onSelect ke parent (modal kustomisasi di Task 1.3.7).
+ * Zone 2 — Bottom: Menu Catalog Grid with Category Section Headers (Stitch
+ * design). Kartu 4:3 dengan badge Popular (gelap) / Best Seller (gradien),
+ * tombol tambah + hover-fill teal, dan header grup kategori dgn "N Items".
  */
 export default function ProductCatalogGrid({
   products,
@@ -83,20 +79,20 @@ export default function ProductCatalogGrid({
           }
         }}
         className={cn(
-          'group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-card text-left shadow-card transition-all duration-200 select-none p-2.5 sm:p-3',
+          'group relative flex flex-col justify-between overflow-hidden rounded-xl border bg-white text-left shadow-xs transition-all duration-200 select-none',
           soldOut
             ? 'cursor-not-allowed border-border/40'
-            : 'cursor-pointer border-border/70 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-card-hover active:scale-[0.98]',
+            : 'cursor-pointer border-slate-200/80 hover:border-primary hover:shadow-card-hover active:scale-[0.98]',
         )}
       >
-        {/* Foto hero — rasio 4:3 proporsional, hemat tinggi & tidak memotong sajian makanan */}
-        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-muted/40">
+        {/* Foto hero — rasio 4:3 sesuai desain */}
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
           <img
             src={resolveProductImage(p)}
             alt={p.name}
             loading="lazy"
             className={cn(
-              'h-full w-full object-cover object-center transition-transform duration-300',
+              'h-full w-full object-cover object-center transition-transform duration-300 ease-out',
               soldOut && 'grayscale',
               !soldOut && 'group-hover:scale-105',
             )}
@@ -105,18 +101,21 @@ export default function ProductCatalogGrid({
             }}
           />
 
-          {/* Badge Recommended / Best Seller */}
+          {/* Badge Popular (gelap) / Best Seller (gradien SilverTree→Bismark) */}
           {(p.isRecommended || p.isBestSeller) && (
-            <div className="absolute left-1.5 top-1.5 flex flex-col gap-1">
+            <div className="absolute left-2 top-2 flex flex-col gap-1">
               {p.isRecommended && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/50 bg-amber-50/95 px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold text-amber-700 shadow-xs backdrop-blur-sm">
-                  <Star className="h-2.5 w-2.5" />
-                  Recommended
+                <span className="inline-flex items-center gap-1 rounded-full border border-primary bg-primary-dark px-2.5 py-0.5 font-display text-[10px] font-bold tracking-wide text-white shadow-md">
+                  <Icon name="star" className="text-[13px] text-live" />
+                  Popular
                 </span>
               )}
               {p.isBestSeller && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-rose-400/50 bg-rose-50/95 px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold text-rose-600 shadow-xs backdrop-blur-sm">
-                  <Flame className="h-2.5 w-2.5" />
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border border-teal-200/40 px-2.5 py-0.5 font-display text-[10px] font-bold tracking-wide text-white shadow-md"
+                  style={{ background: 'linear-gradient(135deg, #65AF92 0%, #447C84 100%)' }}
+                >
+                  <Icon name="local_fire_department" className="text-[13px] text-teal-100" />
                   Best Seller
                 </span>
               )}
@@ -134,44 +133,52 @@ export default function ProductCatalogGrid({
         </div>
 
         {/* Body */}
-        <div className="mt-2.5 flex flex-1 flex-col">
-          <h3
-            className={cn(
-              'line-clamp-2 min-h-[2.5em] text-sm font-semibold leading-[1.25] tracking-tight transition-colors',
-              soldOut ? 'text-muted-foreground' : 'text-foreground group-hover:text-primary',
-            )}
-          >
-            {p.name}
-          </h3>
-          {p.description && (
-            <p
+        <div className="flex flex-1 flex-col justify-between p-3">
+          <div>
+            <h4
               className={cn(
-                'mt-0.5 line-clamp-1 text-xs leading-normal',
-                soldOut ? 'text-muted-foreground/70' : 'text-muted-foreground',
+                'line-clamp-2 text-xs font-semibold leading-snug tracking-tight transition-colors',
+                soldOut ? 'text-muted-foreground' : 'text-slate-900 group-hover:text-primary',
               )}
             >
-              {p.description}
-            </p>
-          )}
-
-          <div className="mt-auto pt-2.5">
-            <div className="flex items-center justify-between gap-2 border-t border-border/50 pt-2">
-              <span
+              {p.name}
+            </h4>
+            {p.description && (
+              <p
                 className={cn(
-                  'text-sm font-bold tracking-tight tabular-nums',
-                  soldOut ? 'text-muted-foreground/80' : 'text-foreground',
+                  'mt-0.5 line-clamp-1 text-[11px] leading-normal',
+                  soldOut ? 'text-muted-foreground/70' : 'text-slate-500',
                 )}
               >
-                {formatRupiah(p.price)}
-              </span>
-              {soldOut ? (
-                <span className="text-[10px] font-semibold italic text-muted-foreground">Sold out</span>
-              ) : (
-                <span className="flex h-7 items-center rounded-lg bg-primary px-2.5 text-[11px] font-bold text-primary-foreground shadow-xs transition-transform active:scale-95">
-                  Add +
-                </span>
+                {p.description}
+              </p>
+            )}
+          </div>
+
+          <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2">
+            <span
+              className={cn(
+                'text-xs font-bold tabular-nums tracking-tight',
+                soldOut ? 'text-muted-foreground/80' : 'text-slate-900',
               )}
-            </div>
+            >
+              {formatRupiah(p.price)}
+            </span>
+            {soldOut ? (
+              <span className="text-[10px] font-semibold italic text-muted-foreground">Sold out</span>
+            ) : (
+              <span
+                className={cn(
+                  'flex h-7 w-7 items-center justify-center rounded-lg shadow-xs transition-all active:scale-95',
+                  p.isBestSeller || p.isRecommended
+                    ? 'bg-primary text-white hover:bg-primary-hover'
+                    : 'bg-slate-100 text-slate-700 group-hover:bg-primary group-hover:text-white',
+                )}
+                aria-hidden="true"
+              >
+                <Icon name="add" className="text-[16px]" />
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -184,19 +191,16 @@ export default function ProductCatalogGrid({
         {grouped.map((section) => (
           <div key={section.title}>
             {/* Section header + divider halus */}
-            <div className="mb-3.5 flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <SectionIcon label={section.title} />
-              </span>
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            <div className="mb-3 flex items-center gap-2 border-b border-slate-100 pb-1.5">
+              <Icon name={sectionGlyph(section.title)} className="text-[18px] text-primary" />
+              <h3 className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
                 {section.title}
-              </h2>
-              <span className="rounded-full bg-muted px-2 py-0.2 text-[10px] font-bold text-muted-foreground tabular-nums">
-                {section.items.length}
+              </h3>
+              <span className="rounded-full border border-slate-200/80 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 tabular-nums">
+                {section.items.length} Items
               </span>
-              <div className="h-px flex-1 bg-border/60" />
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {section.items.map(renderCard)}
             </div>
           </div>
@@ -206,7 +210,7 @@ export default function ProductCatalogGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 pb-20 sm:grid-cols-2 lg:grid-cols-3 lg:pb-4 xl:grid-cols-4 2xl:grid-cols-5">
+    <div className="grid grid-cols-1 gap-3.5 pb-20 sm:grid-cols-2 lg:grid-cols-3 lg:pb-4 xl:grid-cols-4">
       {products.map(renderCard)}
     </div>
   )

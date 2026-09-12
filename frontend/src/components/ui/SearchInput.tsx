@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Icon from '@/components/ui/Icon'
 
 /**
  * Shared compact search field (~40px) used across POS sections so every
@@ -21,7 +21,7 @@ const SearchInput = React.forwardRef<
 
   return (
     <div className={cn('relative', className)}>
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+      <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-[16px] text-slate-400" />
       <input
         type="text"
         value={value}
@@ -43,7 +43,7 @@ const SearchInput = React.forwardRef<
           aria-label="Clear search"
           className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         >
-          <X className="h-3.5 w-3.5" />
+          <Icon name="close" className="text-[14px]" />
         </button>
       ) : (
         hint &&
