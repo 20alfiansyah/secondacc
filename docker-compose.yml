@@ -33,6 +33,11 @@ services:
       JWT_SECRET: ${JWT_SECRET:-CHANGE_ME_generate_a_long_random_secret}
       SKIP_MIGRATE: ${SKIP_MIGRATE:-0}
       SKIP_SEED: ${SKIP_SEED:-0}
+      # Kredensial seed — WAJIB diisi di .env (gagal cepat bila kosong).
+      SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME:-admin}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?Isi SEED_ADMIN_PASSWORD di .env}
+      SEED_CASHIER_USERNAME: ${SEED_CASHIER_USERNAME:-kasir1}
+      SEED_CASHIER_PASSWORD: ${SEED_CASHIER_PASSWORD:?Isi SEED_CASHIER_PASSWORD di .env}
     ports:
       - "${BACKEND_PORT:-3000}:3000"
 

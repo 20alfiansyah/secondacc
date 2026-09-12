@@ -6,17 +6,29 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Memulai proses seeding database Kafe POS...');
 
-  // 1. SEED USERS (Admin & Kasir)
+  // 1. SEED USERS (Admin & Kasir) — kredensial dari environment, TIDAK ada
+  //    password default hardcode. Username boleh di-override, password wajib.
+  const adminUsername = process.env.SEED_ADMIN_USERNAME ?? 'admin';
+  const cashierUsername = process.env.SEED_CASHIER_USERNAME ?? 'kasir1';
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  const cashierPassword = process.env.SEED_CASHIER_PASSWORD;
+
+  if (!adminPassword || !cashierPassword) {
+    throw new Error(
+      'Seed butuh SEED_ADMIN_PASSWORD dan SEED_CASHIER_PASSWORD di environment (lihat .env.example).',
+    );
+  }
+
   const salt = await bcrypt.genSalt(10);
-  const adminPassword = await bcrypt.hash('admin123', salt);
-  const cashierPassword = await bcrypt.hash('kasir123', salt);
+  const adminPasswordHash = await bcrypt.hash(adminPassword, salt);
+  const cashierPasswordHash = await bcrypt.hash(cashierPassword, salt);
 
   const admin = await prisma.user.upsert({
-    where: { username: 'admin' },
+    where: { username: adminUsername },
     update: {},
     create: {
-      username: 'admin',
-      passwordHash: adminPassword,
+      username: adminUsername,
+      passwordHash: adminPasswordHash,
       name: 'Owner / Manager Kafe',
       role: Role.ADMIN,
       isActive: true,
@@ -24,11 +36,11 @@ async function main() {
   });
 
   const cashier = await prisma.user.upsert({
-    where: { username: 'kasir1' },
+    where: { username: cashierUsername },
     update: {},
     create: {
-      username: 'kasir1',
-      passwordHash: cashierPassword,
+      username: cashierUsername,
+      passwordHash: cashierPasswordHash,
       name: 'Siti Kasir',
       role: Role.CASHIER,
       isActive: true,
