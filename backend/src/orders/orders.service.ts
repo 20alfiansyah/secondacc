@@ -322,6 +322,34 @@ export class OrdersService {
     };
   }
 
+  /**
+   * Batalkan open bill: order -> CANCELLED, meja dikosongkan.
+   * Append-only: tidak ada delete, transaksi selesai tidak boleh dibatalkan.
+   */
+  async cancel(orderId: number) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+    if (order.status !== OrderStatus.OPEN_BILL) {
+      throw new BadRequestException('Hanya open bill yang dapat dibatalkan');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.CANCELLED },
+      });
+      if (order.tableId !== null) {
+        await tx.cafeTable.update({
+          where: { id: order.tableId },
+          data: { isOccupied: false },
+        });
+      }
+      return updated;
+    });
+  }
+
   /** Generate nomor invoice format: INV-YYYYMMDD-NNNN */
   private async generateInvoiceNumber(tx: Prisma.TransactionClient): Promise<string> {
     const now = new Date();

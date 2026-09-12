@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
   Req,
@@ -44,6 +45,18 @@ export class OrdersController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CheckoutDto,
   ) {
-    return this.ordersService.checkout(id, dto);
+    const { order } = await this.ordersService.checkout(id, dto);
+    return { success: true, order };
+  }
+
+  /** Batalkan open bill + kosongkan meja (docs/6_API_CONTRACTS.md). */
+  @Patch(':id/cancel')
+  async cancel(@Param('id', ParseIntPipe) id: number) {
+    const order = await this.ordersService.cancel(id);
+    return {
+      success: true,
+      message: 'Pesanan berhasil dibatalkan dan meja telah dikosongkan.',
+      order: { id: order.id, status: order.status },
+    };
   }
 }

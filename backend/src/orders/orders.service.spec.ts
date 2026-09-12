@@ -621,4 +621,64 @@ describe('OrdersService (open-bill + checkout dalam transaksi ACID)', () => {
       await expect(service.getOrderDetail(999)).rejects.toThrow(NotFoundException);
     });
   });
+  describe('5. cancel (batalkan open bill + kosongkan meja)', () => {
+    it('membatalkan order OPEN_BILL: status -> CANCELLED dan meja dikosongkan dalam satu transaksi', async () => {
+      prismaMock_.order.findUnique.mockResolvedValue({
+        id: 45,
+        status: OrderStatus.OPEN_BILL,
+        tableId: 1,
+      });
+      prismaMock_.order.update.mockResolvedValue({
+        id: 45,
+        status: OrderStatus.CANCELLED,
+      });
+
+      const result = await service.cancel(45);
+
+      expect(result).toEqual({ id: 45, status: OrderStatus.CANCELLED });
+      // $transaction dipakai agar update order + meja atomik
+      expect(prismaMock_.$transaction).toHaveBeenCalledTimes(1);
+      expect(prismaMock_.order.update).toHaveBeenCalledWith({
+        where: { id: 45 },
+        data: { status: OrderStatus.CANCELLED },
+      });
+      expect(prismaMock_.cafeTable.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { isOccupied: false },
+      });
+    });
+
+    it('tanpa meja (tableId null) tetap membatalkan tanpa menyentuh cafeTable', async () => {
+      prismaMock_.order.findUnique.mockResolvedValue({
+        id: 46,
+        status: OrderStatus.OPEN_BILL,
+        tableId: null,
+      });
+      prismaMock_.order.update.mockResolvedValue({
+        id: 46,
+        status: OrderStatus.CANCELLED,
+      });
+
+      await service.cancel(46);
+
+      expect(prismaMock_.cafeTable.update).not.toHaveBeenCalled();
+    });
+
+    it('menolak membatalkan order yang sudah PAID', async () => {
+      prismaMock_.order.findUnique.mockResolvedValue({
+        id: 45,
+        status: OrderStatus.PAID,
+        tableId: 1,
+      });
+
+      await expect(service.cancel(45)).rejects.toThrow(BadRequestException);
+      expect(prismaMock_.order.update).not.toHaveBeenCalled();
+    });
+
+    it('melempar NotFoundException bila order tidak ada', async () => {
+      prismaMock_.order.findUnique.mockResolvedValue(null);
+
+      await expect(service.cancel(999)).rejects.toThrow(NotFoundException);
+    });
+  });
 });
