@@ -31,8 +31,8 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/cafe_pos?schema=public}
       # GANTI lewat .env / environment production
       JWT_SECRET: ${JWT_SECRET:-CHANGE_ME_generate_a_long_random_secret}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       SKIP_MIGRATE: ${SKIP_MIGRATE:-0}
-      SKIP_SEED: ${SKIP_SEED:-0}
       # Kredensial seed — WAJIB diisi di .env (gagal cepat bila kosong).
       SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME:-admin}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?Isi SEED_ADMIN_PASSWORD di .env}
