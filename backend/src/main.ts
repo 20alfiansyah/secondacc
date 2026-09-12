@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 // BigInt tidak punya toJSON bawaan — perluas prototipe agar JSON.stringify
@@ -12,6 +13,10 @@ bigIntProto.toJSON = function (this: bigint) {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+
+  // Security headers standar (X-Frame-Options, CSP ringan, dsb).
+  app.use(helmet());
 
   // Global prefix /api
   app.setGlobalPrefix('api');
