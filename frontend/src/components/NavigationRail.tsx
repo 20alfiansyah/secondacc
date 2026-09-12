@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Role } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import Icon from '@/components/ui/Icon'
@@ -28,7 +27,6 @@ interface NavItem {
   id: string
   label: string
   icon: string
-  roles: Role[]
   active?: boolean
   onClick: () => void
 }
@@ -89,8 +87,8 @@ export default function NavigationRail({
   const role = user?.role ?? 'CASHIER'
   const roleLabelText = role === 'ADMIN' ? 'Administrator' : 'Active Cashier'
 
-  // Full menu structure — each item declares which roles may see it.
-  // Groups whose items are all filtered out are hidden entirely.
+  // Menu structure 1:1 dengan Stitch screen1 (role gating di route level,
+  // bukan di nav — sesuai desain).
   const groups: NavGroup[] = [
     {
       id: 'cashier-ops',
@@ -100,7 +98,6 @@ export default function NavigationRail({
           id: 'register',
           label: 'Register',
           icon: 'point_of_sale',
-          roles: ['ADMIN', 'CASHIER'],
           active: true,
           onClick: () => navigate('/pos'),
         },
@@ -108,7 +105,6 @@ export default function NavigationRail({
           id: 'history',
           label: 'Order History',
           icon: 'receipt_long',
-          roles: ['ADMIN', 'CASHIER'],
           onClick: onOpenHistory,
         },
       ],
@@ -121,42 +117,34 @@ export default function NavigationRail({
           id: 'dashboard',
           label: 'Dashboard',
           icon: 'dashboard',
-          roles: ['ADMIN'],
           onClick: () => navigate('/dashboard'),
         },
         {
           id: 'inventory',
           label: 'Inventory',
           icon: 'inventory_2',
-          roles: ['ADMIN'],
           onClick: () => handleNotice('Inventory arrives in the stock management phase.'),
         },
         {
           id: 'reports',
           label: 'Reports',
           icon: 'analytics',
-          roles: ['ADMIN'],
           onClick: () => handleNotice('Daily sales reports are available in the Admin Dashboard.'),
         },
         {
           id: 'setting',
           label: 'Settings',
           icon: 'tune',
-          roles: ['ADMIN'],
           onClick: () => handleNotice('System settings can be configured by an Admin.'),
         },
       ],
     },
   ]
 
-  const visibleGroups = groups
-    .map((g) => ({ ...g, items: g.items.filter((item) => item.roles.includes(role)) }))
-    .filter((g) => g.items.length > 0)
-
   return (
     <aside
       className={cn(
-        'relative z-30 flex h-full shrink-0 select-none flex-col border-r border-slate-200/80 bg-white transition-all duration-300 ease-in-out',
+        'relative z-30 flex h-full shrink-0 select-none flex-col justify-between border-r border-slate-200/80 bg-white transition-all duration-300 ease-in-out',
         collapsed ? 'w-[4.5rem]' : 'w-[240px]',
       )}
     >
@@ -193,9 +181,9 @@ export default function NavigationRail({
         )}
       </div>
 
-      {/* ===== Navigation groups (filtered by role) ===== */}
+      {/* ===== Navigation groups (spec screen1) ===== */}
       <nav className="space-y-1 p-3">
-        {visibleGroups.map((group, index) => (
+        {groups.map((group, index) => (
           <div key={group.id} className={cn('space-y-1', index > 0 && 'pt-3')}>
             {collapsed ? (
               index > 0 && <div className="mx-auto my-2 h-px w-6 bg-slate-200/80" />
@@ -358,3 +346,4 @@ function NavButton({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
     </button>
   )
 }
+
