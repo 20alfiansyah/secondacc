@@ -2,10 +2,23 @@ import type { Product } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { formatRupiah } from '@/utils/format'
 import { getProductImage } from '@/utils/productImages'
-import Icon from '@/components/ui/Icon'
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=500&auto=format&fit=crop&q=80'
+
+/** Material Symbols glyph per nama kategori (fallback: restaurant). */
+function categoryGlyph(name: string): string {
+  const lower = name.toLowerCase()
+  if (lower.includes('coffee') || lower.includes('espresso') || lower.includes('kopi')) return 'coffee'
+  if (lower.includes('tea') || lower.includes('beverage') || lower.includes('non-coffee') || lower.includes('drink'))
+    return 'emoji_food_beverage'
+  if (lower.includes('pastry') || lower.includes('bakery') || lower.includes('roti') || lower.includes('bread'))
+    return 'bakery_dining'
+  if (lower.includes('main') || lower.includes('dessert') || lower.includes('cake') || lower.includes('makanan'))
+    return 'cake'
+  if (lower.includes('snack') || lower.includes('cemilan')) return 'cookie'
+  return 'restaurant'
+}
 
 /**
  * Resolve gambar produk: pakai imageUrl dari backend bila benar-benar gambar
@@ -18,40 +31,22 @@ function resolveProductImage(p: Product): string {
   return getProductImage(p.name, p.categoryName)
 }
 
-/** Material Symbols glyph per judul section grup katalog. */
-function sectionGlyph(label: string): string {
-  const lower = label.toLowerCase()
-  if (lower.includes('best seller') || lower.includes('best-seller')) return 'local_fire_department'
-  if (lower.includes('recommended')) return 'star'
-  if (lower.includes('coffee') || lower.includes('kopi')) return 'coffee'
-  if (lower.includes('makan') || lower.includes('food')) return 'restaurant'
-  if (lower.includes('snack') || lower.includes('cemilan') || lower.includes('roti')) return 'cookie'
-  return 'auto_awesome'
-}
-
-/** Grup section untuk tab "All": Recommended & Best Seller, lalu tiap kategori. */
-function groupBySections(products: Product[]): { title: string; items: Product[] }[] {
-  const featured = products.filter((p) => p.isRecommended || p.isBestSeller)
-  const shownIds = new Set(featured.map((p) => p.id))
-
+/** Grup section untuk tab "All": tiap kategori (urutan kategori) tanpa grup featured. */
+function groupByCategory(products: Product[]): { title: string; items: Product[] }[] {
   const byCategory = new Map<string, Product[]>()
   for (const p of products) {
-    if (shownIds.has(p.id)) continue
     const list = byCategory.get(p.categoryName) ?? []
     list.push(p)
     byCategory.set(p.categoryName, list)
   }
-
-  const sections: { title: string; items: Product[] }[] = []
-  if (featured.length > 0) sections.push({ title: 'Recommended & Best Seller', items: featured })
-  for (const [name, items] of byCategory) sections.push({ title: name, items })
-  return sections
+  return Array.from(byCategory, ([title, items]) => ({ title, items }))
 }
 
 /**
- * Zone 2 — Bottom: Menu Catalog Grid with Category Section Headers (Stitch
- * design). Kartu 4:3 dengan badge Popular (gelap) / Best Seller (gradien),
- * tombol tambah + hover-fill teal, dan header grup kategori dgn "N Items".
+ * Zone 2 — Menu Catalog Grid (Stitch screen1 markup 1:1): kartu 4:3 dengan
+ * badge Popular (gelap) / Best Seller (gradien SilverTree→Bismark), body
+ * nama + deskripsi line-clamp-1, footer harga + tombol tambah hover teal,
+ * dan header grup kategori dgn "N Items".
  */
 export default function ProductCatalogGrid({
   products,
@@ -62,27 +57,29 @@ export default function ProductCatalogGrid({
   activeCategory: 'all' | 'recommended' | 'best-seller' | number
   onSelect: (product: Product) => void
 }) {
-  const grouped = activeCategory === 'all' ? groupBySections(products) : null
+  const grouped = activeCategory === 'all' ? groupByCategory(products) : null
 
   function renderCard(p: Product) {
     const soldOut = !p.isAvailable
     return (
       <div
         key={p.id}
-        onClick={() => onSelect(p)}
+        onClick={() => !soldOut && onSelect(p)}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
+          if ((e.key === 'Enter' || e.key === ' ') && !soldOut) {
             e.preventDefault()
             onSelect(p)
           }
         }}
         className={cn(
-          'group relative flex flex-col justify-between overflow-hidden rounded-xl border bg-white text-left shadow-xs transition-all duration-200 select-none',
+          'group flex flex-col justify-between overflow-hidden rounded-xl bg-white text-left shadow-xs transition-all duration-200 select-none',
           soldOut
-            ? 'cursor-not-allowed border-border/40'
-            : 'cursor-pointer border-slate-200/80 hover:border-primary hover:shadow-card-hover active:scale-[0.98]',
+            ? 'cursor-not-allowed border border-border/40'
+            : p.isBestSeller
+              ? 'cursor-pointer border-2 border-[#447C84] hover:border-[#396a71] hover:shadow-card-hover'
+              : 'cursor-pointer border border-slate-200/80 hover:border-[#447C84] hover:shadow-card-hover',
         )}
       >
         {/* Foto hero — rasio 4:3 sesuai desain */}
@@ -105,24 +102,24 @@ export default function ProductCatalogGrid({
           {(p.isRecommended || p.isBestSeller) && (
             <div className="absolute left-2 top-2 flex flex-col gap-1">
               {p.isRecommended && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-primary bg-primary-dark px-2.5 py-0.5 font-display text-[10px] font-bold tracking-wide text-white shadow-md">
-                  <Icon name="star" className="text-[13px] text-live" />
-                  Popular
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#447C84] bg-[#2d5258] px-2.5 py-0.5 font-display text-[10px] font-bold tracking-wide text-white shadow-md">
+                  <span className="material-symbols-outlined text-[13px] text-[#65AF92]">star</span>
+                  <span className="font-bold tracking-wide text-white">Popular</span>
                 </span>
               )}
               {p.isBestSeller && (
                 <span
-                  className="inline-flex items-center gap-1 rounded-full border border-teal-200/40 px-2.5 py-0.5 font-display text-[10px] font-bold tracking-wide text-white shadow-md"
-                  style={{ background: 'linear-gradient(135deg, #65AF92 0%, #447C84 100%)' }}
+                  className="inline-flex items-center gap-1 rounded-full border border-teal-200/40 px-2.5 py-0.5 font-display text-[10px] font-semibold tracking-wide text-white shadow-md"
+                  style={{ background: 'linear-gradient(135deg, rgb(101, 175, 146) 0%, rgb(68, 124, 132) 100%)' }}
                 >
-                  <Icon name="local_fire_department" className="text-[13px] text-teal-100" />
-                  Best Seller
+                  <span className="material-symbols-outlined text-[13px] text-teal-100">local_fire_department</span>
+                  <span className="font-bold tracking-wide">Best Seller</span>
                 </span>
               )}
             </div>
           )}
 
-          {/* Badge + overlay grayscale Sold Out */}
+          {/* Overlay grayscale Sold Out */}
           {soldOut && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-[1px]">
               <span className="rounded-full bg-destructive/90 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-destructive-foreground shadow-xs">
@@ -137,8 +134,8 @@ export default function ProductCatalogGrid({
           <div>
             <h4
               className={cn(
-                'line-clamp-2 text-xs font-semibold leading-snug tracking-tight transition-colors',
-                soldOut ? 'text-muted-foreground' : 'text-slate-900 group-hover:text-primary',
+                'text-xs font-semibold leading-snug tracking-tight transition-colors',
+                soldOut ? 'text-muted-foreground' : 'text-slate-900 group-hover:text-[#447C84]',
               )}
             >
               {p.name}
@@ -159,7 +156,7 @@ export default function ProductCatalogGrid({
             <span
               className={cn(
                 'text-xs font-bold tabular-nums tracking-tight',
-                soldOut ? 'text-muted-foreground/80' : 'text-slate-900',
+                soldOut ? 'text-muted-foreground/80' : p.isBestSeller ? 'text-[#2d5258]' : 'text-slate-900',
               )}
             >
               {formatRupiah(p.price)}
@@ -170,13 +167,13 @@ export default function ProductCatalogGrid({
               <span
                 className={cn(
                   'flex h-7 w-7 items-center justify-center rounded-lg shadow-xs transition-all active:scale-95',
-                  p.isBestSeller || p.isRecommended
-                    ? 'bg-primary text-white hover:bg-primary-hover'
-                    : 'bg-slate-100 text-slate-700 group-hover:bg-primary group-hover:text-white',
+                  p.isBestSeller
+                    ? 'bg-[#447C84] font-bold text-white hover:bg-[#396a71]'
+                    : 'bg-slate-100 text-slate-700 group-hover:bg-[#447C84] group-hover:text-white',
                 )}
                 aria-hidden="true"
               >
-                <Icon name="add" className="text-[16px]" />
+                <span className="material-symbols-outlined text-[16px]">add</span>
               </span>
             )}
           </div>
@@ -187,31 +184,37 @@ export default function ProductCatalogGrid({
 
   if (grouped) {
     return (
-      <div className="space-y-6 pb-20 lg:pb-4">
+      <div className="space-y-6">
         {grouped.map((section) => (
-          <div key={section.title}>
+          <section key={section.title} className="space-y-3">
             {/* Section header + divider halus */}
-            <div className="mb-3 flex items-center gap-2 border-b border-slate-100 pb-1.5">
-              <Icon name={sectionGlyph(section.title)} className="text-[18px] text-primary" />
-              <h3 className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
-                {section.title}
-              </h3>
-              <span className="rounded-full border border-slate-200/80 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 tabular-nums">
-                {section.items.length} Items
-              </span>
+            <div className="flex items-center justify-between border-b border-slate-200/80 pb-1">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-[#447C84]">
+                  {categoryGlyph(section.title)}
+                </span>
+                <h3 className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
+                  {section.title}
+                </h3>
+                <span className="rounded-full border border-slate-200/80 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-slate-600">
+                  {section.items.length} {section.items.length === 1 ? 'Item' : 'Items'}
+                </span>
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 xl:grid-cols-4">
               {section.items.map(renderCard)}
             </div>
-          </div>
+          </section>
         ))}
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3.5 pb-20 sm:grid-cols-2 lg:grid-cols-3 lg:pb-4 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3 xl:grid-cols-4">
       {products.map(renderCard)}
     </div>
   )
 }
+
+export { categoryGlyph }

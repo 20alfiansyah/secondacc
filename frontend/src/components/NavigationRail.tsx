@@ -27,12 +27,8 @@ function initialsOf(name: string): string {
 interface NavItem {
   id: string
   label: string
-  /** Material Symbols glyph name (rendered via ui/Icon). */
   icon: string
-  /** Roles allowed to see this item. The list is filtered per logged-in user. */
   roles: Role[]
-  badge?: string
-  badgeColor?: string
   active?: boolean
   onClick: () => void
 }
@@ -46,11 +42,9 @@ interface NavGroup {
 const COLLAPSE_KEY = 'cafe_pos_sidebar_collapsed'
 
 /**
- * Collapsible, role-aware navigation rail (Stitch design: RestroBit POS).
- * Expanded (240px): brand box + LIVE pill, grouped menus ("Cashier Ops" /
- * "Management & Ops"), live clock, user card with lock & sign-out.
- * Collapsed (72px): icons only, centered. State persists in localStorage.
- * A floating pill toggle sits on the rail boundary at vertical center.
+ * Collapsible left sidebar (Stitch screen1 markup 1:1): brand header + LIVE
+ * badge, nav Cashier Ops / Management & Ops, footer shift row + user card,
+ * floating center toggle. Collapsed state = w-[4.5rem] dengan label tersembunyi.
  */
 export default function NavigationRail({
   onOpenHistory,
@@ -131,34 +125,11 @@ export default function NavigationRail({
           onClick: () => navigate('/dashboard'),
         },
         {
-          id: 'table',
-          label: 'Tables',
-          icon: 'table_restaurant',
+          id: 'inventory',
+          label: 'Inventory',
+          icon: 'inventory_2',
           roles: ['ADMIN'],
-          onClick: () => handleNotice('Table management arrives in the reservation phase.'),
-        },
-        {
-          id: 'reservations',
-          label: 'Reservations',
-          icon: 'calendar_month',
-          roles: ['ADMIN'],
-          onClick: () => handleNotice('Table reservations arrive in a later phase.'),
-        },
-        {
-          id: 'payments',
-          label: 'Payments',
-          icon: 'credit_card',
-          roles: ['ADMIN'],
-          badge: 'New',
-          badgeColor: 'bg-primary text-primary-foreground',
-          onClick: () => handleNotice('Active payment channels live in cashier settings.'),
-        },
-        {
-          id: 'customer',
-          label: 'Customers',
-          icon: 'group',
-          roles: ['ADMIN'],
-          onClick: () => handleNotice('Customer list & CRM integrate in the transaction panel.'),
+          onClick: () => handleNotice('Inventory arrives in the stock management phase.'),
         },
         {
           id: 'reports',
@@ -185,27 +156,27 @@ export default function NavigationRail({
   return (
     <aside
       className={cn(
-        'relative z-40 flex h-full shrink-0 select-none flex-col border-r border-border/80 bg-card transition-[width] duration-300 ease-in-out',
-        collapsed ? 'w-[72px]' : 'w-[240px]',
+        'relative z-30 flex h-full shrink-0 select-none flex-col border-r border-slate-200/80 bg-white transition-all duration-300 ease-in-out',
+        collapsed ? 'w-[4.5rem]' : 'w-[240px]',
       )}
     >
       {/* ===== Brand header with logo + LIVE badge ===== */}
       <div
         className={cn(
-          'flex h-16 shrink-0 items-center border-b border-border/60',
-          collapsed ? 'justify-center px-2' : 'justify-between px-4',
+          'flex h-16 shrink-0 items-center justify-between border-b border-slate-100',
+          collapsed ? 'justify-center px-2' : 'px-4',
         )}
       >
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3 overflow-hidden">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-800 bg-slate-950 p-1 shadow-sm">
-            <img alt="Logo" className="h-full w-full rounded-lg object-contain" src="/favicon.svg" />
+            <img alt="2ND ACC Logo" className="h-full w-full rounded-lg object-contain" src="/favicon.svg" />
           </div>
           {!collapsed && (
             <div className="flex min-w-0 flex-col">
-              <span className="truncate font-display text-sm font-bold leading-tight tracking-tight text-foreground">
+              <span className="truncate font-display text-sm font-bold leading-tight tracking-tight text-slate-900">
                 2ND ACC
               </span>
-              <span className="truncate text-[10px] font-semibold uppercase tracking-wider text-primary">
+              <span className="truncate text-[10px] font-semibold uppercase tracking-wider text-[#447C84]">
                 Roastery &amp; Coffee
               </span>
             </div>
@@ -213,25 +184,27 @@ export default function NavigationRail({
         </div>
         {!collapsed && (
           <div
-            className="flex shrink-0 items-center gap-1.5 rounded-full border border-live-border bg-live-light px-2 py-0.5 text-primary-dark"
+            className="flex items-center gap-1.5 rounded-full border border-[#65AF92]/40 bg-[#edf7f3] px-2 py-0.5 text-[#2d5258]"
             title="Online POS System"
           >
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-live" />
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#65AF92]" />
             <span className="font-display text-[10px] font-bold uppercase tracking-wider">LIVE</span>
           </div>
         )}
       </div>
 
-      {/* ===== Navigation groups (scrollable, filtered by role) ===== */}
-      <nav className="flex min-h-0 flex-1 flex-col space-y-1 overflow-y-auto p-3">
+      {/* ===== Navigation groups (filtered by role) ===== */}
+      <nav className="space-y-1 p-3">
         {visibleGroups.map((group, index) => (
           <div key={group.id} className={cn('space-y-1', index > 0 && 'pt-3')}>
             {collapsed ? (
-              index > 0 && <div className="mx-auto my-2 h-px w-6 bg-border/70" />
+              index > 0 && <div className="mx-auto my-2 h-px w-6 bg-slate-200/80" />
             ) : (
-              <p className="px-3 pb-1 pt-1 font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                {group.label}
-              </p>
+              <div className="px-3 pb-1 pt-1">
+                <span className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  {group.label}
+                </span>
+              </div>
             )}
             <div className="space-y-1">
               {group.items.map((item) => (
@@ -242,67 +215,69 @@ export default function NavigationRail({
         ))}
       </nav>
 
-      {/* ===== Footer: live clock + user card ===== */}
+      {/* ===== Footer: shift row + user card ===== */}
       <div
         className={cn(
-          'shrink-0 space-y-2 border-t border-border/60 bg-secondary/50',
-          collapsed ? 'flex flex-col items-center p-2 py-3' : 'p-3',
+          'shrink-0 space-y-2 border-t border-slate-100 bg-slate-50/70',
+          collapsed ? 'flex flex-col items-center p-2 py-3' : 'space-y-2 p-3',
         )}
       >
         {!collapsed && (
-          <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground">
+          <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
             <div className="flex items-center gap-1.5">
               <Icon name="schedule" className="text-[14px] text-slate-400" />
               <span className="font-semibold tabular-nums">
                 {now.toLocaleTimeString('en-US', { hour12: true })}
               </span>
             </div>
+            <span
+              className="rounded-md border border-[#b9e2d3] bg-[#edf7f3] px-2 py-0.5 font-display text-[10px] font-semibold text-[#2d5258]"
+              title="Current shift"
+            >
+              Shift 1
+            </span>
           </div>
         )}
 
         <div
           className={cn(
-            'flex w-full items-center gap-2.5 rounded-xl border border-border/80 bg-card shadow-xs',
-            collapsed
-              ? 'flex-col justify-center border-0 bg-transparent p-0 shadow-none'
-              : 'justify-between p-2',
+            'flex w-full items-center gap-2.5 rounded-xl border border-slate-200/80 bg-white p-2 shadow-xs',
+            collapsed && 'flex-col justify-center border-0 bg-transparent p-0 shadow-none',
           )}
           title={collapsed ? `${user?.name || 'Cashier'} • ${roleLabelText}` : undefined}
         >
-          <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary font-display text-xs font-bold text-primary-foreground shadow-xs">
-              {user?.name ? initialsOf(user.name) : <Icon name="person" className="text-base" />}
-            </div>
-            {!collapsed && (
-              <div className="min-w-0 leading-tight">
-                <p className="truncate text-xs font-semibold tracking-tight text-foreground">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#447C84] font-display text-xs font-bold text-white shadow-xs">
+            {user?.name ? initialsOf(user.name) : <Icon name="person" className="text-base" />}
+          </div>
+          {!collapsed && (
+            <>
+              <div className="min-w-0 flex-1 leading-tight">
+                <p className="truncate text-xs font-semibold tracking-tight text-slate-900">
                   {user?.name || 'Cashier'}
                 </p>
-                <p className="truncate text-[10px] font-medium tracking-wide text-primary">
+                <p className="truncate text-[10px] font-medium tracking-wide text-[#447C84]">
                   {roleLabelText}
                 </p>
               </div>
-            )}
-          </div>
-          {!collapsed && (
-            <div className="flex shrink-0 items-center gap-1">
-              <button
-                type="button"
-                onClick={onLockRegister}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-accent hover:text-foreground"
-                title="Lock Register"
-              >
-                <Icon name="lock" className="text-[17px]" />
-              </button>
-              <button
-                type="button"
-                onClick={logout}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-destructive/10 hover:text-destructive"
-                title="Sign Out"
-              >
-                <Icon name="logout" className="text-[17px]" />
-              </button>
-            </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={onLockRegister}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-800"
+                  title="Lock Terminal"
+                >
+                  <Icon name="lock" className="text-[17px]" />
+                </button>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-destructive/10 hover:text-destructive"
+                  title="Sign Out"
+                >
+                  <Icon name="logout" className="text-[17px]" />
+                </button>
+              </div>
+            </>
           )}
         </div>
 
@@ -311,8 +286,8 @@ export default function NavigationRail({
             <button
               type="button"
               onClick={onLockRegister}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-accent hover:text-foreground"
-              title="Lock Register"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-800"
+              title="Lock Terminal"
             >
               <Icon name="lock" className="text-[18px]" />
             </button>
@@ -332,13 +307,13 @@ export default function NavigationRail({
       <button
         type="button"
         onClick={toggleCollapse}
-        className="group absolute -right-3 top-1/2 z-50 flex h-12 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-border bg-card shadow-md transition-all hover:bg-secondary"
-        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        className="group absolute -right-3 top-1/2 z-40 flex h-12 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white shadow-md transition-all hover:bg-slate-50 hover:text-[#447C84]"
+        title="Toggle Sidebar"
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         <Icon
           name={collapsed ? 'chevron_right' : 'chevron_left'}
-          className="text-[16px] text-muted-foreground transition-transform group-hover:scale-110"
+          className="text-[16px] text-slate-500 transition-transform group-hover:scale-110"
         />
       </button>
     </aside>
@@ -346,8 +321,8 @@ export default function NavigationRail({
 }
 
 /**
- * Single navigation button. Active state = solid Bismark fill with a live
- * green dot badge (per Stitch design); inactive rows stay quiet gray.
+ * Single navigation link (Stitch spec): active = solid Bismark fill + green
+ * dot badge; inactive rows quiet gray with teal icon on hover.
  */
 function NavButton({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const isActive = item.active
@@ -356,39 +331,29 @@ function NavButton({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
     <button
       type="button"
       onClick={item.onClick}
-      title={collapsed ? item.label : undefined}
+      title={item.label}
       aria-current={isActive ? 'page' : undefined}
       className={cn(
-        'group flex items-center rounded-xl text-xs transition-all duration-150 active:scale-[0.98]',
-        collapsed ? 'h-10 w-full justify-center' : 'h-10 w-full justify-between px-3',
+        'group flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition duration-150 active:scale-[0.98]',
+        collapsed && 'justify-center px-0',
         isActive
-          ? 'bg-primary font-semibold text-primary-foreground shadow-sm'
-          : 'font-medium text-slate-600 hover:bg-accent hover:text-foreground',
+          ? 'bg-[#447C84] font-semibold text-white shadow-sm'
+          : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900',
       )}
     >
-      <div className={cn('flex items-center', collapsed ? 'justify-center' : 'min-w-0 gap-2.5')}>
+      <div className={cn('flex min-w-0 items-center gap-2.5', collapsed && 'justify-center')}>
         <Icon
           name={item.icon}
           className={cn(
-            'text-[19px]',
-            isActive ? 'text-primary-foreground' : 'text-slate-400 group-hover:text-primary',
+            'shrink-0 text-[19px]',
+            isActive ? 'text-white' : 'text-slate-400 group-hover:text-[#447C84]',
           )}
         />
         {!collapsed && <span className="truncate">{item.label}</span>}
       </div>
 
-      {!collapsed && item.badge && (
-        <span
-          className={cn(
-            'ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums',
-            item.badgeColor || 'bg-muted text-muted-foreground',
-          )}
-        >
-          {item.badge}
-        </span>
-      )}
-      {!collapsed && isActive && !item.badge && (
-        <span className="h-2 w-2 shrink-0 rounded-full bg-live shadow-xs" aria-hidden="true" />
+      {!collapsed && isActive && (
+        <span className="h-2 w-2 shrink-0 rounded-full bg-[#65AF92] shadow-xs" aria-hidden="true" />
       )}
     </button>
   )

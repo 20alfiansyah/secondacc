@@ -1,37 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { Category, Product } from '@/api/client'
 import { cn } from '@/lib/utils'
-import { SearchInput } from '@/components/ui/SearchInput'
-import Icon from '@/components/ui/Icon'
 
 export type CategoryFilter = 'all' | 'recommended' | 'best-seller' | number
-export type AvailabilityFilter = 'all' | 'available' | 'sold-out'
 export type SortOption = 'default' | 'price-asc' | 'price-desc' | 'name-asc'
 
-export const FILTER_LABEL: Record<AvailabilityFilter, string> = {
-  all: 'All Status',
-  available: 'Available',
-  'sold-out': 'Sold Out',
-}
-
-export const SORT_LABEL: Record<SortOption, string> = {
-  default: 'Default Order',
-  'price-asc': 'Price: Low → High',
-  'price-desc': 'Price: High → Low',
-  'name-asc': 'Name: A → Z',
-}
-
-const SCROLL_STEP = 260
-
-/** Material Symbols glyph per nama kategori (fallback: auto_awesome). */
-function categoryGlyph(name: string): string {
-  const lower = name.toLowerCase()
-  if (lower.includes('kopi') || lower.includes('coffee')) return 'coffee'
-  if (lower.includes('makan') || lower.includes('heavy') || lower.includes('food')) return 'restaurant'
-  if (lower.includes('snack') || lower.includes('cemilan') || lower.includes('roti')) return 'cookie'
-  if (lower.includes('non') || lower.includes('drink') || lower.includes('tea') || lower.includes('soda'))
-    return 'local_cafe'
-  return 'auto_awesome'
+/** Label pendek utk tombol "Sort: …" sesuai Stitch spec. */
+export const SORT_SHORT_LABEL: Record<SortOption, string> = {
+  default: 'Popular',
+  'price-asc': 'Price ↑',
+  'price-desc': 'Price ↓',
+  'name-asc': 'Name',
 }
 
 interface Pill {
@@ -42,11 +21,10 @@ interface Pill {
 }
 
 /**
- * Zone 2 — Middle: Category Filter Bar & Overflow Handling (Task 1.3.5).
- * Kolom live-search (shortcut "/"), carousel pill kategori tinggi tetap ~42px
- * dengan panah < > saat overflow, dan popover grid 3 kolom untuk lompat ke
- * kategori mana pun dalam 1 klik. Pilihan pill & search di-lift ke parent POS
- * (state filter grid; grid itu sendiri di Task 1.3.6).
+ * Zone 2 — Middle: katalog toolbar (Stitch screen1 markup 1:1): search bar
+ * dengan kbd ⌘K (fokus via Ctrl/⌘+K atau "/"), tombol Sort, dan baris pills
+ * kategori All + tiap kategori dengan count. Pill "Popular"/"Best Seller"
+ * memakai flag produk (isRecommended/isBestSeller) seperti implementasi lama.
  */
 export default function CategoryFilterBar({
   categories,
@@ -55,35 +33,19 @@ export default function CategoryFilterBar({
   onSelectCategory,
   search,
   onSearchChange,
-  availabilityFilter,
-  onAvailabilityChange,
   sortOption,
   onSortChange,
-  activeOrdersCount,
-  isQueueScrolledOut,
-  onScrollToQueue,
-  className,
 }: {
   categories: Category[]
   products: Product[]
   activeCategory: CategoryFilter
-  onSelectCategory: (c: CategoryFilter) => void
+  onSelectCategory: (value: CategoryFilter) => void
   search: string
-  onSearchChange: (v: string) => void
-  availabilityFilter: AvailabilityFilter
-  onAvailabilityChange: (f: AvailabilityFilter) => void
+  onSearchChange: (value: string) => void
   sortOption: SortOption
-  onSortChange: (s: SortOption) => void
-  activeOrdersCount?: number
-  isQueueScrolledOut?: boolean
-  onScrollToQueue?: () => void
-  className?: string
+  onSortChange: (value: SortOption) => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const scrollerRef = useRef<HTMLDivElement>(null)
-  const [canLeft, setCanLeft] = useState(false)
-  const [canRight, setCanRight] = useState(false)
-  const [gridOpen, setGridOpen] = useState(false)
 
   const counts = useMemo(() => {
     const recommended = products.filter((p) => p.isRecommended).length
@@ -116,13 +78,13 @@ export default function CategoryFilterBar({
     return [...base, ...dynamic]
   }, [categories, counts])
 
-  // Shortcut keyboard: "/" memfokus kolom pencarian (saat tidak sedang mengetik).
+  // Shortcut keyboard: ⌘K / Ctrl+K atau "/" memfokus kolom pencarian.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null
       const typing =
         target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-      if (e.key === '/' && !typing) {
+      if ((e.key.toLowerCase() === 'k' && (e.metaKey || e.ctrlKey)) || (e.key === '/' && !typing)) {
         e.preventDefault()
         inputRef.current?.focus()
       }
@@ -131,198 +93,73 @@ export default function CategoryFilterBar({
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  function updateArrows() {
-    const el = scrollerRef.current
-    if (!el) return
-    setCanLeft(el.scrollLeft > 4)
-    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
-  }
-
-  useEffect(() => {
-    updateArrows()
-    window.addEventListener('resize', updateArrows)
-    return () => window.removeEventListener('resize', updateArrows)
-  }, [pills])
-
-  function scrollBy(dir: 1 | -1) {
-    scrollerRef.current?.scrollBy({ left: dir * SCROLL_STEP, behavior: 'smooth' })
-  }
-
-  function select(value: CategoryFilter) {
-    onSelectCategory(value)
-    setGridOpen(false)
-  }
-
   return (
-    <div className={cn('mb-4 space-y-3.5', className)}>
-      {/* Row: live search + toolbar selectors */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <SearchInput
-          ref={inputRef}
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search products..."
-          hint="/"
-          className="w-full max-w-[300px]"
-        />
-
-        <div className="flex items-center gap-1.5">
-          {/* Compact Pill: Scroll back to queue when scrolled past */}
-          {isQueueScrolledOut && activeOrdersCount && activeOrdersCount > 0 ? (
-            <button
-              type="button"
-              onClick={onScrollToQueue}
-              className="flex h-10 items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3 text-xs font-bold text-primary shadow-subtle transition-all duration-150 hover:bg-primary hover:text-primary-foreground active:scale-95 animate-in fade-in"
-              title="Scroll to Active Orders Queue"
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-              </span>
-              <span className="tabular-nums">{activeOrdersCount} in Queue</span>
-              <Icon name="arrow_upward" className="text-sm" />
-            </button>
-          ) : null}
-          <div className="flex h-10 items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 shadow-xs transition hover:border-slate-300">
-            <Icon name="filter_alt" className="text-[15px] text-primary" />
-            <select
-              value={availabilityFilter}
-              onChange={(e) => onAvailabilityChange(e.target.value as AvailabilityFilter)}
-              className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
-            >
-              {(Object.keys(FILTER_LABEL) as AvailabilityFilter[]).map((k) => (
-                <option key={k} value={k}>
-                  {FILTER_LABEL[k]}
-                </option>
-              ))}
-            </select>
+    <div className="space-y-3 flex-shrink-0">
+      {/* Search bar + Sort */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400">
+            search
+          </span>
+          <input
+            ref={inputRef}
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            type="text"
+            placeholder="Search menu items, SKU, or category... (⌘K)"
+            className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-14 text-xs text-slate-800 shadow-xs transition placeholder:text-slate-400 hover:bg-slate-50 focus:border-[#447C84] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#447C84]/30"
+          />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center">
+            <kbd className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+              ⌘K
+            </kbd>
           </div>
+        </div>
 
-          <div className="flex h-10 items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 shadow-xs transition hover:border-slate-300">
-            <Icon name="tune" className="text-[15px] text-primary" />
-            <select
-              value={sortOption}
-              onChange={(e) => onSortChange(e.target.value as SortOption)}
-              className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
-            >
-              {(Object.keys(SORT_LABEL) as SortOption[]).map((k) => (
-                <option key={k} value={k}>
-                  {SORT_LABEL[k]}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="flex h-10 flex-shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition hover:border-slate-300">
+          <span className="material-symbols-outlined text-sm text-[#447C84]">tune</span>
+          <select
+            value={sortOption}
+            onChange={(e) => onSortChange(e.target.value as SortOption)}
+            aria-label="Sort products"
+            className="cursor-pointer bg-transparent text-[11px] font-medium text-slate-700 focus:outline-none"
+          >
+            {(Object.keys(SORT_SHORT_LABEL) as SortOption[]).map((k) => (
+              <option key={k} value={k}>
+                {SORT_SHORT_LABEL[k]}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Carousel pill — tinggi tetap ~36px, panah saat overflow */}
-      <div className="group/bar relative flex items-center">
-        <button
-          onClick={() => scrollBy(-1)}
-          disabled={!canLeft}
-          aria-label="Scroll categories left"
-          className="absolute -left-3 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground shadow-subtle transition-all duration-150 hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 md:flex"
-        >
-          <Icon name="chevron_left" className="text-[16px]" />
-        </button>
-
-        <div
-          ref={scrollerRef}
-          onScroll={updateArrows}
-          className="flex h-10 items-center gap-2 overflow-x-auto scrollbar-none"
-        >
-          {pills.map((pill) => {
-            const isActive = activeCategory === pill.value
-            return (
-              <button
-                key={pill.key}
-                onClick={() => select(pill.value)}
-                className={cn(
-                  'group flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-xs shadow-xs transition-all duration-150 active:scale-[0.97]',
-                  isActive
-                    ? 'bg-primary font-semibold text-primary-foreground'
-                    : 'border border-slate-200 bg-white font-medium text-slate-600 hover:bg-slate-50 hover:text-foreground',
-                )}
-              >
-                <span className="whitespace-nowrap">{pill.label}</span>
-                <span
-                  className={cn(
-                    'rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
-                    isActive ? 'bg-primary-dark text-white' : 'bg-slate-100 text-slate-600',
-                  )}
-                >
-                  {pill.count}
-                </span>
-              </button>
-            )
-          })}
-
-          {/* Popover grid Categories di ujung baris */}
-          <div className="relative shrink-0">
+      {/* Category pills */}
+      <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
+        {pills.map((pill) => {
+          const isActive = activeCategory === pill.value
+          return (
             <button
-              onClick={() => setGridOpen((v) => !v)}
+              key={pill.key}
+              onClick={() => onSelectCategory(pill.value)}
               className={cn(
-                'flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-all duration-150 active:scale-[0.97]',
-                gridOpen
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border/80 bg-card text-muted-foreground hover:border-border hover:bg-accent hover:text-foreground',
+                'flex flex-shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-xs shadow-xs transition',
+                isActive
+                  ? 'bg-[#447C84] font-semibold text-white'
+                  : 'border border-slate-200 bg-white font-medium text-slate-600 shadow-xs hover:bg-slate-50 hover:text-slate-900',
               )}
             >
-              <Icon name="grid_view" className="text-[15px]" />
-              <span className="whitespace-nowrap">Categories</span>
-              <Icon
-                name="chevron_right"
-                className={cn('text-[15px] transition-transform duration-150', gridOpen && 'rotate-90')}
-              />
+              <span>{pill.label}</span>
+              <span
+                className={cn(
+                  'rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
+                  isActive ? 'bg-[#2d5258] text-white' : 'bg-slate-100 text-slate-600 font-semibold',
+                )}
+              >
+                {pill.count}
+              </span>
             </button>
-
-            {gridOpen && (
-              <>
-                <div className="fixed inset-0 z-30" onClick={() => setGridOpen(false)} />
-                <div className="absolute left-1/2 top-full z-40 mt-2 w-[300px] -translate-x-1/2 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="overflow-hidden rounded-2xl border border-border/70 bg-popover p-2 shadow-modal">
-                    <div className="grid grid-cols-3 gap-1">
-                      {categories.map((c) => {
-                        const isActive = activeCategory === c.id
-                        return (
-                          <button
-                            key={c.id}
-                            onClick={() => select(c.id)}
-                            className={cn(
-                              'flex min-h-11 flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2 text-center transition-all duration-150 active:scale-95',
-                              isActive
-                                ? 'border-primary bg-primary/10 text-primary'
-                                : 'border-transparent text-muted-foreground hover:bg-accent hover:text-foreground',
-                            )}
-                          >
-                            <span className="text-slate-400">
-                              <Icon name={categoryGlyph(c.name)} className="text-[18px]" />
-                            </span>
-                            <span className="line-clamp-2 text-[11px] font-semibold leading-tight">
-                              {c.name}
-                            </span>
-                            <span className="text-[10px] font-bold tabular-nums opacity-70">
-                              {c.activeProductCount}
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        <button
-          onClick={() => scrollBy(1)}
-          disabled={!canRight}
-          aria-label="Scroll categories right"
-          className="absolute -right-3 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground shadow-subtle transition-all duration-150 hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-0 md:flex"
-        >
-          <Icon name="chevron_right" className="text-[16px]" />
-        </button>
+          )
+        })}
       </div>
     </div>
   )

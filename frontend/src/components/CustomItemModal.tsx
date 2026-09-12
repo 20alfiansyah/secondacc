@@ -1,297 +1,209 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Product } from '@/api/client'
 import { formatRupiah } from '@/utils/format'
-import { getProductImage } from '@/utils/productImages'
-import { cn } from '@/lib/utils'
 import Icon from '@/components/ui/Icon'
 
-interface CustomItemModalProps {
-  product: Product | null
-  isOpen: boolean
-  onClose: () => void
-  onConfirm: (product: Product, options: { notes?: string; quantity: number }) => void
-}
+const NOTE_MAX = 120
 
-/** Opsi dinamis sesuai Task 1.3.7 — satu pill aktif per grup (single-select). */
-const SUGAR_LEVELS = ['Less', 'Normal', 'No'] as const
-const ICE_LEVELS = ['Less', 'Normal', 'No'] as const
-const SPICE_LEVELS = ['Not Spicy', 'Medium', 'Spicy'] as const
-const QUICK_FOOD_NOTES = ['Sambal on the side', 'No onions'] as const
+/** QUICK TAGS spesifikasi Stitch (customize_modal): klik menambah tag ke notes. */
+const QUICK_TAGS = [
+  'No Onions',
+  'Sauce on Side',
+  'Mild / Not Spicy',
+  'Less Ice',
+  'Sugar on Side',
+  'Pack Securely',
+  'Pack Separately',
+] as const
 
-/** Deteksi golongan produk dari kategori (per PRD: minuman vs makanan). */
-function isDrinkCategory(categoryName: string): boolean {
-  const lower = categoryName.toLowerCase()
-  return (
-    lower.includes('coffee') ||
-    lower.includes('kopi') ||
-    lower.includes('mocktail') ||
-    lower.includes('non-coffee') ||
-    lower.includes('drink') ||
-    lower.includes('tea')
-  )
-}
-
+/**
+ * Zone 4 — Customize Item Modal (Stitch screen4 markup 1:1): overlay gelap
+ * blur, panel max-w-xl dengan header produk (thumb + nama + deskripsi +
+ * harga), SPECIAL INSTRUCTIONS (textarea 120 char), QUICK TAGS chips, dan
+ * footer stepper + CTA "Add to Order • Rp X".
+ */
 export default function CustomItemModal({
   product,
-  isOpen,
   onClose,
   onConfirm,
-}: CustomItemModalProps) {
-  const [sugar, setSugar] = useState<string>('Normal')
-  const [ice, setIce] = useState<string>('Normal')
-  const [spice, setSpice] = useState<string>('Sedang')
-  const [quickNote, setQuickNote] = useState<string>('')
+}: {
+  product: Product
+  onClose: () => void
+  onConfirm: (notes: string, quantity: number) => void
+}) {
   const [kitchenNote, setKitchenNote] = useState('')
   const [quantity, setQuantity] = useState(1)
-
-  // Fokus modal trap sederhana
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // Reset form saat modal dibuka dengan produk baru
+  // Keyboard: Esc menutup, Enter (di luar textarea) submit.
   useEffect(() => {
-    if (isOpen && product) {
-      setSugar('Normal')
-      setIce('Normal')
-      setSpice('Sedang')
-      setQuickNote('')
-      setKitchenNote('')
-      setQuantity(1)
-      // Pindah fokus ke dalam modal agar trap berfungsi
-      const first = panelRef.current?.querySelector<HTMLElement>('button')
-      first?.focus()
-    }
-  }, [isOpen, product])
-
-  // Keyboard: Enter = tambah, Esc = batal; trap Tab di dalam modal
-  useEffect(() => {
-    if (!isOpen) return
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.preventDefault()
         onClose()
-      } else if (e.key === 'Enter' && !isTextareaTarget(e.target)) {
-        const el = e.target as HTMLElement | null
-        // Enter pada button yang dipilih (mis. pill) jangan dobel-trigger
-        if (el?.tagName === 'BUTTON') return
-        e.preventDefault()
-        handleSave()
-      } else if (e.key === 'Tab') {
-        trapFocus(e)
       }
     }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, product, quantity, sugar, ice, spice, quickNote, kitchenNote])
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
 
-  function isTextareaTarget(target: EventTarget | null): boolean {
-    const tag = (target as HTMLElement | null)?.tagName
-    return tag === 'TEXTAREA'
+  // Focus trap sederhana: kembalikan fokus ke panel saat fokus hilang ke body.
+  useEffect(() => {
+    panelRef.current?.focus()
+  }, [])
+
+  function appendTag(tag: string) {
+    setKitchenNote((prev) => {
+      const parts = prev
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+      if (parts.some((p) => p.toLowerCase() === tag.toLowerCase())) return prev
+      const next = [...parts, tag].join(', ')
+      return next.length > NOTE_MAX ? prev : next
+    })
   }
 
-  function trapFocus(e: KeyboardEvent) {
-    const panel = panelRef.current
-    if (!panel) return
-    const focusables = Array.from(
-      panel.querySelectorAll<HTMLElement>('button, textarea'),
-    ).filter((el) => !(el as HTMLButtonElement).disabled)
-    if (focusables.length === 0) return
-    const first = focusables[0]
-    const last = focusables[focusables.length - 1]
-    const active = document.activeElement as HTMLElement | null
-    if (e.shiftKey && (active === first || !panel.contains(active))) {
-      e.preventDefault()
-      last.focus()
-    } else if (!e.shiftKey && (active === last || !panel.contains(active))) {
-      e.preventDefault()
-      first.focus()
-    }
+  function handleAdd() {
+    onConfirm(kitchenNote.trim(), quantity)
   }
 
-  if (!isOpen || !product) return null
-
-  const drink = isDrinkCategory(product.categoryName)
   const lineTotal = product.price * quantity
 
-  function handleSave() {
-    if (!product) return
-    const parts: string[] = []
-    if (drink) {
-      parts.push(`Sugar: ${sugar}`)
-      parts.push(`Ice: ${ice}`)
-    } else {
-      parts.push(`Spice: ${spice}`)
-      if (quickNote) parts.push(quickNote)
-    }
-    if (kitchenNote.trim()) parts.push(kitchenNote.trim())
-    onConfirm(product, { notes: parts.join(', ') || undefined, quantity })
-    onClose()
-  }
-
-  const imageUrl = getProductImage(product.name, product.categoryName)
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[2px]"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
       <div
         ref={panelRef}
-        className="flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-modal animate-in zoom-in-95 duration-150"
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white shadow-2xl outline-none"
       >
-        {/* Header: thumb 64px + nama + harga + close */}
-        <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-4 sm:p-5">
-          <div className="flex min-w-0 items-center gap-3.5">
-            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100 shadow-xs">
-              <img src={imageUrl} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
+        {/* Header produk */}
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 p-4">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100">
+              {product.imageUrl && /^https?:\/\//.test(product.imageUrl) ? (
+                <img
+                  src={product.imageUrl}
+                  alt={product.name}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    ;(e.target as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-slate-400">
+                  <span className="material-symbols-outlined text-[26px]">coffee</span>
+                </div>
+              )}
             </div>
             <div className="min-w-0">
-              <h3 className="truncate font-display text-base font-bold leading-tight text-slate-900">
+              <h3 className="truncate font-display text-base font-bold tracking-tight text-slate-900">
                 {product.name}
               </h3>
-              <p className="mt-0.5 truncate text-xs text-slate-500">{product.categoryName}</p>
-              <div className="mt-1 font-display text-sm font-extrabold tabular-nums text-primary-dark">
-                {formatRupiah(product.price)}
-              </div>
+              <p className="truncate text-[11px] text-slate-500">
+                {product.description || product.categoryName}
+              </p>
+              <p className="mt-0.5 text-sm font-bold text-[#447C84]">{formatRupiah(product.price)}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
+            className="flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
             aria-label="Close"
-            title="Close"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
           >
-            <Icon name="close" className="text-lg" />
+            <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
 
-        {/* Body */}
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
-          {/* Ringkasan opsi dinamis — minuman vs makanan */}
-          {drink ? (
-            <>
-              <ChipGroup
-                label="Sugar Level"
-                options={SUGAR_LEVELS}
-                value={sugar}
-                onSelect={setSugar}
-              />
-              <ChipGroup label="Ice Level" options={ICE_LEVELS} value={ice} onSelect={setIce} />
-            </>
-          ) : (
-            <>
-              <ChipGroup
-                label="Spice Level"
-                options={SPICE_LEVELS}
-                value={spice}
-                onSelect={setSpice}
-              />
-              <ChipGroup
-                label="Quick Notes"
-                options={QUICK_FOOD_NOTES}
-                value={quickNote}
-                onSelect={setQuickNote}
-                allowClear
-              />
-            </>
-          )}
-
-          {/* Kitchen note (free text, max 120 chars + counter) */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-1.5 font-display text-xs font-bold uppercase tracking-wider text-slate-700">
-                <Icon name="edit_note" className="text-[17px] text-primary" />
-                Special Instructions
-              </label>
-              <span className="text-[11px] font-medium tabular-nums text-slate-400">
-                {kitchenNote.length}/120
+        {/* Body: SPECIAL INSTRUCTIONS + QUICK TAGS */}
+        <div className="space-y-4 p-4">
+          <div className="space-y-1.5">
+            <label
+              htmlFor="custom-note"
+              className="flex items-center justify-between font-display text-[10px] font-bold uppercase tracking-wider text-slate-400"
+            >
+              <span className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-[13px] text-slate-400">edit_note</span>
+                SPECIAL INSTRUCTIONS
               </span>
-            </div>
+              <span className="font-medium normal-case tracking-normal text-slate-400">
+                Max. {NOTE_MAX} characters
+              </span>
+            </label>
             <textarea
-              value={kitchenNote}
-              onChange={(e) => setKitchenNote(e.target.value.slice(0, 120))}
-              placeholder="e.g. No onions, dressing on the side, not too spicy..."
+              id="custom-note"
+              ref={textareaRef}
               rows={4}
-              maxLength={120}
-              className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-xs leading-relaxed text-slate-800 shadow-xs transition placeholder:text-slate-400 hover:bg-white focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 sm:text-sm"
+              value={kitchenNote}
+              maxLength={NOTE_MAX}
+              onChange={(e) => setKitchenNote(e.target.value)}
+              placeholder="e.g. extra hot, light sugar, pack separately…"
+              className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-3 text-xs leading-relaxed text-slate-800 placeholder:text-slate-400 focus:border-[#447C84] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#447C84]/30"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-1 font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <span className="material-symbols-outlined text-[13px] text-[#65AF92]">bolt</span>
+              QUICK TAGS:
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {QUICK_TAGS.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => appendTag(tag)}
+                  className="cursor-pointer rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 shadow-xs transition hover:border-[#447C84] hover:bg-[#edf7f3] hover:text-[#2d5258] active:scale-95"
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Footer CTA — stepper qty + total real-time */}
-        <div className="flex items-center justify-between gap-4 border-t border-slate-100 bg-slate-50/80 p-4 sm:p-5">
-          <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1 shadow-xs">
+        {/* Footer: stepper + CTA */}
+        <div className="flex items-center justify-between gap-4 border-t border-slate-100 bg-slate-50/50 p-4">
+          <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-1 shadow-xs">
             <button
               type="button"
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              aria-label="Decrease quantity"
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 font-bold text-slate-700 tabular-nums transition active:scale-95 hover:bg-slate-200"
+              disabled={quantity <= 1}
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30"
             >
-              <Icon name="remove" className="text-base" />
+              −
             </button>
-            <span className="w-7 text-center text-sm font-bold tabular-nums text-slate-900">
+            <span className="min-w-[2.5rem] text-center font-display text-base font-bold tabular-nums text-slate-900">
               {quantity}
             </span>
             <button
               type="button"
-              onClick={() => setQuantity((q) => q + 1)}
-              aria-label="Increase quantity"
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 font-bold text-slate-700 tabular-nums transition active:scale-95 hover:bg-slate-200"
+              onClick={() => setQuantity((q) => Math.min(99, q + 1))}
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100"
             >
-              <Icon name="add" className="text-base" />
+              +
             </button>
           </div>
           <button
             type="button"
-            onClick={handleSave}
-            autoFocus
-            className="flex h-11 items-center gap-2 whitespace-nowrap rounded-xl border border-primary-dark bg-primary px-5 font-display text-xs font-bold text-white shadow-btn-bismark transition hover:bg-primary-hover active:scale-95"
+            onClick={handleAdd}
+            className="flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#2d5258] bg-[#447C84] px-4 text-sm font-bold text-white shadow-btn-bismark transition-all duration-200 hover:brightness-105 active:scale-[0.99]"
           >
-            <Icon name="shopping_bag" className="text-lg" />
-            Add to Order • {formatRupiah(lineTotal)}
+            <Icon name="add_shopping_cart" className="text-[19px]" />
+            <span className="font-display tracking-wide">
+              Add to Order • {formatRupiah(lineTotal)}
+            </span>
           </button>
         </div>
-      </div>
-    </div>
-  )
-}
-
-function ChipGroup({
-  label,
-  options,
-  value,
-  onSelect,
-  allowClear = false,
-}: {
-  label: string
-  options: readonly string[]
-  value: string
-  onSelect: (v: string) => void
-  allowClear?: boolean
-}) {
-  return (
-    <div>
-      <label className="mb-2 block font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
-        {label}
-      </label>
-      <div className="flex flex-wrap gap-2">
-        {options.map((opt) => {
-          const active = value === opt
-          return (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => (active && allowClear ? onSelect('') : onSelect(opt))}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium shadow-xs transition-all duration-150 active:scale-95',
-                active
-                  ? 'border-live-border bg-live-light font-semibold text-primary-dark'
-                  : 'border-transparent bg-slate-100 text-slate-700 hover:border-live-border hover:bg-live-light hover:text-primary-dark',
-              )}
-            >
-              {active && <Icon name="check" className="text-sm text-primary" />}
-              {opt}
-            </button>
-          )
-        })}
       </div>
     </div>
   )

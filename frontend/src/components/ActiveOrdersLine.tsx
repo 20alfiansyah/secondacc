@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import type { OrderSummary, OrderType } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { formatRupiah } from '@/utils/format'
-import { SearchInput } from '@/components/ui/SearchInput'
-import { Section } from '@/components/ui/Section'
 import Icon from '@/components/ui/Icon'
 
 type OrderFilter = 'all' | OrderType
@@ -19,7 +17,7 @@ const FILTERS: { value: OrderFilter; label: string }[] = [
   { value: 'TAKE_AWAY', label: 'Takeaway' },
 ]
 
-/** Nomor Order dengan padding nol minimal 3 digit: 45 -> "#045". */
+/** Nomor Order dengan padding nol minimal 3 digit: 42 -> "#042". */
 function orderLabel(id: number): string {
   return `#${String(id).padStart(3, '0')}`
 }
@@ -33,11 +31,10 @@ function relativeTime(createdAt: string, nowMs: number): string {
 }
 
 /**
- * Zone 2 — Active Tickets (Stitch design): section card collapsible berisi
- * header (judul + count "N Active" + subtitle + toggle), filter tabs All /
- * Dine-In / Takeaway dengan count badge, pencarian order, dan grid tiket
- * (md:grid-cols-3) menggantikan carousel. Klik kartu memuat pesanan ke panel
- * Order Details (callback ke parent).
+ * Zone 2 — ACTIVE TICKETS section card (Stitch screen1 markup 1:1): header
+ * (receipt_long + judul + divider + subtitle + toggle), filter tabs All /
+ * Dine-In / Takeaway dengan count chip, dan grid tiket md:grid-cols-3.
+ * Klik kartu memuat pesanan ke panel Order Details (callback ke parent).
  */
 export default function ActiveOrdersLine({
   orders,
@@ -48,7 +45,6 @@ export default function ActiveOrdersLine({
   activeOrderId: number | null
   onSelect: (orderId: number) => void
 }) {
-  const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<OrderFilter>('all')
   const [open, setOpen] = useState(true)
 
@@ -59,166 +55,162 @@ export default function ActiveOrdersLine({
     return () => window.clearInterval(timer)
   }, [])
 
-  const filteredOrders = useMemo(() => {
-    const q = query.trim().toLowerCase().replace(/^#/, '')
-    return orders.filter((o) => {
-      if (filter !== 'all' && o.orderType !== filter) return false
-      if (!q) return true
-      return (
-        String(o.id).padStart(3, '0').includes(q) ||
-        (o.customerName ?? '').toLowerCase().includes(q)
-      )
-    })
-  }, [orders, query, filter])
+  const filteredOrders = useMemo(
+    () => orders.filter((o) => filter === 'all' || o.orderType === filter),
+    [orders, filter],
+  )
 
   const countBy = (value: OrderFilter): number =>
     value === 'all' ? orders.length : orders.filter((o) => o.orderType === value).length
 
   return (
-    <Section
-      icon="receipt_long"
-      title="Active Tickets"
-      subtitle="Live ticket queue & status"
-      badge={
-        <span className="flex items-center gap-1.5 rounded-full border border-live-border bg-live-light px-2 py-0.5 text-[11px] font-semibold text-primary-dark tabular-nums">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-live" />
-          {orders.length} Active
-        </span>
-      }
-      right={
+    <section className="space-y-3 flex-shrink-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[20px] text-[#447C84]">
+              receipt_long
+            </span>
+            <span className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
+              ACTIVE TICKETS
+            </span>
+          </div>
+          <div className="hidden h-4 w-px bg-slate-200 md:block" />
+          <span className="hidden text-[11px] font-medium text-slate-500 md:inline-block">
+            Live ticket queue &amp; status
+          </span>
+        </div>
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           title={open ? 'Collapse Active Tickets' : 'Expand Active Tickets'}
           aria-expanded={open}
-          className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-slate-500 shadow-xs transition active:scale-95 hover:bg-secondary hover:text-foreground"
+          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500 shadow-xs transition active:scale-95 hover:bg-slate-100 hover:text-slate-900"
         >
-          <Icon name={open ? 'expand_less' : 'expand_more'} className="text-[18px]" />
+          <span className="material-symbols-outlined text-[18px]">
+            {open ? 'expand_less' : 'expand_more'}
+          </span>
         </button>
-      }
-      bodyClassName={cn(!open && 'hidden')}
-      className="shrink-0"
-    >
-      {/* Filter tabs bar + search */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          {FILTERS.map((tab) => {
-            const isActive = filter === tab.value
-            return (
-              <button
-                key={tab.value}
-                onClick={() => setFilter(tab.value)}
-                className={cn(
-                  'flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-xs shadow-xs transition-all duration-150 active:scale-[0.97]',
-                  isActive
-                    ? 'bg-primary font-semibold text-primary-foreground'
-                    : 'border border-border bg-card font-medium text-slate-600 hover:bg-secondary hover:text-foreground',
-                )}
-              >
-                <span>{tab.label}</span>
-                <span
+      </div>
+
+      {!open && null}
+
+      {open && (
+        <div className="space-y-3 transition-all duration-200">
+          {/* Filter tabs */}
+          <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
+            {FILTERS.map((tab) => {
+              const isActive = filter === tab.value
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => setFilter(tab.value)}
                   className={cn(
-                    'rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
-                    isActive ? 'bg-primary-dark text-white' : 'bg-slate-100 text-slate-600',
+                    'no-scrollbar flex flex-shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-xs shadow-xs transition',
+                    isActive
+                      ? 'bg-[#447C84] font-semibold text-white'
+                      : 'border border-slate-200 bg-white font-medium text-slate-600 shadow-xs hover:bg-slate-50 hover:text-slate-900',
                   )}
                 >
-                  {countBy(tab.value)}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-        <div className="ml-auto w-full max-w-[260px]">
-          <SearchInput
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search orders by ID or customer..."
-          />
-        </div>
-      </div>
-
-      {/* Ticket cards grid */}
-      <div className="grid grid-cols-1 gap-3 rounded-xl bg-secondary/40 p-3 md:grid-cols-2 xl:grid-cols-3">
-        {filteredOrders.length === 0 ? (
-          <div className="col-span-full flex items-center gap-3 rounded-xl border border-dashed border-border bg-card/60 px-4 py-4 text-muted-foreground">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted/60 text-muted-foreground/60">
-              <Icon name="local_cafe" className="text-[16px]" />
-            </div>
-            <p className="text-xs">No tickets in the queue yet.</p>
-          </div>
-        ) : (
-          filteredOrders.map((order) => {
-            const isActive = activeOrderId === order.id
-            return (
-              <button
-                key={order.id}
-                onClick={() => onSelect(order.id)}
-                className={cn(
-                  'group relative flex cursor-pointer flex-col justify-between rounded-xl border p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]',
-                  isActive
-                    ? 'border-2 border-primary bg-white hover:bg-primary-light/40'
-                    : 'border-border bg-white hover:border-slate-300 hover:bg-secondary/60',
-                )}
-              >
-                {/* OPEN BILL pill di tepi atas kartu */}
-                <span className="absolute -top-2.5 right-3 flex items-center gap-1.5 rounded-full border border-live-border bg-live-light px-2.5 py-0.5 font-display text-[9px] font-bold uppercase tracking-wider text-primary shadow-xs">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                  Open Bill
-                </span>
-
-                <div>
-                  <div className="mb-2 flex items-center justify-between gap-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={cn(
-                          'rounded-md px-2 py-0.5 text-xs font-bold tracking-wide tabular-nums',
-                          isActive
-                            ? 'bg-primary text-white'
-                            : 'border border-border bg-slate-100 text-slate-800',
-                        )}
-                      >
-                        {orderLabel(order.id)}
-                      </span>
-                      <span className="rounded border border-border bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-700">
-                        {TYPE_LABEL[order.orderType]}
-                      </span>
-                    </div>
-                    <span className="flex items-center gap-0.5 text-[10px] text-slate-400">
-                      <Icon name="schedule" className="text-[13px]" />
-                      {relativeTime(order.createdAt, nowMs)}
-                    </span>
-                  </div>
-                  <h4
-                    className={cn(
-                      'truncate text-xs leading-snug tracking-tight',
-                      isActive ? 'font-bold text-slate-900' : 'font-semibold text-slate-800',
-                    )}
-                  >
-                    {order.customerName?.trim() || 'Walk-in'}
-                  </h4>
-                  <p className="mt-0.5 truncate text-[11px] text-slate-500">
-                    {order.itemCount} items • {TYPE_LABEL[order.orderType]}
-                  </p>
-                </div>
-
-                <div className="-mx-3.5 -mb-3.5 mt-3 flex items-center justify-between rounded-b-[10px] border-t border-slate-100 bg-slate-50/70 px-3.5 py-2.5">
-                  <span className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Total Due
-                  </span>
+                  <span>{tab.label}</span>
                   <span
                     className={cn(
-                      'text-sm font-bold tabular-nums tracking-tight',
-                      isActive ? 'text-primary-dark' : 'text-slate-900',
+                      'rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
+                      isActive ? 'bg-[#2d5258] text-white' : 'bg-slate-100 text-slate-600 font-semibold',
                     )}
                   >
-                    {formatRupiah(order.grandTotal)}
+                    {countBy(tab.value)}
                   </span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Ticket cards grid */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {filteredOrders.length === 0 ? (
+              <div className="col-span-full flex items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-4 text-muted-foreground">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100/60 text-slate-400">
+                  <Icon name="local_cafe" className="text-[16px]" />
                 </div>
-              </button>
-            )
-          })
-        )}
-      </div>
-    </Section>
+                <p className="text-xs">No tickets in the queue yet.</p>
+              </div>
+            ) : (
+              filteredOrders.map((order) => {
+                const isActive = activeOrderId === order.id
+                return (
+                  <button
+                    key={order.id}
+                    onClick={() => onSelect(order.id)}
+                    className={cn(
+                      'relative flex cursor-pointer flex-col justify-between rounded-xl p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]',
+                      isActive
+                        ? 'border-2 border-[#447C84] bg-white hover:bg-[#edf7f3]/40'
+                        : 'border border-slate-200 bg-white shadow-xs hover:border-slate-300 hover:bg-slate-50',
+                    )}
+                  >
+                    {/* OPEN BILL pill di tepi atas kartu */}
+                    <span className="absolute -top-2.5 right-3 flex items-center gap-1.5 rounded-full border border-[#b9e2d3] bg-[#edf7f3] px-2.5 py-0.5 font-display text-[9px] font-bold uppercase tracking-wider text-[#447C84] shadow-xs">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#447C84]" />
+                      Open Bill
+                    </span>
+
+                    <div>
+                      <div className="mb-2 flex items-center justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              'rounded-md px-2 py-0.5 text-xs font-bold tracking-wide tabular-nums',
+                              isActive
+                                ? 'bg-[#447C84] text-white'
+                                : 'border border-slate-200 bg-slate-100 text-slate-800',
+                            )}
+                          >
+                            {orderLabel(order.id)}
+                          </span>
+                          <span className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-700">
+                            {TYPE_LABEL[order.orderType]}
+                          </span>
+                        </div>
+                        <span className="flex items-center gap-0.5 text-[10px] text-slate-400">
+                          <span className="material-symbols-outlined text-[13px]">schedule</span>
+                          {relativeTime(order.createdAt, nowMs)}
+                        </span>
+                      </div>
+                      <h4
+                        className={cn(
+                          'truncate text-xs leading-snug tracking-tight',
+                          isActive ? 'font-bold text-slate-900' : 'font-semibold text-slate-800',
+                        )}
+                      >
+                        {order.customerName?.trim() || 'Walk-in'}
+                      </h4>
+                      <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                        {order.itemCount} items • {TYPE_LABEL[order.orderType]}
+                      </p>
+                    </div>
+
+                    <div className="-mx-3.5 -mb-3.5 mt-3 flex items-center justify-between rounded-b-[10px] border-t border-slate-100 bg-white px-3.5 py-2.5">
+                      <span className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Total Due
+                      </span>
+                      <span
+                        className={cn(
+                          'text-sm font-bold tabular-nums tracking-tight',
+                          isActive ? 'text-[#2d5258]' : 'text-slate-900',
+                        )}
+                      >
+                        {formatRupiah(order.grandTotal)}
+                      </span>
+                    </div>
+                  </button>
+                )
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </section>
   )
 }
