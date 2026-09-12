@@ -1,10 +1,12 @@
+import { Logger } from '@nestjs/common';
 import { PrismaClient, Role, PaymentCategory } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
+const logger = new Logger('Seed');
 
 async function main() {
-  console.log('🌱 Memulai proses seeding database Kafe POS...');
+  logger.log('🌱 Memulai proses seeding database Kafe POS...');
 
   // 1. SEED USERS (Admin & Kasir) — kredensial dari environment, TIDAK ada
   //    password default hardcode. Username boleh di-override, password wajib.
@@ -47,7 +49,7 @@ async function main() {
     },
   });
 
-  console.log(`✅ Users seeded: ${admin.username} (Admin), ${cashier.username} (Cashier)`);
+  logger.log(`✅ Users seeded: ${admin.username} (Admin), ${cashier.username} (Cashier)`);
 
   // 2. SEED CATEGORIES
   const categoriesData = [
@@ -66,7 +68,7 @@ async function main() {
     });
     categories[cat.slug] = created;
   }
-  console.log(`✅ ${categoriesData.length} Kategori berhasil di-seed`);
+  logger.log(`✅ ${categoriesData.length} Kategori berhasil di-seed`);
 
   // 3. SEED PRODUCTS (15 Menu Kafe)
   const productsData = [
@@ -108,7 +110,7 @@ async function main() {
       });
     }
   }
-  console.log(`✅ ${productsData.length} Menu kafe berhasil di-seed (Termasuk sample Sold Out)`);
+  logger.log(`✅ ${productsData.length} Menu kafe berhasil di-seed (Termasuk sample Sold Out)`);
 
   // 4. SEED TABLES (10 Meja Kafe)
   for (let i = 1; i <= 10; i++) {
@@ -123,7 +125,7 @@ async function main() {
       },
     });
   }
-  console.log('✅ 10 Meja kafe berhasil di-seed (Meja 01 s/d Meja 10)');
+  logger.log('✅ 10 Meja kafe berhasil di-seed (Meja 01 s/d Meja 10)');
 
   // 5. SEED PAYMENT CHANNELS
   const channels = [
@@ -140,7 +142,7 @@ async function main() {
       });
     }
   }
-  console.log('✅ 3 Channel pembayaran berhasil di-seed (Cash, Midtrans QRIS, EDC)');
+  logger.log('✅ 3 Channel pembayaran berhasil di-seed (Cash, Midtrans QRIS, EDC)');
 
   // 6. SEED MONTHLY TARGET (Bulan September 2026)
   await prisma.monthlyTarget.upsert({
@@ -157,14 +159,14 @@ async function main() {
       targetAmount: BigInt(50000000), // Rp 50.000.000
     },
   });
-  console.log('✅ Target omset September 2026 di-seed: Rp 50.000.000');
+  logger.log('✅ Target omset September 2026 di-seed: Rp 50.000.000');
 
-  console.log('🎉 Seeding database selesai 100%!');
+  logger.log('🎉 Seeding database selesai 100%!');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Terjadi kesalahan saat seeding:', e);
+    logger.error('❌ Terjadi kesalahan saat seeding:', e);
     process.exit(1);
   })
   .finally(async () => {
