@@ -11,12 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { useAuthStore } from '@/store/authStore'
-
-/** Path tujuan setelah login berdasarkan role. */
-export function homePathForRole(role: string): string {
-  if (role === 'ADMIN' || role === 'INVENTORY') return '/dashboard'
-  return '/pos'
-}
+import { homePathForRole } from '@/utils/routes'
 
 export default function Login() {
   const navigate = useNavigate()

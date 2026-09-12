@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Check, Minus, Plus, ShoppingBag, SlidersHorizontal, X } from 'lucide-react'
 import type { Product } from '@/api/client'
 import { formatRupiah } from '@/utils/format'
@@ -43,26 +43,32 @@ export default function CustomItemModal({
   onClose,
   onConfirm,
 }: CustomItemModalProps) {
+  // Form TIDAK di-mount saat modal tertutup: state mulai dari nilai awal
+  // setiap kali modal dibuka — tidak perlu effect reset manual.
+  if (!isOpen || !product) return null
+  return (
+    <CustomItemForm
+      key={product.id}
+      product={product}
+      onClose={onClose}
+      onConfirm={onConfirm}
+    />
+  )
+}
+
+interface CustomItemFormProps {
+  product: Product
+  onClose: () => void
+  onConfirm: (product: Product, options: { notes?: string; quantity: number }) => void
+}
+
+function CustomItemForm({ product, onClose, onConfirm }: CustomItemFormProps) {
   const [selectedSugar, setSelectedSugar] = useState<string>('Normal Sugar')
   const [selectedIce, setSelectedIce] = useState<string>('Ice')
   const [selectedSpice, setSelectedSpice] = useState<string>('Pedas Sedang')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [customNote, setCustomNote] = useState('')
   const [quantity, setQuantity] = useState(1)
-
-  // Reset form saat modal dibuka dengan produk baru
-  useEffect(() => {
-    if (isOpen && product) {
-      setSelectedSugar('Normal Sugar')
-      setSelectedIce('Ice')
-      setSelectedSpice('Pedas Sedang')
-      setSelectedTags([])
-      setCustomNote('')
-      setQuantity(1)
-    }
-  }, [isOpen, product])
-
-  if (!isOpen || !product) return null
 
   const isDrink =
     product.categoryName.toLowerCase().includes('kopi') ||
@@ -77,9 +83,8 @@ export default function CustomItemModal({
   }
 
   function handleSave() {
-    if (!product) return
-
     const parts: string[] = []
+
     if (isDrink) {
       if (selectedSugar) parts.push(selectedSugar)
       if (selectedIce) parts.push(selectedIce)
