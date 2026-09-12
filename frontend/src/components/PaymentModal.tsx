@@ -25,10 +25,15 @@ interface PaymentModalProps {
   onClose: () => void
 }
 
-const METHOD_META: { key: PaymentMethod; label: string; icon: typeof Banknote }[] = [
-  { key: 'CASH', label: 'Tunai (Cash)', icon: Banknote },
-  { key: 'THIRD_PARTY', label: 'QRIS / E-Wallet', icon: QrCode },
-  { key: 'EDC', label: 'Mesin EDC / Kartu', icon: CreditCard },
+const METHOD_META: {
+  key: PaymentMethod
+  label: string
+  methodName: string
+  icon: typeof Banknote
+}[] = [
+  { key: 'CASH', label: 'Tunai (Cash)', methodName: 'Tunai', icon: Banknote },
+  { key: 'THIRD_PARTY', label: 'QRIS / E-Wallet', methodName: 'QRIS', icon: QrCode },
+  { key: 'EDC', label: 'Mesin EDC / Kartu', methodName: 'EDC', icon: CreditCard },
 ]
 
 export default function PaymentModal({
@@ -128,7 +133,7 @@ export default function PaymentModal({
                   type="button"
                   onClick={() => {
                     setMethod(m.key)
-                    setSelectedMethodName(m.label.split(' ')[0])
+                    setSelectedMethodName(m.methodName)
                   }}
                   className={cn(
                     'flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-semibold transition-all duration-150 active:scale-95',
@@ -138,7 +143,7 @@ export default function PaymentModal({
                   )}
                 >
                   <Icon className="h-5 w-5" />
-                  <span className="text-center leading-tight">{m.label.split(' ')[0]}</span>
+                  <span className="text-center leading-tight">{m.label}</span>
                 </button>
               )
             })}
