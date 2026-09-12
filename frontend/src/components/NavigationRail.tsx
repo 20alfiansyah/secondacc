@@ -112,8 +112,29 @@ export default function NavigationRail({
   // Groups whose items are all filtered out are hidden entirely.
   const groups: NavGroup[] = [
     {
-      id: 'main',
-      label: 'Main',
+      id: 'pos',
+      label: 'POS',
+      items: [
+        {
+          id: 'register',
+          label: 'Register',
+          icon: Store,
+          roles: ['ADMIN', 'CASHIER'],
+          active: true,
+          onClick: () => navigate('/pos'),
+        },
+        {
+          id: 'history',
+          label: 'Order History',
+          icon: History,
+          roles: ['ADMIN', 'CASHIER'],
+          onClick: onOpenHistory,
+        },
+      ],
+    },
+    {
+      id: 'management',
+      label: 'Management',
       items: [
         {
           id: 'dashboard',
@@ -121,14 +142,6 @@ export default function NavigationRail({
           icon: LayoutDashboard,
           roles: ['ADMIN'],
           onClick: () => navigate('/dashboard'),
-        },
-        {
-          id: 'pos',
-          label: 'Register',
-          icon: Store,
-          roles: ['ADMIN', 'CASHIER'],
-          active: true,
-          onClick: () => navigate('/pos'),
         },
         {
           id: 'table',
@@ -143,19 +156,6 @@ export default function NavigationRail({
           icon: CalendarClock,
           roles: ['ADMIN'],
           onClick: () => handleNotice('Table reservations arrive in a later phase.'),
-        },
-      ],
-    },
-    {
-      id: 'offering',
-      label: 'Offering',
-      items: [
-        {
-          id: 'history',
-          label: 'Order History',
-          icon: History,
-          roles: ['ADMIN', 'CASHIER'],
-          onClick: onOpenHistory,
         },
         {
           id: 'payments',
@@ -301,6 +301,11 @@ export default function NavigationRail({
 
       {/* ===== Bottom actions ===== */}
       <div className="mt-auto space-y-1 border-t border-border/70 pt-3">
+        {!collapsed && (
+          <p className="px-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
+            Account
+          </p>
+        )}
         <button
           type="button"
           onClick={onLockRegister}
