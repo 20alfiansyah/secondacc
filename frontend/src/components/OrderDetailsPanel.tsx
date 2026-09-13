@@ -257,7 +257,7 @@ export default function OrderDetailsPanel({
                   type="button"
                   onClick={() => setOrderType(opt.value)}
                   className={cn(
-                    'flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2 font-display text-xs transition-all active:scale-[0.98]',
+                    'flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2 font-display text-xs transition',
                     isActive
                       ? 'border border-slate-200/60 bg-white font-bold text-[#2d5258] shadow-xs'
                       : 'font-semibold text-slate-600 hover:bg-white/50 hover:text-slate-900',
@@ -310,7 +310,7 @@ export default function OrderDetailsPanel({
                   type="button"
                   onClick={() => setCustomerGender(active ? null : g.v)}
                   className={cn(
-                    'flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2 font-display text-xs transition-all active:scale-[0.98]',
+                    'flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2 font-display text-xs transition',
                     active
                       ? 'border-[#447C84] bg-[#edf7f3] font-bold text-[#2d5258] shadow-xs'
                       : 'border-slate-200 bg-white font-semibold text-slate-700 shadow-xs hover:bg-slate-50',
