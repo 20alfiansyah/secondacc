@@ -69,9 +69,7 @@ export default function ActiveOrdersLine({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[20px] text-[#447C84]">
-              receipt_long
-            </span>
+            <Icon name="receipt_long" className="text-[20px] text-[#447C84]" />
             <span className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
               ACTIVE TICKETS
             </span>
@@ -88,9 +86,7 @@ export default function ActiveOrdersLine({
           aria-expanded={open}
           className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-200 text-slate-500 shadow-xs transition active:scale-95 hover:bg-slate-100 hover:text-slate-900"
         >
-          <span className="material-symbols-outlined text-[18px]">
-            {open ? 'expand_less' : 'expand_more'}
-          </span>
+          <Icon name={open ? 'expand_less' : 'expand_more'} className="text-[18px]" />
         </button>
       </div>
 
@@ -172,7 +168,7 @@ export default function ActiveOrdersLine({
                           </span>
                         </div>
                         <span className="flex items-center gap-0.5 text-[10px] text-slate-400">
-                          <span className="material-symbols-outlined text-[13px]">schedule</span>
+                          <Icon name="schedule" className="text-[10px]" />
                           {relativeTime(order.createdAt, nowMs)}
                         </span>
                       </div>

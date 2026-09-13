@@ -100,7 +100,7 @@ export default function CustomItemModal({
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-slate-400">
-                  <span className="material-symbols-outlined text-[26px]">coffee</span>
+                  <Icon name="coffee" className="text-[26px]" />
                 </div>
               )}
             </div>
@@ -120,7 +120,7 @@ export default function CustomItemModal({
             className="flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
             aria-label="Close"
           >
-            <span className="material-symbols-outlined text-[20px]">close</span>
+            <Icon name="close" className="text-[20px]" />
           </button>
         </div>
 
@@ -132,7 +132,7 @@ export default function CustomItemModal({
               className="flex items-center justify-between font-display text-[10px] font-bold uppercase tracking-wider text-slate-400"
             >
               <span className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-[13px] text-slate-400">edit_note</span>
+                <Icon name="edit_note" className="text-[13px] text-slate-400" />
                 SPECIAL INSTRUCTIONS
               </span>
               <span className="font-medium normal-case tracking-normal text-slate-400">
@@ -153,7 +153,7 @@ export default function CustomItemModal({
 
           <div className="space-y-2">
             <label className="flex items-center gap-1 font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              <span className="material-symbols-outlined text-[13px] text-[#65AF92]">bolt</span>
+              <Icon name="bolt" className="text-[13px] text-[#65AF92]" />
               QUICK TAGS:
             </label>
             <div className="flex flex-wrap gap-2">

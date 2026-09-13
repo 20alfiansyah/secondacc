@@ -2,7 +2,7 @@
 
 /* ============================================================
    Design System — RestroBit POS (Stitch design: Bismark teal + SilverTree)
-   Fonts: Outfit (display) + Plus Jakarta Sans (body) + Material Symbols.
+   Fonts: Outfit (display) + Plus Jakarta Sans (body). Icons: lucide-react.
    ============================================================ */
 
 @theme {
@@ -93,25 +93,11 @@
   background: hsl(215 16% 68%);
 }
 
-/* Material Symbols Outlined (Stitch design icon set) */
-.material-symbols-outlined {
-  font-family: 'Material Symbols Outlined';
-  font-weight: normal;
-  font-style: normal;
-  display: inline-block;
-  line-height: 1;
-  text-transform: none;
-  letter-spacing: normal;
-  word-wrap: normal;
-  white-space: nowrap;
-  direction: ltr;
-  font-variation-settings: 'FILL' 0, 'wght' 380, 'GRAD' 0, 'opsz' 20;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  -moz-osx-font-smoothing: grayscale;
-}
-.material-symbols-outlined.filled {
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+/* Lucide icons — ukuran mengikuti font-size elemen (1em), warna currentColor */
+.icon-inline {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
 }
 
 /* ============================================================

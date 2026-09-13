@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import type { Category, Product } from '@/api/client'
 import { cn } from '@/lib/utils'
+import Icon from '@/components/ui/Icon'
 
 export type CategoryFilter = 'all' | 'recommended' | 'best-seller' | number
 export type SortOption = 'default' | 'price-asc' | 'price-desc' | 'name-asc'
@@ -98,9 +99,7 @@ export default function CategoryFilterBar({
       {/* Search bar + Sort */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400">
-            search
-          </span>
+          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400" />
           <input
             ref={inputRef}
             value={search}
@@ -125,7 +124,7 @@ export default function CategoryFilterBar({
           title="Urutkan produk"
           className="flex flex-shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 shadow-xs transition hover:border-slate-300"
         >
-          <span className="material-symbols-outlined text-sm text-[#447C84]">tune</span>
+          <Icon name="tune" className="text-sm text-[#447C84]" />
           <span className="text-[11px] font-medium">Sort: {SORT_SHORT_LABEL[sortOption]}</span>
         </button>
       </div>

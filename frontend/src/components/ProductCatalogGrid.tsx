@@ -2,11 +2,12 @@ import type { Product } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { formatRupiah } from '@/utils/format'
 import { getProductImage } from '@/utils/productImages'
+import Icon from '@/components/ui/Icon'
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=500&auto=format&fit=crop&q=80'
 
-/** Material Symbols glyph per nama kategori (fallback: restaurant). */
+/** Lucide glyph per nama kategori (fallback: restaurant). */
 function categoryGlyph(name: string): string {
   const lower = name.toLowerCase()
   if (lower.includes('coffee') || lower.includes('espresso') || lower.includes('kopi')) return 'coffee'
@@ -101,7 +102,7 @@ export default function ProductCatalogGrid({
             <div className="absolute left-2 top-2 flex flex-col gap-1">
               {p.isRecommended && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-[#447C84] bg-[#2d5258] px-2.5 py-0.5 font-display text-[10px] font-bold tracking-wide text-white shadow-md">
-                  <span className="material-symbols-outlined text-[13px] text-[#65AF92]">star</span>
+                  <Icon name="star" className="text-[13px] text-[#65AF92]" />
                   <span className="font-bold tracking-wide text-white">Popular</span>
                 </span>
               )}
@@ -110,7 +111,7 @@ export default function ProductCatalogGrid({
                   className="inline-flex items-center gap-1 rounded-full border border-teal-200/40 px-2.5 py-0.5 font-display text-[10px] font-semibold tracking-wide text-white shadow-md"
                   style={{ background: 'linear-gradient(135deg, rgb(101, 175, 146) 0%, rgb(68, 124, 132) 100%)' }}
                 >
-                  <span className="material-symbols-outlined text-[13px] text-teal-100">local_fire_department</span>
+                  <Icon name="local_fire_department" className="text-[13px] text-teal-100" />
                   <span className="font-bold tracking-wide">Best Seller</span>
                 </span>
               )}
@@ -171,7 +172,7 @@ export default function ProductCatalogGrid({
                 )}
                 aria-hidden="true"
               >
-                <span className="material-symbols-outlined text-[16px]">add</span>
+                <Icon name="add" className="text-[16px]" />
               </span>
             )}
           </div>
@@ -188,9 +189,7 @@ export default function ProductCatalogGrid({
             {/* Section header + divider halus */}
             <div className="flex items-center justify-between border-b border-slate-200/80 pb-1">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px] text-[#447C84]">
-                  {categoryGlyph(section.title)}
-                </span>
+                <Icon name={categoryGlyph(section.title)} className="text-[18px] text-[#447C84]" />
                 <h3 className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
                   {section.title}
                 </h3>

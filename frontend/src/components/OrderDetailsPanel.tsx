@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CustomerGender, OrderType, Product } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { formatRupiah } from '@/utils/format'
+import Icon from '@/components/ui/Icon'
 
 export interface OrderLine {
   id: string
@@ -222,9 +223,7 @@ export default function OrderDetailsPanel({
       <div className="space-y-3 flex-shrink-0 border-b border-slate-100 p-4">
         <div className={cn('flex items-center justify-between', isOpen && 'border-b border-slate-100 pb-2.5')}>
           <div className="flex items-center gap-2">
-            <span className={cn('material-symbols-outlined text-[#447C84]', isOpen ? 'text-lg' : 'text-[20px]')}>
-              receipt_long
-            </span>
+            <Icon name="receipt_long" className={cn('text-[#447C84]', isOpen ? 'text-lg' : 'text-[20px]')} />
             <h2
               className={cn(
                 'font-display text-xs font-bold uppercase tracking-wider',
@@ -240,7 +239,7 @@ export default function OrderDetailsPanel({
               onClick={onNewOrder}
               className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-[#447C84] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all active:scale-95 hover:bg-[#396a71]"
             >
-              <span className="material-symbols-outlined text-sm">add</span>
+              <Icon name="add" className="text-sm" />
               New Order
             </button>
           )}
@@ -254,9 +253,7 @@ export default function OrderDetailsPanel({
                 </span>
                 <span className="text-xs text-slate-300">•</span>
                 <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
-                  <span className="material-symbols-outlined text-[13px] text-slate-500">
-                    {orderType === 'DINE_IN' ? 'restaurant' : 'takeout_dining'}
-                  </span>
+                  <Icon name={orderType === 'DINE_IN' ? 'restaurant' : 'takeout_dining'} className="text-[13px] text-slate-500" />
                   {orderType === 'DINE_IN' ? 'Dine-In' : 'Takeaway'}
                 </span>
               </div>
@@ -267,19 +264,12 @@ export default function OrderDetailsPanel({
             </div>
             <div className="flex items-center justify-between border-t border-slate-200/60 pt-1 text-xs text-slate-500">
               <div className="flex min-w-0 items-center gap-1.5">
-                <span className="material-symbols-outlined text-[15px] text-slate-400">person</span>
+                <Icon name="person" className="text-[15px] text-slate-400" />
                 <span className="truncate font-semibold text-slate-800">{customerName.trim() || 'Walk-in'}</span>
               </div>
               {customerGender && (
                 <div className="flex items-center gap-1 text-[11px] text-slate-400">
-                  <span
-                    className={cn(
-                      'material-symbols-outlined text-[13px]',
-                      customerGender === 'L' ? 'text-[#447C84]' : 'text-slate-400',
-                    )}
-                  >
-                    {customerGender === 'L' ? 'male' : 'female'}
-                  </span>
+                  <GenderIcon value={customerGender} active />
                   <span>{customerGender === 'L' ? 'Laki-laki' : 'Perempuan'}</span>
                 </div>
               )}
@@ -325,14 +315,10 @@ export default function OrderDetailsPanel({
                       : 'font-semibold text-slate-600 hover:bg-white/50 hover:text-slate-900',
                   )}
                 >
-                  <span
-                    className={cn(
-                      'material-symbols-outlined text-[16px]',
-                      isActive ? 'text-[#447C84]' : 'text-slate-400',
-                    )}
-                  >
-                    {opt.icon}
-                  </span>
+                  <Icon
+                    name={opt.icon}
+                    className={cn('text-[16px]', isActive ? 'text-[#447C84]' : 'text-slate-400')}
+                  />
                   {opt.label}
                 </button>
               )
@@ -408,7 +394,7 @@ export default function OrderDetailsPanel({
           {!hasItems ? (
             <div className="flex flex-col items-center justify-center space-y-2 rounded-2xl border-2 border-dashed border-slate-200/80 bg-slate-50/70 p-6 text-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-xs">
-                <span className="material-symbols-outlined text-[20px] text-[#447C84]">shopping_bag</span>
+                <Icon name="shopping_bag" className="text-[20px] text-[#447C84]" />
               </div>
               <div className="space-y-0.5">
                 <p className="font-display text-xs font-bold text-slate-800">No items yet</p>
@@ -567,14 +553,10 @@ export default function OrderDetailsPanel({
             )}
           >
             <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  'material-symbols-outlined text-[20px]',
-                  isOpen && 'transition-transform group-hover:scale-110',
-                )}
-              >
-                payments
-              </span>
+              <Icon
+                name="payments"
+                className={cn('text-[20px]', isOpen && 'transition-transform group-hover:scale-110')}
+              />
               <span className={cn('font-display tracking-wide text-white', isOpen ? 'font-extrabold' : 'font-bold')}>
                 Pay Now
               </span>
@@ -594,7 +576,7 @@ export default function OrderDetailsPanel({
             onClick={onSaveOpenBill}
             className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-xs transition active:scale-95 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <span className="material-symbols-outlined text-[16px] text-slate-500">receipt</span>
+            <Icon name="receipt" className="text-[16px] text-slate-500" />
             <span>{saving ? 'Saving…' : 'Save Open Bill'}</span>
           </button>
         </div>

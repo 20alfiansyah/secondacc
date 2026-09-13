@@ -354,9 +354,7 @@ export default function POS() {
           <div className="flex flex-shrink-0 items-center justify-between pb-1">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[20px] text-[#447C84]">
-                  restaurant_menu
-                </span>
+                <Icon name="restaurant_menu" className="text-[20px] text-[#447C84]" />
                 <span className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
                   MENU CATALOG
                 </span>
@@ -373,9 +371,7 @@ export default function POS() {
               aria-expanded={catalogOpen}
               className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border border-slate-200 text-slate-500 shadow-xs transition active:scale-95 hover:bg-slate-100 hover:text-slate-900"
             >
-              <span className="material-symbols-outlined text-[18px]">
-                {catalogOpen ? 'expand_less' : 'expand_more'}
-              </span>
+              <Icon name={catalogOpen ? 'expand_less' : 'expand_more'} className="text-[18px]" />
             </button>
           </div>
 
@@ -407,7 +403,7 @@ export default function POS() {
             ) : filteredProducts.length === 0 ? (
               <div className="flex h-64 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200/80 bg-slate-50/70 p-8 text-center text-slate-500">
                 <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-xs">
-                  <span className="material-symbols-outlined text-[20px] text-[#447C84]">search</span>
+                  <Icon name="search" className="text-[20px] text-[#447C84]" />
                 </div>
                 <p className="font-display text-xs font-bold text-slate-800">No menu found</p>
                 <p className="text-[11px] text-slate-500">Try a different keyword or category.</p>
