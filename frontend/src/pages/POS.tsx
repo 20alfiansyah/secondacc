@@ -491,7 +491,7 @@ export default function POS() {
               title="Klik untuk rincian pesanan"
             >
               <span className="writing-mode-vertical font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                {formatRupiah(cartSubtotal)}
+                Order Summary
               </span>
               <span className="h-px w-4 bg-slate-300/80" />
               <span className="writing-mode-vertical text-[13px] font-bold tabular-nums tracking-tight text-[#2d5258]">
@@ -516,7 +516,6 @@ export default function POS() {
             <OrderDetailsPanel
               mode={panelMode}
               orderNumber={isNewPanel ? null : openOrder?.id ?? null}
-              createdAt={isNewPanel ? null : openOrder?.createdAt ?? null}
               items={items}
               customerName={customerName}
               setCustomerName={setCustomerName}
@@ -529,6 +528,7 @@ export default function POS() {
               onSetNotes={setNotes}
               onRemoveItem={removeItem}
               onClearCart={clear}
+              onNewOrder={handleNewOrder}
               onPay={() => setPayOpen(true)}
               onSaveOpenBill={handleSaveOpenBill}
               saving={saving}
@@ -580,7 +580,6 @@ export default function POS() {
               <OrderDetailsPanel
                 mode={panelMode}
                 orderNumber={isNewPanel ? null : openOrder?.id ?? null}
-                createdAt={isNewPanel ? null : openOrder?.createdAt ?? null}
                 items={items}
                 customerName={customerName}
                 setCustomerName={setCustomerName}
@@ -593,6 +592,7 @@ export default function POS() {
                 onSetNotes={setNotes}
                 onRemoveItem={removeItem}
                 onClearCart={clear}
+                onNewOrder={handleNewOrder}
                 onPay={() => setPayOpen(true)}
                 onSaveOpenBill={handleSaveOpenBill}
                 saving={saving}

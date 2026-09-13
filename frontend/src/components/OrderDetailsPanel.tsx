@@ -14,8 +14,6 @@ interface OrderDetailsPanelProps {
   mode: 'new' | 'open'
   /** Nomor tiket order (id) — untuk mode open. */
   orderNumber: number | null
-  /** Tanggal/jam tiket (untuk mode open). */
-  createdAt: string | null
   items: OrderLine[]
   customerName: string
   setCustomerName: (v: string) => void
@@ -28,6 +26,8 @@ interface OrderDetailsPanelProps {
   onSetNotes: (id: string, notes: string) => void
   onRemoveItem: (id: string) => void
   onClearCart: () => void
+  /** Mulai order baru dari panel (mode open). */
+  onNewOrder: () => void
   onPay: () => void
   onSaveOpenBill: () => void
   saving: boolean
@@ -169,7 +169,6 @@ const TYPE_OPTIONS: { value: OrderType; label: string; icon: string }[] = [
 export default function OrderDetailsPanel({
   mode,
   orderNumber,
-  createdAt,
   items,
   customerName,
   setCustomerName,
@@ -183,6 +182,7 @@ export default function OrderDetailsPanel({
   onRemoveItem,
   onClearCart,
   onPay,
+  onNewOrder,
   onSaveOpenBill,
   saving,
   validationError,
@@ -214,35 +214,97 @@ export default function OrderDetailsPanel({
     setEditingNotesId(null)
   }
 
+  const isOpen = mode === 'open' && orderNumber !== null
+
   return (
     <>
       {/* ===== Panel header ===== */}
       <div className="space-y-3 flex-shrink-0 border-b border-slate-100 p-4">
-        <div className="flex items-center justify-between">
+        <div className={cn('flex items-center justify-between', isOpen && 'border-b border-slate-100 pb-2.5')}>
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[20px] text-[#447C84]">receipt_long</span>
-            <h2 className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
-              {mode === 'open' && orderNumber !== null ? `Ticket ${padOrder(orderNumber)}` : 'New Order'}
+            <span className={cn('material-symbols-outlined text-[#447C84]', isOpen ? 'text-lg' : 'text-[20px]')}>
+              receipt_long
+            </span>
+            <h2
+              className={cn(
+                'font-display text-xs font-bold uppercase tracking-wider',
+                isOpen ? 'text-slate-800' : 'text-slate-900',
+              )}
+            >
+              {isOpen ? 'ORDER DETAILS' : 'New Order'}
             </h2>
           </div>
+          {isOpen && (
+            <button
+              type="button"
+              onClick={onNewOrder}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-[#447C84] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all active:scale-95 hover:bg-[#396a71]"
+            >
+              <span className="material-symbols-outlined text-sm">add</span>
+              New Order
+            </button>
+          )}
         </div>
-        {/* Info row: tanggal & jam */}
-        <div className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-            <CalendarIcon />
-            <span>{mode === 'open' && createdAt ? formatDateTime(createdAt) : formatDateTime(new Date().toISOString())}</span>
+        {isOpen ? (
+          <div className="space-y-2 rounded-xl border border-slate-200/80 bg-slate-50 p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="font-display text-sm font-bold tracking-tight text-slate-900">
+                  Ticket {padOrder(orderNumber!)}
+                </span>
+                <span className="text-xs text-slate-300">•</span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                  <span className="material-symbols-outlined text-[13px] text-slate-500">
+                    {orderType === 'DINE_IN' ? 'restaurant' : 'takeout_dining'}
+                  </span>
+                  {orderType === 'DINE_IN' ? 'Dine-In' : 'Takeaway'}
+                </span>
+              </div>
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-[#b9e2d3] bg-[#edf7f3] px-2.5 py-0.5 text-[11px] font-bold text-[#2d5258]">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#447C84]" />
+                Open Bill
+              </div>
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-200/60 pt-1 text-xs text-slate-500">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <span className="material-symbols-outlined text-[15px] text-slate-400">person</span>
+                <span className="truncate font-semibold text-slate-800">{customerName.trim() || 'Walk-in'}</span>
+              </div>
+              {customerGender && (
+                <div className="flex items-center gap-1 text-[11px] text-slate-400">
+                  <span
+                    className={cn(
+                      'material-symbols-outlined text-[13px]',
+                      customerGender === 'L' ? 'text-[#447C84]' : 'text-slate-400',
+                    )}
+                  >
+                    {customerGender === 'L' ? 'male' : 'female'}
+                  </span>
+                  <span>{customerGender === 'L' ? 'Laki-laki' : 'Perempuan'}</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-1 text-xs font-medium text-slate-500">
-            <ClockIcon />
-            <span>
-              {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
-            </span>
+        ) : (
+          <div className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+              <CalendarIcon />
+              <span>{formatDateTime(new Date().toISOString())}</span>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-medium text-slate-500">
+              <ClockIcon />
+              <span>
+                {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ===== Body: scrollable form + item list ===== */}
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+        {!isOpen && (
+        <>
         {/* Order Type segmented control */}
         <div className="space-y-1.5">
           <label className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -323,6 +385,8 @@ export default function OrderDetailsPanel({
             })}
           </div>
         </div>
+        </>
+        )}
         {/* Selected Items */}
         <div className="space-y-2.5 border-t border-slate-100 pt-1">
           <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400 font-display pb-0.5">
@@ -456,6 +520,7 @@ export default function OrderDetailsPanel({
       {/* ===== Footer: summary + CTAs ===== */}
       <div className="flex-shrink-0 space-y-3.5 border-t border-slate-200/80 bg-white p-4">
         <div className="space-y-2.5">
+          {!isOpen && (
           <div className="flex items-center justify-between pb-0.5">
             <span className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
               ORDER SUMMARY
@@ -464,15 +529,16 @@ export default function OrderDetailsPanel({
               <span className="text-[10px] font-semibold text-destructive">{validationError}</span>
             )}
           </div>
+          )}
           <div className="space-y-1.5 text-xs">
             <div className="flex items-center justify-between text-slate-500">
               <span>Subtotal</span>
-              <span className="font-medium tabular-nums text-slate-700">{formatRupiah(subtotal)}</span>
+              <span className={cn('font-medium tabular-nums', isOpen ? 'text-slate-900' : 'text-slate-700')}>{formatRupiah(subtotal)}</span>
             </div>
             {/* Display-only: backend belum menghitung PB1 — payload checkout tetap subtotal. */}
             <div className="flex items-center justify-between text-slate-500">
               <span>Resto Tax (PB1 10%)</span>
-              <span className="font-medium tabular-nums text-slate-700">{formatRupiah(tax)}</span>
+              <span className={cn('font-medium tabular-nums', isOpen ? 'text-slate-900' : 'text-slate-700')}>{formatRupiah(tax)}</span>
             </div>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-200/80 pt-2.5">
@@ -481,7 +547,7 @@ export default function OrderDetailsPanel({
                 GRAND TOTAL
               </span>
               <span className="text-[10px] font-medium text-slate-400">
-                {items.reduce((sum, l) => sum + l.quantity, 0)} items
+                {items.reduce((sum, l) => sum + l.quantity, 0)} items{isOpen && ' included'}
               </span>
             </div>
             <div className="font-display text-2xl font-extrabold tabular-nums tracking-tight text-slate-900">
@@ -489,19 +555,36 @@ export default function OrderDetailsPanel({
             </div>
           </div>
         </div>
-
         <div className="space-y-2 pt-1">
           <button
             type="button"
             disabled={!hasItems || saving}
             onClick={onPay}
-            className="flex h-12 w-full cursor-pointer items-center justify-between rounded-xl border border-[#396a71] bg-[#447C84] px-4 text-sm font-bold text-white shadow-btn-bismark transition-all duration-200 hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+            style={isOpen ? { background: 'linear-gradient(135deg, #447C84 0%, #53949e 100%)' } : undefined}
+            className={cn(
+              'group flex h-12 w-full cursor-pointer items-center justify-between rounded-xl border border-[#396a71] px-4 text-sm text-white shadow-btn-bismark transition-all duration-200 hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none',
+              isOpen ? 'font-semibold' : 'bg-[#447C84] font-bold',
+            )}
           >
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[20px]">payments</span>
-              <span className="font-display font-bold tracking-wide">Pay Now</span>
+              <span
+                className={cn(
+                  'material-symbols-outlined text-[20px]',
+                  isOpen && 'transition-transform group-hover:scale-110',
+                )}
+              >
+                payments
+              </span>
+              <span className={cn('font-display tracking-wide text-white', isOpen ? 'font-extrabold' : 'font-bold')}>
+                Pay Now
+              </span>
             </div>
-            <span className="font-display font-extrabold tabular-nums tracking-tight text-white">
+            <span
+              className={cn(
+                'font-display font-extrabold tabular-nums text-white',
+                isOpen ? 'text-[15px] tracking-wide' : 'tracking-tight',
+              )}
+            >
               {formatRupiah(grandTotalDisplay)}
             </span>
           </button>
