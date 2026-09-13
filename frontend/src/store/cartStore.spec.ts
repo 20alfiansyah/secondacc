@@ -104,4 +104,28 @@ describe('Cart Store - Custom Menu Items', () => {
 
     expect(useCartStore.getState().items[0].notes).toBe('Oat Milk, Less Sweet')
   })
+
+  it('setQuantity mengubah quantity line tertentu', () => {
+    const { addItem, setQuantity } = useCartStore.getState()
+    addItem(mockAmericano, { notes: 'No Sugar', quantity: 1 })
+    addItem(mockLatte, { quantity: 1 })
+
+    const americano = useCartStore.getState().items[0]
+    setQuantity(americano.id, 5)
+
+    const items = useCartStore.getState().items
+    expect(items.find((i) => i.id === americano.id)?.quantity).toBe(5)
+    // Line lain tidak terpengaruh
+    expect(items.find((i) => i.product.id === mockLatte.id)?.quantity).toBe(1)
+  })
+
+  it('setQuantity mencegah quantity di bawah 1 (clamp)', () => {
+    const { addItem, setQuantity } = useCartStore.getState()
+    addItem(mockAmericano, { quantity: 2 })
+
+    const item = useCartStore.getState().items[0]
+    setQuantity(item.id, 0)
+
+    expect(useCartStore.getState().items[0].quantity).toBe(1)
+  })
 })

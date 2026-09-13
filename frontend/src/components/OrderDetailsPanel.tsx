@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import type { CustomerGender, OrderType, Product } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { formatRupiah } from '@/utils/format'
@@ -25,7 +25,8 @@ interface OrderDetailsPanelProps {
   setOrderType: (t: OrderType) => void
   onIncrease: (id: string) => void
   onDecrease: (id: string) => void
-  onSetNotes: (id: string, notes: string) => void
+  /** Buka modal customize utk edit notes/qty line ini. */
+  onEditItem: (line: OrderLine) => void
   onRemoveItem: (id: string) => void
   onClearCart: () => void
   /** Mulai order baru dari panel (mode open). */
@@ -176,7 +177,7 @@ export default function OrderDetailsPanel({
   setOrderType,
   onIncrease,
   onDecrease,
-  onSetNotes,
+  onEditItem,
   onRemoveItem,
   onClearCart,
   onPay,
@@ -185,30 +186,9 @@ export default function OrderDetailsPanel({
   saving,
   validationError,
 }: OrderDetailsPanelProps) {
-  const [editingNotesId, setEditingNotesId] = useState<string | null>(null)
-  const [notesDraft, setNotesDraft] = useState('')
-
+  const isOpen = mode === 'open' && orderNumber !== null
   const subtotal = useMemo(() => items.reduce((sum, l) => sum + l.product.price * l.quantity, 0), [items])
   const hasItems = items.length > 0
-
-  // Auto-cancel notes editor saat item/panel berubah radikal (items berubah).
-  useEffect(() => {
-    if (editingNotesId && !items.some((l) => l.id === editingNotesId)) {
-      setEditingNotesId(null)
-    }
-  }, [items, editingNotesId])
-
-  function beginEditNotes(line: OrderLine) {
-    setEditingNotesId(line.id)
-    setNotesDraft(line.notes ?? '')
-  }
-
-  function commitNotes(id: string) {
-    onSetNotes(id, notesDraft.trim())
-    setEditingNotesId(null)
-  }
-
-  const isOpen = mode === 'open' && orderNumber !== null
 
   return (
     <>
@@ -414,29 +394,12 @@ export default function OrderDetailsPanel({
                     </button>
                   </div>
 
-                  {editingNotesId === line.id ? (
-                    <div className="flex w-full items-center gap-1">
-                      <input
-                        autoFocus
-                        value={notesDraft}
-                        onChange={(e) => setNotesDraft(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') commitNotes(line.id)
-                          if (e.key === 'Escape') setEditingNotesId(null)
-                        }}
-                        onBlur={() => commitNotes(line.id)}
-                        placeholder="e.g. less sugar, no ice…"
-                        className="h-7 w-full rounded-md border border-slate-200 bg-white px-2 text-[11px] text-slate-800 focus:border-[#447C84] focus:outline-none focus:ring-1 focus:ring-[#447C84]/30"
-                      />
-                    </div>
-                  ) : (
-                    <>
                       {/* Baris catatan: chip + "+ Edit notes" / "+ Add notes" */}
                       <div className="flex flex-wrap items-center gap-1.5">
                         {line.notes?.trim() && (
                           <button
                             type="button"
-                            onClick={() => beginEditNotes(line)}
+                            onClick={() => onEditItem(line)}
                             title="Edit notes"
                             className="max-w-[60%] cursor-pointer truncate rounded-md border border-[#b9e2d3] bg-[#edf7f3] px-2 py-0.5 text-[10px] font-medium text-[#2d5258]"
                           >
@@ -445,7 +408,7 @@ export default function OrderDetailsPanel({
                         )}
                         <button
                           type="button"
-                          onClick={() => beginEditNotes(line)}
+                          onClick={() => onEditItem(line)}
                           className="cursor-pointer text-[10px] font-medium text-slate-500 transition hover:text-[#447C84]"
                         >
                           {line.notes?.trim() ? '+ Edit notes' : '+ Add notes'}
@@ -461,7 +424,8 @@ export default function OrderDetailsPanel({
                           <button
                             type="button"
                             onClick={() => onDecrease(line.id)}
-                            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold tabular-nums text-slate-700 transition hover:bg-slate-100"
+                            disabled={line.quantity <= 1}
+                            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-slate-200 bg-white text-xs font-bold tabular-nums text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30"
                           >
                             -
                           </button>
@@ -477,8 +441,6 @@ export default function OrderDetailsPanel({
                           </button>
                         </div>
                       </div>
-                    </>
-                  )}
                 </div>
               ))}
             </div>

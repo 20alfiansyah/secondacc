@@ -22,6 +22,7 @@ import type {
 } from '@/api/client'
 import type { CategoryFilter, SortOption } from '@/components/CategoryFilterBar'
 import { useCartStore } from '@/store/cartStore'
+import type { CartItem } from '@/store/cartStore'
 import { formatRupiah } from '@/utils/format'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -39,7 +40,7 @@ import type { CheckoutResult } from '@/api/client'
 const PANEL_TOGGLE_EVENT = 'cafe_pos:toggle-panel'
 
 export default function POS() {
-  const { items, increase, decrease, addItem, setNotes, removeItem, clear } = useCartStore()
+  const { items, increase, decrease, addItem, setNotes, setQuantity, removeItem, clear } = useCartStore()
 
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -58,6 +59,8 @@ export default function POS() {
   // Custom Item Modal state
   const [customModalProduct, setCustomModalProduct] = useState<Product | null>(null)
   const [customModalOpen, setCustomModalOpen] = useState(false)
+  // Line keranjang yang sedang diedit lewat modal (mode edit, bukan add baru).
+  const [editingLine, setEditingLine] = useState<CartItem | null>(null)
 
   // ---- ORDER DETAIL panel state ----
   // mode: 'new' = pesanan baru; 'open' = viewing open bill lama
@@ -196,8 +199,21 @@ export default function POS() {
     setCustomModalOpen(true)
   }
 
-  // Handle konfirmasi custom options
+  // Edit line dari panel: buka modal customize yang sama, prefill nilai lama.
+  function handleEditLine(line: CartItem) {
+    setEditingLine(line)
+    setCustomModalProduct(line.product)
+    setCustomModalOpen(true)
+  }
+
+  // Handle konfirmasi custom options: edit line lama atau tambah line baru.
   function handleCustomConfirm(product: Product, options: { notes?: string; quantity: number }) {
+    if (editingLine) {
+      setNotes(editingLine.id, options.notes ?? '')
+      setQuantity(editingLine.id, options.quantity)
+      setEditingLine(null)
+      return
+    }
     addItem(product, options)
   }
 
@@ -676,7 +692,7 @@ export default function POS() {
               setOrderType={setOrderType}
               onIncrease={increase}
               onDecrease={decrease}
-              onSetNotes={setNotes}
+              onEditItem={handleEditLine}
               onRemoveItem={removeItem}
               onClearCart={clear}
               onNewOrder={handleNewOrder}
@@ -740,7 +756,7 @@ export default function POS() {
                 setOrderType={setOrderType}
                 onIncrease={increase}
                 onDecrease={decrease}
-                onSetNotes={setNotes}
+                onEditItem={handleEditLine}
                 onRemoveItem={removeItem}
                 onClearCart={clear}
                 onNewOrder={handleNewOrder}
@@ -758,7 +774,15 @@ export default function POS() {
       {customModalProduct && customModalOpen && (
         <CustomItemModal
           product={customModalProduct}
-          onClose={() => setCustomModalOpen(false)}
+          editing={
+            editingLine
+              ? { notes: editingLine.notes ?? '', quantity: editingLine.quantity }
+              : undefined
+          }
+          onClose={() => {
+            setCustomModalOpen(false)
+            setEditingLine(null)
+          }}
           onConfirm={(notes, quantity) =>
             handleCustomConfirm(customModalProduct, { notes, quantity })
           }

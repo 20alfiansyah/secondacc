@@ -21,18 +21,24 @@ const QUICK_TAGS = [
  * blur, panel max-w-xl dengan header produk (thumb + nama + deskripsi +
  * harga), SPECIAL INSTRUCTIONS (textarea 120 char), QUICK TAGS chips, dan
  * footer stepper + CTA "Add to Order • Rp X".
+ *
+ * Mode edit (`editing` diisi): prefill notes & qty dari line keranjang,
+ * CTA berubah jadi "Save Changes • Rp X".
  */
 export default function CustomItemModal({
   product,
   onClose,
   onConfirm,
+  editing,
 }: {
   product: Product
   onClose: () => void
   onConfirm: (notes: string, quantity: number) => void
+  /** Prefill untuk mode edit line yang sudah ada. */
+  editing?: { notes: string; quantity: number }
 }) {
-  const [kitchenNote, setKitchenNote] = useState('')
-  const [quantity, setQuantity] = useState(1)
+  const [kitchenNote, setKitchenNote] = useState(editing?.notes ?? '')
+  const [quantity, setQuantity] = useState(editing?.quantity ?? 1)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -198,9 +204,9 @@ export default function CustomItemModal({
             onClick={handleAdd}
             className="flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#2d5258] bg-[#447C84] px-4 text-sm font-bold text-white shadow-btn-bismark transition-all duration-200 hover:brightness-105 active:scale-[0.99]"
           >
-            <Icon name="add_shopping_cart" className="text-[19px]" />
+            <Icon name={editing ? 'edit' : 'add_shopping_cart'} className="text-[19px]" />
             <span className="font-display tracking-wide">
-              Add to Order • {formatRupiah(lineTotal)}
+              {editing ? 'Save Changes' : 'Add to Order'} • {formatRupiah(lineTotal)}
             </span>
           </button>
         </div>
