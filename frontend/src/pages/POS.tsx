@@ -428,7 +428,7 @@ export default function POS() {
       {/* ===== Zone 3: Right Order Panel / Collapsed Rail (Stitch screen1/2/3) ===== */}
       <aside
         className={cn(
-          'relative z-20 hidden h-full flex-col border-l border-slate-200/80 bg-white lg:flex',
+          'relative z-20 hidden h-full flex-col border-l border-slate-200/80 bg-white transition-all duration-300 lg:flex',
           panelCollapsed ? 'w-[4.25rem]' : 'w-[380px]',
         )}
       >
@@ -491,7 +491,7 @@ export default function POS() {
               title="Klik untuk rincian pesanan"
             >
               <span className="writing-mode-vertical font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Order Summary
+                {formatRupiah(cartSubtotal)}
               </span>
               <span className="h-px w-4 bg-slate-300/80" />
               <span className="writing-mode-vertical text-[13px] font-bold tabular-nums tracking-tight text-[#2d5258]">

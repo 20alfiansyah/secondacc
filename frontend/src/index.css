@@ -53,6 +53,11 @@
   --shadow-modal: 0 20px 40px -8px rgb(0 0 0 / 0.16);
 }
 
+/* Teks vertikal untuk rail kanan collapsed (Stitch: writing-mode-vertical) */
+@utility writing-mode-vertical {
+  writing-mode: vertical-rl;
+}
+
 @layer base {
   html {
     font-size: 16px;
