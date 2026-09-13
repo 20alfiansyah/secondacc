@@ -64,9 +64,9 @@ export default function ActiveOrdersLine({
     value === 'all' ? orders.length : orders.filter((o) => o.orderType === value).length
 
   return (
-    <section className="flex-shrink-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs transition-all duration-200">
+    <section className="space-y-3 flex-shrink-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200">
       {/* Header band */}
-      <div className="flex items-center justify-between border-b border-slate-100 bg-[#F8FAFC] px-4 py-3">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[20px] text-[#447C84]">
@@ -74,10 +74,6 @@ export default function ActiveOrdersLine({
             </span>
             <span className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
               ACTIVE TICKETS
-            </span>
-            <span className="flex items-center gap-1.5 rounded-full border border-[#b9e2d3] bg-[#edf7f3] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[#2d5258]">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#65AF92]" />
-              {orders.length} Active
             </span>
           </div>
           <div className="hidden h-4 w-px bg-slate-200 md:block" />
@@ -99,9 +95,9 @@ export default function ActiveOrdersLine({
       </div>
 
       {open && (
-        <div>
+        <div className="space-y-3">
           {/* Filter tabs bar */}
-          <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto border-b border-slate-100 bg-white px-4 py-2">
+          <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
             {FILTERS.map((tab) => {
               const isActive = filter === tab.value
               return (
@@ -130,7 +126,7 @@ export default function ActiveOrdersLine({
           </div>
 
           {/* Ticket cards grid */}
-          <div className="grid grid-cols-1 gap-3 bg-slate-50/50 p-3.5 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {filteredOrders.length === 0 ? (
               <div className="col-span-full flex items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-4 text-muted-foreground">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100/60 text-slate-400">
@@ -146,7 +142,7 @@ export default function ActiveOrdersLine({
                     key={order.id}
                     onClick={() => onSelect(order.id)}
                     className={cn(
-                      'relative flex cursor-pointer flex-col justify-between rounded-xl p-3.5 text-left shadow-xs transition-all duration-150 active:scale-[0.98]',
+                      'relative flex cursor-pointer flex-col justify-between rounded-xl p-3.5 text-left shadow-xs transition-all duration-150',
                       isActive
                         ? 'border-2 border-[#447C84] bg-white hover:bg-[#edf7f3]/40'
                         : 'border border-slate-200 bg-white shadow-xs hover:border-slate-300 hover:bg-slate-50',
@@ -193,7 +189,7 @@ export default function ActiveOrdersLine({
                       </p>
                     </div>
 
-                    <div className="-mx-3.5 -mb-3.5 mt-3 flex items-center justify-between rounded-b-[10px] border-t border-slate-100 bg-slate-50/70 px-3.5 py-2.5">
+                    <div className="-mx-3.5 -mb-3.5 mt-3 flex items-center justify-between rounded-b-[10px] border-t border-slate-100 bg-white px-3.5 py-2.5">
                       <span className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Total Due
                       </span>
