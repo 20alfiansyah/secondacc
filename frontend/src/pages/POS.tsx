@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useBlocker } from 'react-router-dom'
 import Icon from '@/components/ui/Icon'
 import EmptyState from '@/components/ui/EmptyState'
 import TopBar from '@/components/TopBar'
@@ -22,6 +23,7 @@ import type {
 } from '@/api/client'
 import type { CategoryFilter, SortOption } from '@/components/CategoryFilterBar'
 import { useCartStore } from '@/store/cartStore'
+import { useAuthStore } from '@/store/authStore'
 import type { CartItem } from '@/store/cartStore'
 import { formatRupiah } from '@/utils/format'
 import { Button } from '@/components/ui/button'
@@ -38,9 +40,9 @@ import OrderDetailsPanel from '@/components/OrderDetailsPanel'
 import type { CheckoutResult } from '@/api/client'
 
 const PANEL_TOGGLE_EVENT = 'cafe_pos:toggle-panel'
-
 export default function POS() {
   const { items, increase, decrease, addItem, setNotes, setQuantity, removeItem, clear } = useCartStore()
+  const logout = useAuthStore((s) => s.logout)
 
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -52,7 +54,9 @@ export default function POS() {
   const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [feedbackError, setFeedbackError] = useState(false)
-
+  // Timer banner feedback — dibatalkan sebelum dipasang ulang agar banner lama
+  // tidak menutup banner baru lebih cepat.
+  const feedbackTimerRef = useRef<number | undefined>(undefined)
   // Drawer keranjang di mobile/tablet
   const [mobileCartOpen, setMobileCartOpen] = useState(false)
 
@@ -129,11 +133,12 @@ export default function POS() {
   // Collapse tray MENU CATALOG (spec screen1: tombol chevron di header band).
   const [catalogOpen, setCatalogOpen] = useState(true)
   useEffect(() => {
-
     let cancelled = false
     async function init() {
       try {
         await loadData()
+      } catch {
+        showFeedback('Failed to load data. Please check the connection and refresh.', true)
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -189,7 +194,8 @@ export default function POS() {
   function showFeedback(message: string, isError = false) {
     setFeedback(message)
     setFeedbackError(isError)
-    setTimeout(() => setFeedback(null), 4000)
+    clearTimeout(feedbackTimerRef.current)
+    feedbackTimerRef.current = window.setTimeout(() => setFeedback(null), 4000)
   }
 
   // Buka modal custom untuk produk setiap kali kasir ingin menambah pesanan
@@ -208,6 +214,7 @@ export default function POS() {
 
   // Handle konfirmasi custom options: edit line lama atau tambah line baru.
   function handleCustomConfirm(product: Product, options: { notes?: string; quantity: number }) {
+    setCustomModalOpen(false)
     if (editingLine) {
       setNotes(editingLine.id, options.notes ?? '')
       setQuantity(editingLine.id, options.quantity)
@@ -245,25 +252,39 @@ export default function POS() {
     ticketItemsJson !== null &&
     (cartKey() !== ticketItemsJson || metaSnapshot() !== ticketMetaJson)
 
+  // Perubahan belum tersimpan: tiket open bill yang diedit ATAU keranjang order
+  // baru yang sudah berisi item (reload/logout berarti kehilangan data).
+  const unsavedChanges = openBillDirty || (panelMode === 'new' && items.length > 0)
+
   // Pintu keluar dari mode edit tiket: bila dirty, minta konfirmasi dulu.
   function guardUnsaved(action: () => void) {
-    if (openBillDirty) {
+    if (unsavedChanges) {
       setConfirmLeave(() => action)
     } else {
       action()
     }
   }
 
-  // Tutup/reload tab dengan perubahan tiket belum disimpan -> dialog native browser.
+  // Tutup/reload tab dengan perubahan belum disimpan -> dialog native browser.
   useEffect(() => {
-    if (!openBillDirty) return
+    if (!unsavedChanges) return
     function onBeforeUnload(e: BeforeUnloadEvent) {
       e.preventDefault()
       e.returnValue = ''
     }
     window.addEventListener('beforeunload', onBeforeUnload)
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
-  }, [openBillDirty])
+  }, [unsavedChanges])
+
+  // Navigasi route (tombol back / link router) saat ada perubahan belum
+  // disimpan -> modal konfirmasi yang sama. Tidak ada auto-reset di cleanup:
+  // blokir dibatalkan lewat tombol "Keep Editing" di modal.
+  const blocker = useBlocker(unsavedChanges)
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      setConfirmLeave(() => () => blocker.proceed())
+    }
+  }, [blocker.state])
 
   function applyUpdatedOrder(updated: UpdateOrderItemsResult) {
     setOpenOrder((prev) =>
@@ -353,7 +374,6 @@ export default function POS() {
           items: itemsPayload(),
         })
         applyUpdatedOrder(updated)
-        await loadData() // refresh: total di kartu tiket ikut berubah
         showFeedback(`Order ${updated.invoiceNumber} updated.`)
       } else {
         const saved = await openBillRequest({
@@ -363,17 +383,22 @@ export default function POS() {
           items: itemsPayload(),
         })
         clear() // keranjang reset otomatis setelah sukses
-        await loadData() // refresh: Active Orders Line bertambah
         showFeedback(`Order ${saved.invoiceNumber} saved to Active Orders.`)
         setMobileCartOpen(false)
       }
-    return true
     } catch {
       showFeedback('Failed to save the order. Please try again.', true)
       return false
     } finally {
       setSaving(false)
     }
+    // Refresh di luar try utama: gagal refresh bukan berarti gagal simpan.
+    try {
+      await loadData() // refresh: total di kartu tiket / Active Orders Line ikut berubah
+    } catch {
+      showFeedback('Saved, but failed to refresh the list.', true)
+    }
+    return true
   }
 
   // ---- Konfirmasi tinggalkan tiket dengan perubahan belum disimpan ----
@@ -455,6 +480,24 @@ export default function POS() {
           items: itemsPayload,
         })
         orderId = created.id
+        // Adopt tiket baru SEGERA: bila checkout gagal, retry memakai orderId
+        // yang sama (tidak membuat tiket duplikat di server).
+        setPanelMode('open')
+        setOpenOrder({
+          id: created.id,
+          invoiceNumber: created.invoiceNumber,
+          orderType: created.orderType,
+          status: created.status,
+          customerName: created.customerName,
+          customerGender,
+          subtotal: created.subtotal,
+          grandTotal: created.grandTotal,
+          tableNumber: created.tableNumber,
+          itemCount: cartItemCount,
+          createdAt: new Date().toISOString(),
+        })
+        setTicketItemsJson(cartKey())
+        setTicketMetaJson(metaSnapshot())
       }
 
       const done = await checkoutRequest(orderId, {
@@ -470,12 +513,18 @@ export default function POS() {
       clear()
       setTicketItemsJson(null)
       setTicketMetaJson(null)
-      await loadData() // refresh: kartu OPEN_BILL hilang, paid history bertambah
       setReceipt(done) // tampilkan pratinjau struk setelah transaksi sukses
     } catch {
       showFeedback('Failed to process the payment. Please try again.', true)
     } finally {
       setSubmittingPayment(false)
+    }
+    // Refresh di luar try utama: kegagalan refresh TIDAK boleh dibilang
+    // "payment failed" ke kasir — pembayaran sudah sukses di server.
+    try {
+      await loadData() // refresh: kartu OPEN_BILL hilang, paid history bertambah
+    } catch {
+      showFeedback('Payment recorded, but failed to refresh the data.', true)
     }
   }
 
@@ -493,6 +542,7 @@ export default function POS() {
         onOpenHistory={() => setHistoryOpen(true)}
         onLockRegister={lockRegister}
         onFeatureNotice={(msg) => showFeedback(msg)}
+        onSignOut={() => guardUnsaved(logout)}
       />
 
       {/* ===== Zone 2: Scrollable main content ===== */}
@@ -828,7 +878,12 @@ export default function POS() {
               type="button"
               className="mt-2 w-full cursor-pointer rounded-xl py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed"
               disabled={saving}
-              onClick={() => setConfirmLeave(null)}
+              onClick={() => {
+                setConfirmLeave(null)
+                // Modal tertutup tanpa keputusan: bila pemicunya navigasi yang
+                // diblokir, batalkan blokir agar router tidak menggantung.
+                if (blocker.state === 'blocked') blocker.reset()
+              }}
             >
               Keep Editing
             </button>

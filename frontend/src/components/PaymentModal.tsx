@@ -61,10 +61,10 @@ export default function PaymentModal({
     }
   }
   // Mode non-tunai: tombol Selesaikan tetap aktif (bayar penuh). Mode tunai
-  // tanpa nominal, atau nominal kurang dari total → tombol dinonaktifkan.
+  // tanpa nominal, nominal pecahan, atau kurang dari total → tombol dimatikan.
   const isUnderpaid =
     method === 'CASH' &&
-    (cash === '' || (Number.isInteger(parsedCash) && parsedCash < grandTotal))
+    (cash === '' || !Number.isInteger(parsedCash) || parsedCash < grandTotal)
 
   function handleSubmit() {
     setError(null)
@@ -78,7 +78,7 @@ export default function PaymentModal({
       try {
         calculateChange(grandTotal, amountPaid)
       } catch {
-        setError('Cash amount is insufficient or invalid.')
+        setError('Cash amount must be a whole number at least equal to the total.')
         return
       }
       onSubmit({

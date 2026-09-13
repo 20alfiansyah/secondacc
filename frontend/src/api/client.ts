@@ -54,7 +54,10 @@ export function setUnauthorizedHandler(handler: () => void) {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // 401 dari endpoint login itu sendiri = kredensial salah, BUKAN sesi
+    // kadaluarsa — jangan bersihkan sesi / redirect (biarkan Login menampilkan error).
+    const isLoginCall = error.config?.url?.includes('/auth/login')
+    if (error.response?.status === 401 && !isLoginCall) {
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(USER_KEY)
       if (onUnauthorized) {

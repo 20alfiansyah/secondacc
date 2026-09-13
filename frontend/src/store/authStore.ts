@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { AuthUser } from '@/api/client'
 import { TOKEN_KEY, USER_KEY, loginRequest } from '@/api/client'
+import { useCartStore } from './cartStore'
 
 interface AuthState {
   token: string | null
@@ -36,6 +37,8 @@ export const useAuthStore = create<AuthState>((set) => {
     },
 
     logout: () => {
+      // Keranjang ikut dibersihkan agar sesi berikutnya tidak mewarisi tiket lama.
+      useCartStore.getState().clear()
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(USER_KEY)
       set({ token: null, user: null })

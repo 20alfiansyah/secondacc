@@ -38,6 +38,8 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [dateFilter, setDateFilter] = useState<DateFilter>('ALL')
+  // Pesan error muat ulang / reprint — ditampilkan sebagai banner kecil di area list.
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [receipt, setReceipt] = useState<OrderDetail | null>(null)
   const [loadingReceipt, setLoadingReceipt] = useState<number | null>(null)
 
@@ -49,9 +51,12 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
       setLoading(true)
       try {
         const data = await fetchOrderHistory()
-        if (!cancelled) setOrders(data)
+        if (!cancelled) {
+          setOrders(data)
+          setLoadError(null)
+        }
       } catch {
-        // Biarkan daftar kosong; POS menampilkan feedback sendiri bila perlu
+        if (!cancelled) setLoadError('Failed to load transactions. Please try again.')
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -98,7 +103,7 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
       const detail = await fetchOrderDetail(orderId)
       setReceipt(detail)
     } catch {
-      // Tetap tutup spinner; cetak ulang gagal tanpa feedback detail di sini
+      setLoadError('Failed to prepare the receipt. Please try again.')
     } finally {
       setLoadingReceipt(null)
     }
@@ -174,6 +179,11 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
 
           {/* Daftar transaksi */}
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            {loadError && !loading && (
+              <div className="mb-2.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                {loadError}
+              </div>
+            )}
             {loading ? (
               <EmptyState
                 icon="receipt_long"

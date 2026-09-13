@@ -317,35 +317,37 @@ export default function OrderDetailsPanel({
               </div>
             </div>
 
-            {/* Demografi (Gender) */}
-            <div className="space-y-1.5">
-              <label className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                DEMOGRAFI (GENDER)
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {GENDERS.map((g) => {
-                  const active = customerGender === g.v
-                  return (
-                    <button
-                      key={g.v}
-                      type="button"
-                      onClick={() => setCustomerGender(active ? null : g.v)}
-                      className={cn(
-                        'flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2 font-display text-xs transition',
-                        active
-                          ? 'border-[#447C84] bg-[#edf7f3] font-bold text-[#2d5258] shadow-xs'
-                          : 'border-slate-200 bg-white font-semibold text-slate-700 shadow-xs hover:bg-slate-50',
-                      )}
-                    >
-                      <GenderIcon value={g.v} active={active} />
-                      {g.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
           </>
         )}
+        {/* Demografi (Gender) — dirender di kedua mode: tiket open-bill tanpa
+            gender harus bisa dilengkapi sebelum Pay Now. */}
+        <div className="space-y-1.5">
+          <label className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            DEMOGRAFI (GENDER)
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {GENDERS.map((g) => {
+              const active = customerGender === g.v
+              return (
+                <button
+                  key={g.v}
+                  type="button"
+                  onClick={() => setCustomerGender(active ? null : g.v)}
+                  className={cn(
+                    'flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2 font-display text-xs transition',
+                    active
+                      ? 'border-[#447C84] bg-[#edf7f3] font-bold text-[#2d5258] shadow-xs'
+                      : 'border-slate-200 bg-white font-semibold text-slate-700 shadow-xs hover:bg-slate-50',
+                  )}
+                >
+                  <GenderIcon value={g.v} active={active} />
+                  {g.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {/* Selected Items */}
         <div className="flex flex-1 flex-col space-y-2.5 border-slate-100 pt-1">
           <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400 font-display pb-0.5">

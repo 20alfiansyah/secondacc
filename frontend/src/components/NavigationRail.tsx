@@ -11,6 +11,8 @@ interface NavigationRailProps {
   onLockRegister: () => void
   /** Optional callback when a menu that is not available yet is clicked. */
   onFeatureNotice?: (featureName: string) => void
+  /** Optional sign-out override — POS wraps it with the unsaved-changes guard. */
+  onSignOut?: () => void
 }
 
 /** Get name initials (e.g. "Nahid Zaman" -> "NZ", "Siti" -> "S") for the avatar. */
@@ -49,6 +51,7 @@ export default function NavigationRail({
   onOpenHistory,
   onLockRegister,
   onFeatureNotice,
+  onSignOut,
 }: NavigationRailProps) {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
@@ -279,7 +282,7 @@ export default function NavigationRail({
                 </button>
                 <button
                   type="button"
-                  onClick={logout}
+                  onClick={onSignOut ?? logout}
                   className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-destructive/10 hover:text-destructive"
                   title="Sign Out"
                 >
@@ -301,8 +304,7 @@ export default function NavigationRail({
               <Icon name="lock" className="text-[18px]" />
             </button>
             <button
-              type="button"
-              onClick={logout}
+              onClick={onSignOut ?? logout}
               className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-destructive/10 hover:text-destructive"
               title="Sign Out"
             >
