@@ -66,6 +66,10 @@ export default function POS() {
   const [orderType, setOrderType] = useState<OrderType>('DINE_IN')
   // Snapshot normalized items tiket saat dimuat — pembanding "dirty" sebelum bayar.
   const [ticketItemsJson, setTicketItemsJson] = useState<string | null>(null)
+  // Snapshot meta (nama+gender) tiket saat dimuat — pasangan dirty utk ticketItemsJson.
+  const [ticketMetaJson, setTicketMetaJson] = useState<string | null>(null)
+  // Aksi tertunda yang menunggu konfirmasi "perubahan belum disimpan".
+  const [confirmLeave, setConfirmLeave] = useState<(() => void) | null>(null)
 
   // Panel kanan bisa diciutkan jadi rail vertikal (persist localStorage)
   const [panelCollapsed, setPanelCollapsed] = useState(() => {
@@ -216,6 +220,34 @@ export default function POS() {
       quantity: i.quantity,
       notes: i.notes?.trim() ? i.notes : undefined,
     }))
+  const metaSnapshot = () => JSON.stringify({ name: customerName.trim(), gender: customerGender })
+
+  // Dirty = ada perubahan tiket open bill yang belum disimpan (item / nama / gender).
+  const openBillDirty =
+    panelMode === 'open' &&
+    openOrder !== null &&
+    ticketItemsJson !== null &&
+    (cartKey() !== ticketItemsJson || metaSnapshot() !== ticketMetaJson)
+
+  // Pintu keluar dari mode edit tiket: bila dirty, minta konfirmasi dulu.
+  function guardUnsaved(action: () => void) {
+    if (openBillDirty) {
+      setConfirmLeave(() => action)
+    } else {
+      action()
+    }
+  }
+
+  // Tutup/reload tab dengan perubahan tiket belum disimpan -> dialog native browser.
+  useEffect(() => {
+    if (!openBillDirty) return
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [openBillDirty])
 
   function applyUpdatedOrder(updated: UpdateOrderItemsResult) {
     setOpenOrder((prev) =>
@@ -224,11 +256,18 @@ export default function POS() {
         : prev,
     )
     setTicketItemsJson(cartKey())
+    setTicketMetaJson(metaSnapshot())
   }
 
   // Klik kartu ACTIVE ORDERS -> muat item tiket ke panel (bisa diedit, lalu
   // Save = update tiket yang sama, atau langsung Pay).
-  async function handleViewActiveOrder(orderId: number) {
+  function handleViewActiveOrder(orderId: number) {
+    guardUnsaved(() => {
+      void loadActiveOrder(orderId)
+    })
+  }
+
+  async function loadActiveOrder(orderId: number) {
     const summary = activeOrders.find((o) => o.id === orderId)
     if (!summary) {
       showFeedback('Order not found.', true)
@@ -239,6 +278,7 @@ export default function POS() {
     setOrderType(summary.orderType)
     setCustomerName(summary.customerName ?? '')
     setCustomerGender(summary.customerGender)
+    setTicketMetaJson(JSON.stringify({ name: (summary.customerName ?? '').trim(), gender: summary.customerGender }))
     clear()
     setTicketItemsJson(null)
     try {
@@ -265,24 +305,27 @@ export default function POS() {
 
   // Kembali ke pesanan baru (reset panel & keranjang)
   function handleNewOrder() {
-    setPanelMode('new')
-    setOpenOrder(null)
-    setOrderType('DINE_IN')
-    setCustomerName('')
-    setCustomerGender(null)
-    clear()
-    setTicketItemsJson(null)
+    guardUnsaved(() => {
+      setPanelMode('new')
+      setOpenOrder(null)
+      setOrderType('DINE_IN')
+      setCustomerName('')
+      setCustomerGender(null)
+      clear()
+      setTicketItemsJson(null)
+      setTicketMetaJson(null)
+    })
   }
 
   // ---- Save: order baru -> open bill baru; tiket lama -> update items ----
   async function handleSaveOpenBill() {
     if (!customerName.trim()) {
       showFeedback('Customer name is required before saving.', true)
-      return
+      return false
     }
     if (items.length === 0) {
       showFeedback('Order must contain at least 1 item.', true)
-      return
+      return false
     }
     setSaving(true)
     setFeedback(null)
@@ -308,17 +351,36 @@ export default function POS() {
         showFeedback(`Order ${saved.invoiceNumber} saved to Active Orders.`)
         setMobileCartOpen(false)
       }
+    return true
     } catch {
       showFeedback('Failed to save the order. Please try again.', true)
+      return false
     } finally {
       setSaving(false)
     }
   }
 
+  // ---- Konfirmasi tinggalkan tiket dengan perubahan belum disimpan ----
+  async function handleConfirmSave() {
+    if (!confirmLeave) return
+    const ok = await handleSaveOpenBill()
+    if (ok) {
+      setConfirmLeave(null)
+      confirmLeave()
+    }
+  }
+
+  function handleConfirmDiscard() {
+    const action = confirmLeave
+    if (!action) return
+    setConfirmLeave(null)
+    action()
+  }
+
   // Pay: di mode open, simpan dulu bila item diedit agar total tersimpan =
   // total dibayar, lalu buka modal pembayaran.
   async function handlePayClick() {
-    if (panelMode === 'open' && openOrder && ticketItemsJson !== null && cartKey() !== ticketItemsJson) {
+    if (openBillDirty) {
       if (!customerName.trim()) {
         showFeedback('Customer name is required.', true)
         return
@@ -391,6 +453,7 @@ export default function POS() {
       setCustomerGender(null)
       clear()
       setTicketItemsJson(null)
+      setTicketMetaJson(null)
       await loadData() // refresh: kartu OPEN_BILL hilang, paid history bertambah
       setReceipt(done) // tampilkan pratinjau struk setelah transaksi sukses
     } catch {
@@ -700,6 +763,53 @@ export default function POS() {
             handleCustomConfirm(customModalProduct, { notes, quantity })
           }
         />
+      )}
+      {confirmLeave && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-100 bg-white p-6 shadow-modal animate-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                <Icon name="warning" className="text-xl" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Unsaved changes</h3>
+                <p className="mt-1 text-sm leading-5 text-slate-500">
+                  This ticket has changes that haven&apos;t been saved yet. Save them before leaving, or discard
+                  the changes.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="destructive"
+                size="lg"
+                className="cursor-pointer"
+                disabled={saving}
+                onClick={handleConfirmDiscard}
+              >
+                Discard
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                className="cursor-pointer"
+                disabled={saving}
+                onClick={handleConfirmSave}
+              >
+                {saving ? 'Saving...' : 'Save & Continue'}
+              </Button>
+            </div>
+            <button
+              type="button"
+              className="mt-2 w-full cursor-pointer rounded-xl py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed"
+              disabled={saving}
+              onClick={() => setConfirmLeave(null)}
+            >
+              Keep Editing
+            </button>
+          </div>
+        </div>
       )}
 
       {payOpen && (
