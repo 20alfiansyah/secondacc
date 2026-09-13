@@ -134,71 +134,71 @@ export default function ActiveOrdersLine({
               filteredOrders.map((order) => {
                 const isActive = activeOrderId === order.id
                 return (
-                  <button
-                    key={order.id}
-                    onClick={() => onSelect(order.id)}
-                    className={cn(
-                      'relative flex cursor-pointer flex-col justify-between rounded-xl p-3.5 text-left shadow-xs transition-all duration-150',
-                      isActive
-                        ? 'border-2 border-[#447C84] bg-white hover:bg-[#edf7f3]/40'
-                        : 'border border-slate-200 bg-white shadow-xs hover:border-slate-300 hover:bg-slate-50',
-                    )}
-                  >
-                    {/* OPEN BILL pill di tepi atas kartu */}
-                    <span className="absolute -top-2.5 right-3 flex items-center gap-1.5 rounded-full border border-[#b9e2d3] bg-[#edf7f3] px-2.5 py-0.5 font-display text-[9px] font-bold uppercase tracking-wider text-[#447C84] shadow-xs">
+                  <div key={order.id} className="relative">
+                    {/* OPEN BILL pill di tepi atas kartu — di wrapper agar tidak terpotong overflow-hidden kartu */}
+                    <span className="absolute -top-2.5 right-3 z-10 flex items-center gap-1.5 rounded-full border border-[#b9e2d3] bg-[#edf7f3] px-2.5 py-0.5 font-display text-[9px] font-bold uppercase tracking-wider text-[#447C84] shadow-xs">
                       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#447C84]" />
                       Open Bill
                     </span>
-
-                    <div>
-                      <div className="mb-2 flex items-center justify-between gap-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={cn(
-                              'rounded-md px-2 py-0.5 text-xs font-bold tracking-wide tabular-nums',
-                              isActive
-                                ? 'bg-[#447C84] text-white'
-                                : 'border border-slate-200 bg-slate-100 text-slate-800',
-                            )}
-                          >
-                            {orderLabel(order.id)}
-                          </span>
-                          <span className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-700">
-                            {TYPE_LABEL[order.orderType]}
+                    <button
+                      onClick={() => onSelect(order.id)}
+                      className={cn(
+                        'flex h-full w-full cursor-pointer flex-col justify-between overflow-hidden rounded-xl p-3.5 text-left shadow-xs transition-all duration-150',
+                        isActive
+                          ? 'border-2 border-[#447C84] bg-white hover:bg-[#edf7f3]/40'
+                          : 'border border-slate-200 bg-white shadow-xs hover:border-slate-300 hover:bg-slate-50',
+                      )}
+                    >
+                      <div>
+                        <div className="mb-2 flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={cn(
+                                'rounded-md px-2 py-0.5 text-xs font-bold tracking-wide tabular-nums',
+                                isActive
+                                  ? 'bg-[#447C84] text-white'
+                                  : 'border border-slate-200 bg-slate-100 text-slate-800',
+                              )}
+                            >
+                              {orderLabel(order.id)}
+                            </span>
+                            <span className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-700">
+                              {TYPE_LABEL[order.orderType]}
+                            </span>
+                          </div>
+                          <span className="flex items-center gap-0.5 text-[10px] text-slate-400">
+                            <Icon name="schedule" className="text-[10px]" />
+                            {relativeTime(order.createdAt, nowMs)}
                           </span>
                         </div>
-                        <span className="flex items-center gap-0.5 text-[10px] text-slate-400">
-                          <Icon name="schedule" className="text-[10px]" />
-                          {relativeTime(order.createdAt, nowMs)}
+                        <h4
+                          className={cn(
+                            'truncate text-xs leading-snug tracking-tight',
+                            isActive ? 'font-bold text-slate-900' : 'font-semibold text-slate-800',
+                          )}
+                        >
+                          {order.customerName?.trim() || 'Walk-in'}
+                        </h4>
+                        <p className="mt-0.5 truncate text-[11px] text-slate-500">
+                          {order.itemCount} items • {TYPE_LABEL[order.orderType]}
+                        </p>
+                      </div>
+
+                      <div className="-mx-3.5 -mb-3.5 mt-3 flex items-center justify-between border-t border-slate-100 bg-white px-3.5 py-2.5">
+                        <span className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Total Due
+                        </span>
+                        <span
+                          className={cn(
+                            'text-sm font-bold tabular-nums tracking-tight',
+                            isActive ? 'text-[#2d5258]' : 'text-slate-900',
+                          )}
+                        >
+                          {formatRupiah(order.grandTotal)}
                         </span>
                       </div>
-                      <h4
-                        className={cn(
-                          'truncate text-xs leading-snug tracking-tight',
-                          isActive ? 'font-bold text-slate-900' : 'font-semibold text-slate-800',
-                        )}
-                      >
-                        {order.customerName?.trim() || 'Walk-in'}
-                      </h4>
-                      <p className="mt-0.5 truncate text-[11px] text-slate-500">
-                        {order.itemCount} items • {TYPE_LABEL[order.orderType]}
-                      </p>
-                    </div>
-
-                    <div className="-mx-3.5 -mb-3.5 mt-3 flex items-center justify-between rounded-b-[10px] border-t border-slate-100 bg-white px-3.5 py-2.5">
-                      <span className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        Total Due
-                      </span>
-                      <span
-                        className={cn(
-                          'text-sm font-bold tabular-nums tracking-tight',
-                          isActive ? 'text-[#2d5258]' : 'text-slate-900',
-                        )}
-                      >
-                        {formatRupiah(order.grandTotal)}
-                      </span>
-                    </div>
-                  </button>
+                    </button>
+                  </div>
                 )
               })
             )}
