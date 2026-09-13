@@ -164,12 +164,7 @@ export default function ProductCatalogGrid({
               <span className="text-[10px] font-semibold italic text-muted-foreground">Sold out</span>
             ) : (
               <span
-                className={cn(
-                  'flex h-7 w-7 items-center justify-center rounded-lg shadow-xs transition-all active:scale-95',
-                  p.isBestSeller
-                    ? 'bg-[#447C84] font-bold text-white hover:bg-[#396a71]'
-                    : 'bg-slate-100 text-slate-700 group-hover:bg-[#447C84] group-hover:text-white',
-                )}
+                className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-700 shadow-xs transition-all group-hover:bg-[#447C84] group-hover:text-white active:scale-95"
                 aria-hidden="true"
               >
                 <Icon name="add" className="text-[16px]" />
