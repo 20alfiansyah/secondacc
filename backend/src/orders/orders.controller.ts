@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -15,6 +16,7 @@ import {
   CheckoutInput,
   OpenBillInput,
   OrdersService,
+  UpdateOpenBillInput,
 } from './orders.service';
 
 @Controller('orders')
@@ -32,6 +34,15 @@ export class OrdersController {
   @Get('active')
   async getActive() {
     const data = await this.ordersService.getActive();
+    return { success: true, data };
+  }
+
+  @Put(':id/items')
+  async updateItems(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateOpenBillInput,
+  ) {
+    const data = await this.ordersService.updateItems(id, body);
     return { success: true, data };
   }
 

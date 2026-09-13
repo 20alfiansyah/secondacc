@@ -25,6 +25,14 @@ export interface OpenBillInput {
   orderType: OrderType;
   tableId?: number;
   customerName: string;
+  customerGender?: 'L' | 'P';
+  items: OpenBillItemInput[];
+}
+
+/** Body untuk PUT /orders/:id/items — full replace items order OPEN_BILL. */
+export interface UpdateOpenBillInput {
+  customerName?: string;
+  customerGender?: 'L' | 'P';
   items: OpenBillItemInput[];
 }
 
@@ -74,33 +82,7 @@ export class OrdersService {
 
     return this.prisma.$transaction(async (tx) => {
       const { invoiceNumber, orderNumber } = await this.generateInvoice(tx);
-
-      // Snapshot harga sekarang dari DB untuk semua productId yang dipesan
-      const productIds = input.items.map((i) => i.productId);
-      const products = await tx.product.findMany({ where: { id: { in: productIds } } });
-      const priceById = new Map(products.map((p) => [p.id, p.price]));
-
-      const orderItems = input.items.map((item) => {
-        const price = priceById.get(item.productId);
-        if (price === undefined) {
-          throw new NotFoundException({
-            code: 'PRODUCT_NOT_FOUND',
-            message: `Produk id ${item.productId} tidak ditemukan`,
-          });
-        }
-        const subtotal = calculateItemSubtotal(item.quantity, price);
-        return {
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: price,
-          subtotal,
-          notes: item.notes ?? null,
-        };
-      });
-
-      const grandTotal = calculateGrandTotal(
-        orderItems.map((o) => ({ quantity: o.quantity, unitPrice: o.unitPrice })),
-      );
+      const { orderItems, grandTotal } = await this.resolveOrderItems(tx, input.items);
 
       const order = await tx.order.create({
         data: {
@@ -109,6 +91,7 @@ export class OrdersService {
           tableId: input.tableId ?? null,
           cashierId,
           customerName,
+          customerGender: input.customerGender ?? null,
           status: OrderStatus.OPEN_BILL,
           subtotal: grandTotal,
           grandTotal,
@@ -130,6 +113,98 @@ export class OrdersService {
       };
     });
   }
+
+  /**
+   * Snapshot harga SEMUA item dari DB (BUKAN dari client) + hitung grandTotal
+   * server-side. Dipakai openBill (create) dan updateItems (full replace).
+   */
+  private async resolveOrderItems(tx: Tx, items: OpenBillItemInput[]) {
+    const productIds = items.map((i) => i.productId);
+    const products = await tx.product.findMany({ where: { id: { in: productIds } } });
+    const priceById = new Map(products.map((p) => [p.id, p.price]));
+
+    const orderItems = items.map((item) => {
+      const price = priceById.get(item.productId);
+      if (price === undefined) {
+        throw new NotFoundException({
+          code: 'PRODUCT_NOT_FOUND',
+          message: `Produk id ${item.productId} tidak ditemukan`,
+        });
+      }
+      const subtotal = calculateItemSubtotal(item.quantity, price);
+      return {
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: price,
+        subtotal,
+        notes: item.notes ?? null,
+      };
+    });
+
+    const grandTotal = calculateGrandTotal(
+      orderItems.map((o) => ({ quantity: o.quantity, unitPrice: o.unitPrice })),
+    );
+    return { orderItems, grandTotal };
+  }
+
+  /**
+   * PUT /api/orders/:id/items — full replace items order OPEN_BILL (edit
+   * tiket kasir). ACID: hapus + buat ulang OrderItems, snapshot harga ulang
+   * dari DB, hitung ulang total server-side. Menolak order bukan OPEN_BILL.
+   */
+  async updateItems(id: number, input: UpdateOpenBillInput) {
+    if (!input.items || input.items.length === 0) {
+      throw new BadRequestException({
+        code: 'EMPTY_ITEMS',
+        message: 'Pesanan minimal berisi 1 item',
+      });
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({ where: { id } });
+      if (!order) {
+        throw new NotFoundException({
+          code: 'ORDER_NOT_FOUND',
+          message: `Order id ${id} tidak ditemukan`,
+        });
+      }
+      if (order.status !== OrderStatus.OPEN_BILL) {
+        throw new ConflictException({
+          code: 'ORDER_NOT_OPEN_BILL',
+          message: 'Order bukan OPEN_BILL, item tidak bisa diubah',
+        });
+      }
+
+      const customerName = input.customerName?.trim() || order.customerName;
+      const { orderItems, grandTotal } = await this.resolveOrderItems(tx, input.items);
+
+      await tx.orderItem.deleteMany({ where: { orderId: id } });
+      await tx.orderItem.createMany({
+        data: orderItems.map((o) => ({ ...o, orderId: id })),
+      });
+
+      const updated = await tx.order.update({
+        where: { id },
+        data: {
+          subtotal: grandTotal,
+          grandTotal,
+          customerName,
+          ...(input.customerGender ? { customerGender: input.customerGender } : {}),
+        },
+      });
+
+      return {
+        orderId: updated.id,
+        invoiceNumber: updated.invoiceNumber,
+        orderType: updated.orderType,
+        status: updated.status,
+        customerName: updated.customerName,
+        subtotal: updated.subtotal,
+        grandTotal: updated.grandTotal,
+      };
+    });
+  }
+
 
   /** GET /api/orders/active — semua order OPEN_BILL untuk Active Orders Line.
    *  itemCount dihitung sebagai TOTAL qty (bukan jumlah baris orderItems). */
@@ -239,7 +314,7 @@ export class OrdersService {
         data: {
           status: OrderStatus.PAID,
           grandTotal,
-          customerGender: input.customerGender ?? null,
+          customerGender: input.customerGender ?? order.customerGender ?? null,
           payment: {
             create: {
               category: input.paymentCategory,

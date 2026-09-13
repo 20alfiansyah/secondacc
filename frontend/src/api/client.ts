@@ -226,6 +226,7 @@ function toOrderSummary(raw: any): OrderSummary {
 export async function openBillRequest(payload: {
   orderType?: OrderType
   customerName?: string
+  customerGender?: CustomerGender
   tableId?: number
   items: OpenBillItemInput[]
 }): Promise<OpenBillResult> {
@@ -234,10 +235,41 @@ export async function openBillRequest(payload: {
   const body = {
     orderType: payload.orderType ?? 'DINE_IN',
     customerName: payload.customerName,
+    customerGender: payload.customerGender ?? undefined,
     tableId: payload.tableId ?? undefined,
     items: payload.items,
   }
   const { data } = await api.post<ListResponse<OpenBillResult>>('/orders/open-bill', body)
+  return { ...data.data, id: data.data.orderId }
+}
+
+/** Hasil PUT /orders/:id/items — ringkasan order yang sudah diperbarui. */
+export interface UpdateOrderItemsResult {
+  orderId: number
+  /** Alias orderId. */
+  id: number
+  invoiceNumber: string
+  orderType: OrderType
+  status: OrderStatus
+  customerName: string | null
+  subtotal: number
+  grandTotal: number
+}
+
+/** PUT /api/orders/:id/items — full replace items order OPEN_BILL (edit tiket). */
+export async function updateOrderItemsRequest(
+  orderId: number,
+  payload: {
+    customerName?: string
+    customerGender?: CustomerGender
+    items: OpenBillItemInput[]
+  },
+): Promise<UpdateOrderItemsResult> {
+  const { data } = await api.put<ListResponse<UpdateOrderItemsResult>>(`/orders/${orderId}/items`, {
+    customerName: payload.customerName?.trim() || undefined,
+    customerGender: payload.customerGender ?? undefined,
+    items: payload.items,
+  })
   return { ...data.data, id: data.data.orderId }
 }
 

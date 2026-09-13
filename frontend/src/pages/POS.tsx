@@ -6,8 +6,10 @@ import {
   checkoutRequest,
   fetchActiveOrders,
   fetchCategories,
+  fetchOrderDetail,
   fetchProducts,
   openBillRequest,
+  updateOrderItemsRequest,
 } from '@/api/client'
 import type {
   Category,
@@ -16,6 +18,7 @@ import type {
   OrderSummary,
   OrderType,
   Product,
+  UpdateOrderItemsResult,
 } from '@/api/client'
 import type { CategoryFilter, SortOption } from '@/components/CategoryFilterBar'
 import { useCartStore } from '@/store/cartStore'
@@ -61,6 +64,8 @@ export default function POS() {
   const [panelMode, setPanelMode] = useState<'new' | 'open'>('new')
   const [openOrder, setOpenOrder] = useState<OrderSummary | null>(null)
   const [orderType, setOrderType] = useState<OrderType>('DINE_IN')
+  // Snapshot normalized items tiket saat dimuat — pembanding "dirty" sebelum bayar.
+  const [ticketItemsJson, setTicketItemsJson] = useState<string | null>(null)
 
   // Panel kanan bisa diciutkan jadi rail vertikal (persist localStorage)
   const [panelCollapsed, setPanelCollapsed] = useState(() => {
@@ -192,9 +197,38 @@ export default function POS() {
     addItem(product, options)
   }
 
-  // Klik kartu ACTIVE ORDERS -> viewing tiket lama (pesanan tak bisa diedit penuh;
-  // hanya gender/customer utk checkout — back office menangani item).
-  function handleViewActiveOrder(orderId: number) {
+  /** Kunci kanonik item utk pembanding dirty (produk+notes -> total qty). */
+  function itemsKey(list: { id: number; quantity: number; notes?: string | null }[]): string {
+    const map = new Map<string, number>()
+    for (const i of list) {
+      const key = `${i.id}|${i.notes?.trim() ?? ''}`
+      map.set(key, (map.get(key) ?? 0) + i.quantity)
+    }
+    return JSON.stringify([...map.entries()].sort(([a], [b]) => a.localeCompare(b)))
+  }
+
+  const cartKey = () =>
+    itemsKey(items.map((i) => ({ id: i.product.id, quantity: i.quantity, notes: i.notes })))
+
+  const itemsPayload = (): OpenBillItemInput[] =>
+    items.map((i) => ({
+      productId: i.product.id,
+      quantity: i.quantity,
+      notes: i.notes?.trim() ? i.notes : undefined,
+    }))
+
+  function applyUpdatedOrder(updated: UpdateOrderItemsResult) {
+    setOpenOrder((prev) =>
+      prev
+        ? { ...prev, subtotal: updated.subtotal, grandTotal: updated.grandTotal, customerName: updated.customerName }
+        : prev,
+    )
+    setTicketItemsJson(cartKey())
+  }
+
+  // Klik kartu ACTIVE ORDERS -> muat item tiket ke panel (bisa diedit, lalu
+  // Save = update tiket yang sama, atau langsung Pay).
+  async function handleViewActiveOrder(orderId: number) {
     const summary = activeOrders.find((o) => o.id === orderId)
     if (!summary) {
       showFeedback('Order not found.', true)
@@ -205,8 +239,28 @@ export default function POS() {
     setOrderType(summary.orderType)
     setCustomerName(summary.customerName ?? '')
     setCustomerGender(summary.customerGender)
-    // Bersihkan keranjang agar panel mode open menampilkan tiket lama, bukan cart.
     clear()
+    setTicketItemsJson(null)
+    try {
+      const detail = await fetchOrderDetail(orderId)
+      const missing: string[] = []
+      for (const line of detail.items) {
+        const product = line.productId != null ? products.find((p) => p.id === line.productId) : undefined
+        if (!product) {
+          missing.push(line.productName)
+          continue
+        }
+        addItem(product, { quantity: line.quantity, notes: line.notes ?? undefined })
+      }
+      setTicketItemsJson(
+        itemsKey(detail.items.map((l) => ({ id: l.productId ?? -1, quantity: l.quantity, notes: l.notes }))),
+      )
+      if (missing.length > 0) {
+        showFeedback(`Some items are no longer in the menu and were skipped: ${missing.join(', ')}.`, true)
+      }
+    } catch {
+      showFeedback('Failed to load order items. Please try again.', true)
+    }
   }
 
   // Kembali ke pesanan baru (reset panel & keranjang)
@@ -217,9 +271,10 @@ export default function POS() {
     setCustomerName('')
     setCustomerGender(null)
     clear()
+    setTicketItemsJson(null)
   }
 
-  // ---- Save Open Bill (simpan order baru dari keranjang) ----
+  // ---- Save: order baru -> open bill baru; tiket lama -> update items ----
   async function handleSaveOpenBill() {
     if (!customerName.trim()) {
       showFeedback('Customer name is required before saving.', true)
@@ -232,25 +287,60 @@ export default function POS() {
     setSaving(true)
     setFeedback(null)
     try {
-      const payload: OpenBillItemInput[] = items.map((i) => ({
-        productId: i.product.id,
-        quantity: i.quantity,
-        notes: i.notes?.trim() ? i.notes : undefined,
-      }))
-      const saved = await openBillRequest({
-        orderType,
-        customerName: customerName.trim(),
-        items: payload,
-      })
-      clear() // keranjang reset otomatis setelah sukses
-      await loadData() // refresh: Active Orders Line bertambah
-      showFeedback(`Order ${saved.invoiceNumber} saved to Active Orders.`)
-      setMobileCartOpen(false)
+      if (panelMode === 'open' && openOrder) {
+        const updated = await updateOrderItemsRequest(openOrder.id, {
+          customerName: customerName.trim(),
+          customerGender: customerGender ?? undefined,
+          items: itemsPayload(),
+        })
+        applyUpdatedOrder(updated)
+        await loadData() // refresh: total di kartu tiket ikut berubah
+        showFeedback(`Order ${updated.invoiceNumber} updated.`)
+      } else {
+        const saved = await openBillRequest({
+          orderType,
+          customerName: customerName.trim(),
+          customerGender: customerGender ?? undefined,
+          items: itemsPayload(),
+        })
+        clear() // keranjang reset otomatis setelah sukses
+        await loadData() // refresh: Active Orders Line bertambah
+        showFeedback(`Order ${saved.invoiceNumber} saved to Active Orders.`)
+        setMobileCartOpen(false)
+      }
     } catch {
       showFeedback('Failed to save the order. Please try again.', true)
     } finally {
       setSaving(false)
     }
+  }
+
+  // Pay: di mode open, simpan dulu bila item diedit agar total tersimpan =
+  // total dibayar, lalu buka modal pembayaran.
+  async function handlePayClick() {
+    if (panelMode === 'open' && openOrder && ticketItemsJson !== null && cartKey() !== ticketItemsJson) {
+      if (!customerName.trim()) {
+        showFeedback('Customer name is required.', true)
+        return
+      }
+      setSaving(true)
+      setFeedback(null)
+      try {
+        const updated = await updateOrderItemsRequest(openOrder.id, {
+          customerName: customerName.trim(),
+          customerGender: customerGender ?? undefined,
+          items: itemsPayload(),
+        })
+        applyUpdatedOrder(updated)
+        await loadData()
+      } catch {
+        showFeedback('Failed to update the order before payment. Please try again.', true)
+        return
+      } finally {
+        setSaving(false)
+      }
+    }
+    setPayOpen(true)
   }
 
   // ---- Bayar (create-then-pay untuk order baru / langsung bayar order open) ----
@@ -283,6 +373,7 @@ export default function POS() {
         const created = await openBillRequest({
           orderType,
           customerName: customerName.trim(),
+          customerGender: customerGender ?? undefined,
           items: itemsPayload,
         })
         orderId = created.id
@@ -299,6 +390,7 @@ export default function POS() {
       setCustomerName('')
       setCustomerGender(null)
       clear()
+      setTicketItemsJson(null)
       await loadData() // refresh: kartu OPEN_BILL hilang, paid history bertambah
       setReceipt(done) // tampilkan pratinjau struk setelah transaksi sukses
     } catch {
@@ -525,7 +617,7 @@ export default function POS() {
               onRemoveItem={removeItem}
               onClearCart={clear}
               onNewOrder={handleNewOrder}
-              onPay={() => setPayOpen(true)}
+              onPay={handlePayClick}
               onSaveOpenBill={handleSaveOpenBill}
               saving={saving}
               validationError={null}
@@ -589,7 +681,7 @@ export default function POS() {
                 onRemoveItem={removeItem}
                 onClearCart={clear}
                 onNewOrder={handleNewOrder}
-                onPay={() => setPayOpen(true)}
+                onPay={handlePayClick}
                 onSaveOpenBill={handleSaveOpenBill}
                 saving={saving}
                 validationError={null}
@@ -612,7 +704,7 @@ export default function POS() {
 
       {payOpen && (
         <PaymentModal
-          grandTotal={cartSubtotal}
+          grandTotal={panelMode === 'open' && openOrder ? openOrder.grandTotal : cartSubtotal}
           itemCount={cartItemCount}
           tableNumber={null}
           gender={customerGender}

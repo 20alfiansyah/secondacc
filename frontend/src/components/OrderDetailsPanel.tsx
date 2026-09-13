@@ -161,12 +161,8 @@ const TYPE_OPTIONS: { value: OrderType; label: string; icon: string }[] = [
  *
  * Struktur persis spec: header (receipt_long + New Order/Ticket + info row
  * tanggal/jam), form order type + customer + gender (SVG strokeline), daftar
- * SELECTED ITEMS (kartu item, chip notes + "+ Edit notes" toggle, stepper
- * teks −/+), dan footer ORDER SUMMARY (Subtotal, Resto Tax PB1 10%, Grand
- * Total) + CTA Pay Now solid + Save Open Bill.
- *
- * CATATAN: Resto Tax (PB1 10%) = display-only (Math.round(subtotal * 0.1));
- * backend belum menghitung tax pada checkout — payload tetap subtotal.
+ * teks −/+), dan footer ORDER SUMMARY (Subtotal, Grand Total) + CTA Pay Now
+ * solid + Save Open Bill.
  */
 export default function OrderDetailsPanel({
   mode,
@@ -193,10 +189,6 @@ export default function OrderDetailsPanel({
   const [notesDraft, setNotesDraft] = useState('')
 
   const subtotal = useMemo(() => items.reduce((sum, l) => sum + l.product.price * l.quantity, 0), [items])
-  // Display-only: backend belum menghitung PB1 — grand total visual = subtotal + tax,
-  // payload checkout tetap subtotal.
-  const tax = Math.round(subtotal * 0.1)
-  const grandTotalDisplay = subtotal + tax
   const hasItems = items.length > 0
 
   // Auto-cancel notes editor saat item/panel berubah radikal (items berubah).
@@ -295,87 +287,87 @@ export default function OrderDetailsPanel({
       {/* ===== Body: scrollable form + item list ===== */}
       <div className="flex min-h-0 flex-1 flex-col space-y-4 overflow-y-auto p-4">
         {!isOpen && (
-        <>
-        {/* Order Type segmented control */}
-        <div className="space-y-1.5">
-          <label className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            ORDER TYPE
-          </label>
-          <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200/60 bg-slate-100/90 p-1">
-            {TYPE_OPTIONS.map((opt) => {
-              const isActive = orderType === opt.value
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setOrderType(opt.value)}
-                  className={cn(
-                    'flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2 font-display text-xs transition',
-                    isActive
-                      ? 'border border-slate-200/60 bg-white font-bold text-[#2d5258] shadow-xs'
-                      : 'font-semibold text-slate-600 hover:bg-white/50 hover:text-slate-900',
-                  )}
-                >
-                  <Icon
-                    name={opt.icon}
-                    className={cn('text-[16px]', isActive ? 'text-[#447C84]' : 'text-slate-400')}
-                  />
-                  {opt.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
+          <>
+            {/* Order Type segmented control */}
+            <div className="space-y-1.5">
+              <label className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                ORDER TYPE
+              </label>
+              <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200/60 bg-slate-100/90 p-1">
+                {TYPE_OPTIONS.map((opt) => {
+                  const isActive = orderType === opt.value
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setOrderType(opt.value)}
+                      className={cn(
+                        'flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2 font-display text-xs transition',
+                        isActive
+                          ? 'border border-slate-200/60 bg-white font-bold text-[#2d5258] shadow-xs'
+                          : 'font-semibold text-slate-600 hover:bg-white/50 hover:text-slate-900',
+                      )}
+                    >
+                      <Icon
+                        name={opt.icon}
+                        className={cn('text-[16px]', isActive ? 'text-[#447C84]' : 'text-slate-400')}
+                      />
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
-        {/* Customer Name */}
-        <div className="space-y-1.5">
-          <label className="flex items-center justify-between font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            <span>
-              CUSTOMER NAME <span className="text-rose-600">*</span>
-            </span>
-          </label>
-          <div className="relative">
-            <input
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value.slice(0, 40))}
-              placeholder="Customer name (required)"
-              type="text"
-              className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-900 shadow-xs transition placeholder:text-slate-400 focus:border-[#447C84] focus:outline-none focus:ring-2 focus:ring-[#447C84]/30"
-            />
-          </div>
-        </div>
+            {/* Customer Name */}
+            <div className="space-y-1.5">
+              <label className="flex items-center justify-between font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <span>
+                  CUSTOMER NAME <span className="text-rose-600">*</span>
+                </span>
+              </label>
+              <div className="relative">
+                <input
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value.slice(0, 40))}
+                  placeholder="Customer name (required)"
+                  type="text"
+                  className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-900 shadow-xs transition placeholder:text-slate-400 focus:border-[#447C84] focus:outline-none focus:ring-2 focus:ring-[#447C84]/30"
+                />
+              </div>
+            </div>
 
-        {/* Demografi (Gender) */}
-        <div className="space-y-1.5">
-          <label className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            DEMOGRAFI (GENDER)
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {GENDERS.map((g) => {
-              const active = customerGender === g.v
-              return (
-                <button
-                  key={g.v}
-                  type="button"
-                  onClick={() => setCustomerGender(active ? null : g.v)}
-                  className={cn(
-                    'flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2 font-display text-xs transition',
-                    active
-                      ? 'border-[#447C84] bg-[#edf7f3] font-bold text-[#2d5258] shadow-xs'
-                      : 'border-slate-200 bg-white font-semibold text-slate-700 shadow-xs hover:bg-slate-50',
-                  )}
-                >
-                  <GenderIcon value={g.v} active={active} />
-                  {g.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-        </>
+            {/* Demografi (Gender) */}
+            <div className="space-y-1.5">
+              <label className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                DEMOGRAFI (GENDER)
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {GENDERS.map((g) => {
+                  const active = customerGender === g.v
+                  return (
+                    <button
+                      key={g.v}
+                      type="button"
+                      onClick={() => setCustomerGender(active ? null : g.v)}
+                      className={cn(
+                        'flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2 font-display text-xs transition',
+                        active
+                          ? 'border-[#447C84] bg-[#edf7f3] font-bold text-[#2d5258] shadow-xs'
+                          : 'border-slate-200 bg-white font-semibold text-slate-700 shadow-xs hover:bg-slate-50',
+                      )}
+                    >
+                      <GenderIcon value={g.v} active={active} />
+                      {g.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </>
         )}
         {/* Selected Items */}
-        <div className="flex flex-1 flex-col space-y-2.5 border-t border-slate-100 pt-1">
+        <div className="flex flex-1 flex-col space-y-2.5 border-slate-100 pt-1">
           <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400 font-display pb-0.5">
             <span>Selected Items ({items.reduce((sum, l) => sum + l.quantity, 0)})</span>
             {hasItems && (
@@ -498,24 +490,19 @@ export default function OrderDetailsPanel({
       <div className="flex-shrink-0 space-y-3.5 border-t border-slate-200/80 bg-white p-4">
         <div className="space-y-2.5">
           {!isOpen && (
-          <div className="flex items-center justify-between pb-0.5">
-            <span className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              ORDER SUMMARY
-            </span>
-            {validationError && (
-              <span className="text-[10px] font-semibold text-destructive">{validationError}</span>
-            )}
-          </div>
+            <div className="flex items-center justify-between pb-0.5">
+              <span className="font-display text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                ORDER SUMMARY
+              </span>
+              {validationError && (
+                <span className="text-[10px] font-semibold text-destructive">{validationError}</span>
+              )}
+            </div>
           )}
           <div className="space-y-1.5 text-xs">
             <div className="flex items-center justify-between text-slate-500">
               <span>Subtotal</span>
               <span className={cn('font-medium tabular-nums', isOpen ? 'text-slate-900' : 'text-slate-700')}>{formatRupiah(subtotal)}</span>
-            </div>
-            {/* Display-only: backend belum menghitung PB1 — payload checkout tetap subtotal. */}
-            <div className="flex items-center justify-between text-slate-500">
-              <span>Resto Tax (PB1 10%)</span>
-              <span className={cn('font-medium tabular-nums', isOpen ? 'text-slate-900' : 'text-slate-700')}>{formatRupiah(tax)}</span>
             </div>
           </div>
           <div className="mt-2 flex items-center justify-between border-t border-slate-200/80 pt-2.5">
@@ -528,7 +515,7 @@ export default function OrderDetailsPanel({
               </span>
             </div>
             <div className="font-display text-2xl font-extrabold tabular-nums tracking-tight text-slate-900">
-              {formatRupiah(grandTotalDisplay)}
+              {formatRupiah(subtotal)}
             </div>
           </div>
         </div>
@@ -558,7 +545,7 @@ export default function OrderDetailsPanel({
                 isOpen ? 'text-[15px] tracking-wide' : 'tracking-tight',
               )}
             >
-              {formatRupiah(grandTotalDisplay)}
+              {formatRupiah(subtotal)}
             </span>
           </button>
           <button

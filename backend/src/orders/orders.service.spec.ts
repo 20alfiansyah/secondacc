@@ -137,6 +137,68 @@ describe('OrdersService (ACID & finansial server-side)', () => {
         }, 1),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
+    it('menyimpan customerGender saat open bill', async () => {
+      await setup();
+      await service.openBill({
+        orderType: OrderType.DINE_IN,
+        customerName: 'Rian',
+        customerGender: 'L',
+        items: [{ productId: 10, quantity: 1 }],
+      }, 1);
+      expect(tx.order.create.mock.calls[0][0].data.customerGender).toBe('L');
+    });
+  });
+
+
+  // ===== Update items (full edit open bill) =====
+  describe('updateItems', () => {
+    it('replace items + hitung ulang total server-side dari harga DB', async () => {
+      await setup({
+        'order.findUnique': () => Promise.resolve(openOrder),
+        'orderItem.deleteMany': () => Promise.resolve({ count: 1 }),
+        'orderItem.createMany': (d: any) => Promise.resolve({ count: d.data.length }),
+        'order.update': (d: any) => Promise.resolve({ id: 45, ...openOrder, ...d.data }),
+      });
+      const r = await service.updateItems(45, {
+        customerName: 'Rian',
+        items: [{ productId: 10, quantity: 1 }, { productId: 15, quantity: 2, notes: 'Extra shot' }],
+      });
+      // 1x25000 + 2x30000 = 85000 — snapshot harga DB, bukan angka client
+      expect(r.subtotal).toBe(85000);
+      expect(r.grandTotal).toBe(85000);
+      expect(tx.orderItem.deleteMany).toHaveBeenCalledWith({ where: { orderId: 45 } });
+      expect(tx.orderItem.createMany).toHaveBeenCalledWith({
+        data: expect.arrayContaining([
+          expect.objectContaining({ productId: 15, quantity: 2, unitPrice: 30000, subtotal: 60000, orderId: 45 }),
+        ]),
+      });
+      const updateCall = tx.order.update.mock.calls[0][0];
+      expect(updateCall.data.grandTotal).toBe(85000);
+      expect(updateCall.data.customerName).toBe('Rian');
+    });
+
+    it('menolak update order yang sudah PAID', async () => {
+      await setup({
+        'order.findUnique': () => Promise.resolve({ ...openOrder, status: OrderStatus.PAID }),
+      });
+      await expect(
+        service.updateItems(45, { items: [{ productId: 10, quantity: 1 }] }),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('menolak items kosong', async () => {
+      await setup();
+      await expect(service.updateItems(45, { items: [] })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+
+    it('menolak produk yang tidak dikenal', async () => {
+      await setup({ 'order.findUnique': () => Promise.resolve(openOrder) });
+      await expect(
+        service.updateItems(45, { items: [{ productId: 999, quantity: 1 }] }),
+      ).rejects.toThrow();
+    });
   });
 
   // ===== Checkout =====
@@ -199,6 +261,19 @@ describe('OrdersService (ACID & finansial server-side)', () => {
           customerGender: 'L',
         }),
       ).rejects.toThrow();
+    });
+
+    it('checkout tanpa gender mempertahankan gender order', async () => {
+      await setup({
+        'order.findUnique': () => Promise.resolve({ ...openOrder, customerGender: 'P' }),
+        'order.update': (d: any) => Promise.resolve({ id: 45, ...openOrder, ...d.data }),
+      });
+      await service.checkout(45, {
+        paymentCategory: PaymentCategory.THIRD_PARTY,
+        methodName: 'QRIS',
+        amountPaid: 50000,
+      });
+      expect(tx.order.update.mock.calls[0][0].data.customerGender).toBe('P');
     });
   });
 
