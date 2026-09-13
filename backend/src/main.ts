@@ -13,11 +13,11 @@ async function bootstrap() {
   // Global prefix /api
   app.setGlobalPrefix('api');
 
-  // Enable CORS for frontend
+  // CORS: API memakai Bearer token (bukan cookie), jadi credentials TIDAK
+  // diperlukan — kombinasi wildcard + credentials ditolak browser.
   app.enableCors({
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
   });
 
   // Global DTO Validation

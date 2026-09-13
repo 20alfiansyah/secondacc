@@ -44,6 +44,7 @@ describe('OrdersService (ACID & finansial server-side)', () => {
     'order.findFirst': () => Promise.resolve(null),
     'order.create': (d: any) => Promise.resolve({ id: 45, ...d.data }),
     'order.findUnique': () => Promise.resolve(null),
+    'order.updateMany': () => Promise.resolve({ count: 1 }),
     'order.findMany': () => Promise.resolve([]),
     'order.update': (d: any) => Promise.resolve({ id: 45, ...d.data }),
     'payment.create': (d: any) => Promise.resolve({ id: 1, ...d.data }),
@@ -154,10 +155,25 @@ describe('OrdersService (ACID & finansial server-side)', () => {
   describe('updateItems', () => {
     it('replace items + hitung ulang total server-side dari harga DB', async () => {
       await setup({
-        'order.findUnique': () => Promise.resolve(openOrder),
+        'order.findUnique': (() => {
+          let calls = 0;
+          return () => {
+            calls += 1;
+            // Panggilan ke-2 (setelah claim) harus membaca data ter-update
+            if (calls >= 2) {
+              return Promise.resolve({
+                ...openOrder,
+                subtotal: 85000,
+                grandTotal: 85000,
+                customerName: 'Rian',
+              });
+            }
+            return Promise.resolve(openOrder);
+          };
+        })(),
+        'order.updateMany': () => Promise.resolve({ count: 1 }),
         'orderItem.deleteMany': () => Promise.resolve({ count: 1 }),
         'orderItem.createMany': (d: any) => Promise.resolve({ count: d.data.length }),
-        'order.update': (d: any) => Promise.resolve({ id: 45, ...openOrder, ...d.data }),
       });
       const r = await service.updateItems(45, {
         customerName: 'Rian',
@@ -172,7 +188,8 @@ describe('OrdersService (ACID & finansial server-side)', () => {
           expect.objectContaining({ productId: 15, quantity: 2, unitPrice: 30000, subtotal: 60000, orderId: 45 }),
         ]),
       });
-      const updateCall = tx.order.update.mock.calls[0][0];
+      const updateCall = tx.order.updateMany.mock.calls[0][0];
+      expect(updateCall.where).toEqual({ id: 45, status: OrderStatus.OPEN_BILL });
       expect(updateCall.data.grandTotal).toBe(85000);
       expect(updateCall.data.customerName).toBe('Rian');
     });
@@ -203,10 +220,11 @@ describe('OrdersService (ACID & finansial server-side)', () => {
 
   // ===== Checkout =====
   describe('checkout', () => {
-    it('checkout tunai: hitung server-side, payment + PAID, changeDue benar', async () => {
+    it('checkout tunai: klaim atomik OPEN_BILL→PAID, payment + changeDue benar', async () => {
       await setup({
         'order.findUnique': () => Promise.resolve(openOrder),
-        'order.update': (d: any) => Promise.resolve({ id: 45, ...openOrder, ...d.data }),
+        'order.update': (d: any) =>
+          Promise.resolve({ id: 45, ...openOrder, ...d.data, status: OrderStatus.PAID }),
         'payment.create': (d: any) => Promise.resolve({ id: 1, ...d.data }),
       });
       const r = await service.checkout(45, {
@@ -219,6 +237,11 @@ describe('OrdersService (ACID & finansial server-side)', () => {
       expect(r.amountPaid).toBe(100000);
       expect(r.changeDue).toBe(50000);
       expect(r.grandTotal).toBe(50000);
+      // Klaim atomik: filter status di WHERE, set PAID di data
+      expect(tx.order.updateMany).toHaveBeenCalledWith({
+        where: { id: 45, status: OrderStatus.OPEN_BILL },
+        data: { status: OrderStatus.PAID },
+      });
     });
 
     it('bayar kurang (amountPaid < grandTotal) => error, TIDAK ada update/payment (rollback)', async () => {
@@ -274,6 +297,51 @@ describe('OrdersService (ACID & finansial server-side)', () => {
         amountPaid: 50000,
       });
       expect(tx.order.update.mock.calls[0][0].data.customerGender).toBe('P');
+    });
+
+    it('klaim gagal (kasir lain menang balapan) => ConflictException, tidak ada payment', async () => {
+      await setup({
+        'order.findUnique': () => Promise.resolve(openOrder),
+        // Kasir lain lebih dulu meng-claim: filter WHERE tidak match
+        'order.updateMany': () => Promise.resolve({ count: 0 }),
+      });
+      await expect(
+        service.checkout(45, {
+          paymentCategory: PaymentCategory.CASH,
+          methodName: 'Cash',
+          amountPaid: 100000,
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(tx.payment.create).not.toHaveBeenCalled();
+    });
+
+    it('non-tunai amountPaid < grandTotal => ditolak (tanpa payment)', async () => {
+      await setup({
+        'order.findUnique': () => Promise.resolve(openOrder),
+      });
+      await expect(
+        service.checkout(45, {
+          paymentCategory: PaymentCategory.THIRD_PARTY,
+          methodName: 'QRIS',
+          amountPaid: 25000, // grandTotal 50000
+        }),
+      ).rejects.toThrow();
+      expect(tx.order.updateMany).not.toHaveBeenCalled();
+      expect(tx.payment.create).not.toHaveBeenCalled();
+    });
+
+    it('non-tunai amountPaid float => ditolak sebelum mutasi apa pun', async () => {
+      await setup({
+        'order.findUnique': () => Promise.resolve(openOrder),
+      });
+      await expect(
+        service.checkout(45, {
+          paymentCategory: PaymentCategory.THIRD_PARTY,
+          methodName: 'EDC',
+          amountPaid: 50000.5,
+        }),
+      ).rejects.toThrow();
+      expect(tx.order.updateMany).not.toHaveBeenCalled();
     });
   });
 

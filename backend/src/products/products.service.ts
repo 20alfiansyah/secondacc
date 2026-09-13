@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface ProductFilter {
@@ -23,7 +23,14 @@ export class ProductsService {
     const where: Record<string, unknown> = {};
 
     if (filter.categoryId) {
-      where.categoryId = Number(filter.categoryId);
+      const categoryId = Number(filter.categoryId);
+      if (!Number.isInteger(categoryId)) {
+        throw new BadRequestException({
+          code: 'INVALID_CATEGORY_ID',
+          message: `categoryId harus bilangan bulat: ${filter.categoryId}`,
+        });
+      }
+      where.categoryId = categoryId;
     }
     if (filter.search) {
       where.name = { contains: filter.search, mode: 'insensitive' };

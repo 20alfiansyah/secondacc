@@ -12,12 +12,12 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtAuthGuard, JwtPayload } from '../auth/jwt-auth.guard';
+import { OrdersService } from './orders.service';
 import {
-  CheckoutInput,
-  OpenBillInput,
-  OrdersService,
-  UpdateOpenBillInput,
-} from './orders.service';
+  CheckoutDto,
+  OpenBillDto,
+  UpdateOpenBillItemsDto,
+} from './dto/orders.dto';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
@@ -25,8 +25,8 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post('open-bill')
-  async openBill(@Body() body: OpenBillInput, @Req() req: Request) {
-    const user = (req as any).user as JwtPayload;
+  async openBill(@Body() body: OpenBillDto, @Req() req: Request) {
+    const user = req.user as JwtPayload;
     const data = await this.ordersService.openBill(body, user.sub);
     return { success: true, data };
   }
@@ -40,7 +40,7 @@ export class OrdersController {
   @Put(':id/items')
   async updateItems(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: UpdateOpenBillInput,
+    @Body() body: UpdateOpenBillItemsDto,
   ) {
     const data = await this.ordersService.updateItems(id, body);
     return { success: true, data };
@@ -49,7 +49,7 @@ export class OrdersController {
   @Post(':id/checkout')
   async checkout(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: CheckoutInput,
+    @Body() body: CheckoutDto,
   ) {
     const data = await this.ordersService.checkout(id, body);
     return { success: true, data };

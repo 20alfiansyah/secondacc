@@ -42,7 +42,7 @@ export class JwtAuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
         secret: this.configService.get<string>('JWT_SECRET'),
       });
-      (request as any).user = payload;
+      request.user = payload;
       return true;
     } catch {
       throw new UnauthorizedException({

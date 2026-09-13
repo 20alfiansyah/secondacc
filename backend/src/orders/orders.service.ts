@@ -11,7 +11,9 @@ import {
   calculateItemSubtotal,
   calculateGrandTotal,
   calculateCashChange,
+  assertValidAmount,
   InsufficientPaymentError,
+  InvalidMoneyInputError,
 } from './financial.calculator';
 import { buildInvoice, dailyPrefix, extractSequence, toDateKey } from './invoice.generator';
 
@@ -80,38 +82,50 @@ export class OrdersService {
       });
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const { invoiceNumber, orderNumber } = await this.generateInvoice(tx);
-      const { orderItems, grandTotal } = await this.resolveOrderItems(tx, input.items);
+    // Unique constraint pada invoiceNumber bisa bentrok saat 2 kasir open
+    // bill bersamaan (sequence read-then-write). Retry: transaksi baru
+    // membaca ulang sequence terbaru, sehingga percobaan ke-2 pasti unik.
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        return await this.prisma.$transaction(async (tx) => {
+          const { invoiceNumber, orderNumber } = await this.generateInvoice(tx);
+          const { orderItems, grandTotal } = await this.resolveOrderItems(tx, input.items);
 
-      const order = await tx.order.create({
-        data: {
-          invoiceNumber,
-          orderType: input.orderType,
-          tableId: input.tableId ?? null,
-          cashierId,
-          customerName,
-          customerGender: input.customerGender ?? null,
-          status: OrderStatus.OPEN_BILL,
-          subtotal: grandTotal,
-          grandTotal,
-          orderItems: { create: orderItems },
-        },
-        include: { table: true },
-      });
+          const order = await tx.order.create({
+            data: {
+              invoiceNumber,
+              orderType: input.orderType,
+              tableId: input.tableId ?? null,
+              cashierId,
+              customerName,
+              customerGender: input.customerGender ?? null,
+              status: OrderStatus.OPEN_BILL,
+              subtotal: grandTotal,
+              grandTotal,
+              orderItems: { create: orderItems },
+            },
+            include: { table: true },
+          });
 
-      return {
-        orderId: order.id,
-        invoiceNumber: order.invoiceNumber,
-        orderNumber,
-        orderType: order.orderType,
-        status: order.status,
-        tableNumber: order.table?.tableNumber ?? null,
-        customerName: order.customerName,
-        subtotal: order.subtotal,
-        grandTotal: order.grandTotal,
-      };
-    });
+          return {
+            orderId: order.id,
+            invoiceNumber: order.invoiceNumber,
+            orderNumber,
+            orderType: order.orderType,
+            status: order.status,
+            tableNumber: order.table?.tableNumber ?? null,
+            customerName: order.customerName,
+            subtotal: order.subtotal,
+            grandTotal: order.grandTotal,
+          };
+        });
+      } catch (err) {
+        const isUniqueRace =
+          err instanceof PrismaNS.PrismaClientKnownRequestError && err.code === 'P2002';
+        if (!isUniqueRace || attempt === 3) throw err;
+      }
+    }
+    throw new Error('unreachable');
   }
 
   /**
@@ -183,8 +197,11 @@ export class OrdersService {
         data: orderItems.map((o) => ({ ...o, orderId: id })),
       });
 
-      const updated = await tx.order.update({
-        where: { id },
+      // Klaim atomik: order yang baru saja di-checkout oleh kasir lain tidak
+      // boleh tertimpa. updateMany dengan filter status di WHERE = guard
+      // race (findUnique di atas hanya untuk 404/409 yang enak dibaca).
+      const claim = await tx.order.updateMany({
+        where: { id, status: OrderStatus.OPEN_BILL },
         data: {
           subtotal: grandTotal,
           grandTotal,
@@ -192,6 +209,14 @@ export class OrdersService {
           ...(input.customerGender ? { customerGender: input.customerGender } : {}),
         },
       });
+      if (claim.count === 0) {
+        throw new ConflictException({
+          code: 'ORDER_NOT_OPEN_BILL',
+          message: 'Order sudah tidak OPEN_BILL, item tidak bisa diubah',
+        });
+      }
+
+      const updated = await tx.order.findUnique({ where: { id } });
 
       return {
         orderId: updated.id,
@@ -276,6 +301,12 @@ export class OrdersService {
           message: err.message,
         });
       }
+      if (err instanceof InvalidMoneyInputError) {
+        throw new BadRequestException({
+          code: 'INVALID_MONEY_INPUT',
+          message: err.message,
+        });
+      }
       throw err;
     }
   }
@@ -306,13 +337,33 @@ export class OrdersService {
 
       let changeDue = 0;
       if (input.paymentCategory === PaymentCategory.CASH) {
-        changeDue = calculateCashChange(input.amountPaid, grandTotal); // thow jika kurang
+        changeDue = calculateCashChange(input.amountPaid, grandTotal); // throw jika kurang
+      } else {
+        // Non-tunai tidak punya kembalian, tapi tetap wajib menutup bill:
+        // tolak amountPaid tidak valid atau kurang dari grandTotal.
+        assertValidAmount(input.amountPaid, 'amountPaid', { positive: true });
+        if (input.amountPaid < grandTotal) {
+          throw new InsufficientPaymentError(grandTotal, input.amountPaid);
+        }
+      }
+
+      // Klaim atomik status OPEN_BILL -> PAID. Kasir kedua yang kehilangan
+      // balapan mendapat 409, bukan double-payment (update tanpa guard bisa
+      // membuat 2 Payment untuk order yang sama).
+      const claim = await tx.order.updateMany({
+        where: { id, status: OrderStatus.OPEN_BILL },
+        data: { status: OrderStatus.PAID },
+      });
+      if (claim.count === 0) {
+        throw new ConflictException({
+          code: 'ORDER_NOT_OPEN_BILL',
+          message: 'Order sudah dibayar oleh sesi lain',
+        });
       }
 
       const updated = await tx.order.update({
         where: { id },
         data: {
-          status: OrderStatus.PAID,
           grandTotal,
           customerGender: input.customerGender ?? order.customerGender ?? null,
           payment: {
@@ -345,6 +396,20 @@ export class OrdersService {
 
   /** GET /api/orders/history — transaksi PAID dgn filter tanggal & search. */
   async history(query: { from?: string; to?: string; search?: string }) {
+    const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+    if ((query.from && !DATE_RE.test(query.from)) || (query.to && !DATE_RE.test(query.to))) {
+      throw new BadRequestException({
+        code: 'INVALID_DATE_FORMAT',
+        message: 'Format tanggal harus YYYY-MM-DD',
+      });
+    }
+    if (query.from && query.to && query.from > query.to) {
+      throw new BadRequestException({
+        code: 'INVALID_DATE_RANGE',
+        message: 'Tanggal awal tidak boleh setelah tanggal akhir',
+      });
+    }
+
     const where: PrismaNS.OrderWhereInput = { status: OrderStatus.PAID };
 
     if (query.from || query.to) {

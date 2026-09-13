@@ -18,7 +18,7 @@ export class InsufficientPaymentError extends Error {
 }
 
 /** Error untuk input uang/kuantitas yang tidak valid (negatif, nol, atau float). */
-class InvalidMoneyInputError extends Error {
+export class InvalidMoneyInputError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'InvalidMoneyInputError';
@@ -29,7 +29,7 @@ class InvalidMoneyInputError extends Error {
  * Validasi nilai uang/kuantitas: harus integer aman (Number.isSafeInteger)
  * dan tidak boleh negatif (dan untuk qty tidak boleh nol).
  */
-function assertValidAmount(value: number, label: string, opts?: { positive?: boolean }): void {
+export function assertValidAmount(value: number, label: string, opts?: { positive?: boolean }): void {
   if (!Number.isSafeInteger(value)) {
     throw new InvalidMoneyInputError(
       `${label} harus integer (bukan float): ${value}. Uang memakai Rupiah bulat.`,
