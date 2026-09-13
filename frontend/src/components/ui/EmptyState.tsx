@@ -12,6 +12,7 @@ export default function EmptyState({
   description,
   loading = false,
   compact = false,
+  fill = false,
   className,
 }: {
   icon: string
@@ -20,13 +21,16 @@ export default function EmptyState({
   loading?: boolean
   /** compact: tanpa padding besar — untuk slot sempit (baris tiket, list item). */
   compact?: boolean
+  /** fill: isi penuh container (h-full) — dipakai di area fleksibel spt panel order. */
+  fill?: boolean
   className?: string
 }) {
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center space-y-2 rounded-2xl border-2 border-dashed border-slate-200/80 bg-slate-50/70 text-center',
+        'flex w-full flex-col items-center justify-center space-y-2 rounded-2xl border-2 border-dashed border-slate-200/80 bg-slate-50/70 text-center',
         compact ? 'p-4' : 'p-6',
+        fill && 'h-full flex-1',
         className,
       )}
     >

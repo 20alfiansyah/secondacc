@@ -293,7 +293,7 @@ export default function OrderDetailsPanel({
       </div>
 
       {/* ===== Body: scrollable form + item list ===== */}
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+      <div className="flex min-h-0 flex-1 flex-col space-y-4 overflow-y-auto p-4">
         {!isOpen && (
         <>
         {/* Order Type segmented control */}
@@ -375,7 +375,7 @@ export default function OrderDetailsPanel({
         </>
         )}
         {/* Selected Items */}
-        <div className="space-y-2.5 border-t border-slate-100 pt-1">
+        <div className="flex flex-1 flex-col space-y-2.5 border-t border-slate-100 pt-1">
           <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400 font-display pb-0.5">
             <span>Selected Items ({items.reduce((sum, l) => sum + l.quantity, 0)})</span>
             {hasItems && (
@@ -393,7 +393,7 @@ export default function OrderDetailsPanel({
           </div>
 
           {!hasItems ? (
-            <EmptyState icon="shopping_bag" title="No items yet" description="Pick items from the menu catalog to add to this order." />
+            <EmptyState fill icon="shopping_bag" title="No items yet" description="Pick items from the menu catalog to add to this order." />
           ) : (
             <div className="space-y-2.5">
               {items.map((line) => (

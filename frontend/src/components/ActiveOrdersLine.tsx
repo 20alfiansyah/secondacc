@@ -126,7 +126,7 @@ export default function ActiveOrdersLine({
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {filteredOrders.length === 0 ? (
               <div className="col-span-full">
-                <EmptyState icon="local_cafe" title="No tickets in the queue yet" compact />
+                <EmptyState icon="local_cafe" title="No tickets in the queue yet" compact className="min-h-[134px]" />
               </div>
             ) : (
               filteredOrders.map((order) => {
