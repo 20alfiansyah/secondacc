@@ -3,6 +3,7 @@ import type { OrderSummary, OrderType } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { formatRupiah } from '@/utils/format'
 import Icon from '@/components/ui/Icon'
+import EmptyState from '@/components/ui/EmptyState'
 
 type OrderFilter = 'all' | OrderType
 
@@ -124,11 +125,8 @@ export default function ActiveOrdersLine({
           {/* Ticket cards grid */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {filteredOrders.length === 0 ? (
-              <div className="col-span-full flex items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-4 text-muted-foreground">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100/60 text-slate-400">
-                  <Icon name="local_cafe" className="text-[16px]" />
-                </div>
-                <p className="text-xs">No tickets in the queue yet.</p>
+              <div className="col-span-full">
+                <EmptyState icon="local_cafe" title="No tickets in the queue yet" compact />
               </div>
             ) : (
               filteredOrders.map((order) => {

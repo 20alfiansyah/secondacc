@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Icon from '@/components/ui/Icon'
+import EmptyState from '@/components/ui/EmptyState'
 import type { OrderDetail, OrderSummary } from '@/api/client'
 import { fetchOrderDetail, fetchOrderHistory } from '@/api/client'
 import { formatRupiah } from '@/utils/format'
@@ -174,18 +175,19 @@ export default function OrderHistoryDrawer({ open, onClose }: OrderHistoryDrawer
           {/* Daftar transaksi */}
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
             {loading ? (
-              <div className="flex h-32 items-center justify-center text-muted-foreground">
-                <div className="flex flex-col items-center gap-2">
-                  <Icon name="receipt_long" className="animate-pulse text-2xl text-primary/60" />
-                  <p className="text-sm font-medium">Loading history...</p>
-                </div>
-              </div>
+              <EmptyState
+                icon="receipt_long"
+                title="Loading history..."
+                loading
+                className="h-32"
+              />
             ) : filtered.length === 0 ? (
-              <div className="flex h-32 flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 p-6 text-center text-muted-foreground">
-                <Icon name="receipt_long" className="mb-2 text-3xl opacity-40" />
-                <p className="text-sm font-medium text-foreground">No transactions yet</p>
-                <p className="text-xs">Paid transactions will appear here.</p>
-              </div>
+              <EmptyState
+                icon="receipt_long"
+                title="No transactions yet"
+                description="Paid transactions will appear here."
+                className="h-32"
+              />
             ) : (
               <ul className="space-y-2.5">
                 {filtered.map((order) => (

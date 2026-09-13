@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Icon from '@/components/ui/Icon'
+import EmptyState from '@/components/ui/EmptyState'
 import TopBar from '@/components/TopBar'
 import {
   checkoutRequest,
@@ -401,13 +402,12 @@ export default function POS() {
                 <p className="text-sm font-medium">Loading menu...</p>
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="flex h-64 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200/80 bg-slate-50/70 p-8 text-center text-slate-500">
-                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-xs">
-                  <Icon name="search" className="text-[20px] text-[#447C84]" />
-                </div>
-                <p className="font-display text-xs font-bold text-slate-800">No menu found</p>
-                <p className="text-[11px] text-slate-500">Try a different keyword or category.</p>
-              </div>
+              <EmptyState
+                icon="search"
+                title="No menu found"
+                description="Try a different keyword or category."
+                className="h-64"
+              />
             ) : (
               <ProductCatalogGrid
                 products={filteredProducts}

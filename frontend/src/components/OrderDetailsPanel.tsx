@@ -3,6 +3,7 @@ import type { CustomerGender, OrderType, Product } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { formatRupiah } from '@/utils/format'
 import Icon from '@/components/ui/Icon'
+import EmptyState from '@/components/ui/EmptyState'
 
 export interface OrderLine {
   id: string
@@ -392,17 +393,7 @@ export default function OrderDetailsPanel({
           </div>
 
           {!hasItems ? (
-            <div className="flex flex-col items-center justify-center space-y-2 rounded-2xl border-2 border-dashed border-slate-200/80 bg-slate-50/70 p-6 text-center">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-xs">
-                <Icon name="shopping_bag" className="text-[20px] text-[#447C84]" />
-              </div>
-              <div className="space-y-0.5">
-                <p className="font-display text-xs font-bold text-slate-800">No items yet</p>
-                <p className="max-w-[200px] text-[11px] text-slate-500">
-                  Pick items from the menu catalog to add to this order.
-                </p>
-              </div>
-            </div>
+            <EmptyState icon="shopping_bag" title="No items yet" description="Pick items from the menu catalog to add to this order." />
           ) : (
             <div className="space-y-2.5">
               {items.map((line) => (
