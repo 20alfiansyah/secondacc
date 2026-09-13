@@ -77,9 +77,7 @@ export default function ProductCatalogGrid({
           'group flex flex-col justify-between overflow-hidden rounded-xl bg-white text-left shadow-xs transition-all duration-200 select-none',
           soldOut
             ? 'cursor-not-allowed border border-border/40'
-            : p.isBestSeller
-              ? 'cursor-pointer border-2 border-[#447C84] hover:border-[#396a71] hover:shadow-card-hover'
-              : 'cursor-pointer border border-slate-200/80 hover:border-[#447C84] hover:shadow-card-hover',
+            : 'cursor-pointer border border-slate-200/80 hover:border-[#447C84] hover:shadow-card-hover',
         )}
       >
         {/* Foto hero — rasio 4:3 sesuai desain */}

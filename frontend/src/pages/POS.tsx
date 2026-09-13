@@ -349,9 +349,9 @@ export default function POS() {
         />
 
         {/* ===== Menu Catalog section (flex-1, grid scroll di dalam) ===== */}
-        <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+        <section className="flex min-h-0 flex-1 flex-col space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           {/* Header band */}
-          <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 bg-[#F8FAFC] px-4 py-3">
+          <div className="flex flex-shrink-0 items-center justify-between pb-1">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[20px] text-[#447C84]">
@@ -359,9 +359,6 @@ export default function POS() {
                 </span>
                 <span className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
                   MENU CATALOG
-                </span>
-                <span className="rounded-full border border-[#b9e2d3] bg-[#edf7f3] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[#2d5258]">
-                  {products.length} Items
                 </span>
               </div>
               <div className="hidden h-4 w-px bg-slate-200 md:block" />
@@ -386,7 +383,7 @@ export default function POS() {
           <>
 
             {/* Toolbar band: search + kbd ⌘K + sort + pills kategori */}
-            <div className="flex-shrink-0 space-y-3 border-b border-slate-100 p-3.5">
+            <div className="flex-shrink-0 space-y-3">
               <CategoryFilterBar
             categories={categories}
             products={products}
@@ -401,7 +398,7 @@ export default function POS() {
 
 
           {/* Grid produk + header per kategori */}
-          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-4">
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto pr-1">
             {loading ? (
               <div className="flex h-64 flex-col items-center justify-center gap-2 text-slate-400">
                 <Icon name="coffee" className="animate-bounce text-3xl text-[#447C84]/60" />
