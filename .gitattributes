@@ -1,0 +1,2 @@
+# Normalisasi line ending lintas OS: skrip shell HARUS LF agar bisa dieksekusi di container Linux (CRLF membuat shebang gagal: "/bin/sh\r not found").
+*.sh text eol=lf
