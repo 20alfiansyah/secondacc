@@ -499,3 +499,28 @@ export async function togglePaymentChannel(id: number): Promise<PaymentChannel> 
   const { data } = await api.patch<ListResponse<PaymentChannel>>(`/payment-channels/${id}/toggle`)
   return data.data
 }
+
+// ===== Menu Admin (Fase 2.2) =====
+
+/** POST /api/products — create produk baru (multipart/form-data, admin). */
+export async function createProduct(formData: FormData): Promise<Product> {
+  const { data } = await api.post<ListResponse<any>>('/products', formData)
+  return toProduct(data.data)
+}
+
+/** PUT /api/products/:id — update produk (multipart, image opsional). */
+export async function updateProduct(id: number, formData: FormData): Promise<Product> {
+  const { data } = await api.put<ListResponse<any>>(`/products/${id}`, formData)
+  return toProduct(data.data)
+}
+
+/** DELETE /api/products/:id — hapus produk (409 PRODUCT_IN_USE jika terpakai di order). */
+export async function deleteProduct(id: number): Promise<void> {
+  await api.delete(`/products/${id}`)
+}
+
+/** PATCH /api/products/:id/toggle-availability — toggle Tersedia/Sold Out (kasir & admin). */
+export async function toggleProductAvailability(id: number): Promise<Product> {
+  const { data } = await api.patch<ListResponse<any>>(`/products/${id}/toggle-availability`)
+  return toProduct(data.data)
+}

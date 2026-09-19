@@ -38,6 +38,7 @@ import {
   ShoppingCart,
   SlidersHorizontal,
   Star,
+  Trash2,
   Store,
   Utensils,
   UtensilsCrossed,
@@ -61,6 +62,7 @@ import { cn } from '@/lib/utils'
  */
 const MAP: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
   add: Plus,
+  delete: Trash2,
   add_shopping_cart: ShoppingCart,
   analytics: ChartColumn,
   bolt: Zap,
