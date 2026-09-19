@@ -11,7 +11,6 @@ const QUICK_CASH = [20000, 50000, 100000]
 interface PaymentModalProps {
   grandTotal: number
   itemCount: number
-  tableNumber: string | null
   /** Gender pelanggan sudah dipilih di panel ORDER DETAIL, bukan di modal. */
   gender: CustomerGender | null
   submitting: boolean
@@ -28,7 +27,6 @@ const METHOD_META: { key: PaymentCategory; label: string; icon: string }[] = [
 export default function PaymentModal({
   grandTotal,
   itemCount,
-  tableNumber,
   gender,
   submitting,
   onSubmit,
@@ -102,9 +100,7 @@ export default function PaymentModal({
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="font-display text-lg font-bold text-slate-900">Checkout</h2>
-            <p className="text-xs text-slate-500">
-              {tableNumber ? `Table ${tableNumber}` : 'Order'} • {itemCount} items
-            </p>
+            <p className="text-xs text-slate-500">Order • {itemCount} items</p>
           </div>
           <button
             onClick={onClose}

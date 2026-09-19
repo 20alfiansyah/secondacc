@@ -136,17 +136,6 @@ describe('OrdersService (ACID & finansial server-side)', () => {
         }, 1),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
-
-    it('menolak items kosong', async () => {
-      await setup();
-      await expect(
-        service.openBill({
-          orderType: OrderType.DINE_IN,
-          customerName: 'Rian',
-          items: [],
-        }, 1),
-      ).rejects.toBeInstanceOf(BadRequestException);
-    });
     it('menyimpan customerGender saat open bill', async () => {
       await setup();
       await service.openBill({
@@ -225,13 +214,6 @@ describe('OrdersService (ACID & finansial server-side)', () => {
       await expect(
         service.updateItems(45, { items: [{ productId: 10, quantity: 1 }] }),
       ).rejects.toBeInstanceOf(ConflictException);
-    });
-
-    it('menolak items kosong', async () => {
-      await setup();
-      await expect(service.updateItems(45, { items: [] })).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
     });
 
     it('menolak produk yang tidak dikenal', async () => {

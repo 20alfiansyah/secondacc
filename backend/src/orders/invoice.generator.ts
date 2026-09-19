@@ -4,7 +4,7 @@
  * - invoiceNumber: "INV-YYYYMMDD-XXXX"
  *
  * Sequence dihitung di dalam transaksi ACID tempat order dibuat, dengan
- * query `findFirst` terhadap order hari ini (orderBy id desc) sehingga
+ * query `findFirst` terhadap order hari ini (orderBy invoiceNumber desc) sehingga
  * aman terhadap race sederhana tanpa perlu lock terpisah.
  */
 

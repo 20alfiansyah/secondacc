@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Product } from '@/api/client'
 import { formatRupiah } from '@/utils/format'
+import { resolveProductImage } from '@/utils/productImage'
 import Icon from '@/components/ui/Icon'
 
 const NOTE_MAX = 120
@@ -95,20 +96,14 @@ export default function CustomItemModal({
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 p-4">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100">
-              {product.imageUrl && /^https?:\/\//.test(product.imageUrl) ? (
-                <img
-                  src={product.imageUrl}
-                  alt={product.name}
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    ;(e.target as HTMLImageElement).style.display = 'none'
-                  }}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-slate-400">
-                  <Icon name="coffee" className="text-[26px]" />
-                </div>
-              )}
+              <img
+                src={resolveProductImage(product)}
+                alt={product.name}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  ;(e.target as HTMLImageElement).style.display = 'none'
+                }}
+              />
             </div>
             <div className="min-w-0">
               <h3 className="truncate font-display text-base font-bold tracking-tight text-slate-900">

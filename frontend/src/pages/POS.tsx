@@ -526,6 +526,30 @@ export default function POS() {
   }
 
   const isNewPanel = panelMode === 'new'
+  // Panel order (desktop 380px + drawer mobile): props kedua call site
+  // identik, jadi satu elemen React dihoist dan dirender di 2 tempat.
+  const orderPanel = (
+    <OrderDetailsPanel
+      mode={panelMode}
+      orderNumber={isNewPanel ? null : openOrder?.id ?? null}
+      items={items}
+      customerName={customerName}
+      setCustomerName={setCustomerName}
+      customerGender={customerGender}
+      setCustomerGender={setCustomerGender}
+      orderType={orderType}
+      setOrderType={setOrderType}
+      onIncrease={increase}
+      onDecrease={decrease}
+      onEditItem={handleEditLine}
+      onRemoveItem={removeItem}
+      onClearCart={clear}
+      onNewOrder={handleNewOrder}
+      onPay={handlePayClick}
+      onSaveOpenBill={handleSaveOpenBill}
+      saving={saving}
+    />
+  )
 
   return (
     <div className="flex h-svh flex-col bg-[#F8FAFC] text-slate-900 selection:bg-[#65AF92]/30 selection:text-[#2d5258] lg:flex-row">
@@ -729,27 +753,7 @@ export default function POS() {
         ) : (
           /* ---- Panel penuh 380px ---- */
           <div className="flex h-full min-h-0 w-full flex-col">
-            <OrderDetailsPanel
-              mode={panelMode}
-              orderNumber={isNewPanel ? null : openOrder?.id ?? null}
-              items={items}
-              customerName={customerName}
-              setCustomerName={setCustomerName}
-              customerGender={customerGender}
-              setCustomerGender={setCustomerGender}
-              orderType={orderType}
-              setOrderType={setOrderType}
-              onIncrease={increase}
-              onDecrease={decrease}
-              onEditItem={handleEditLine}
-              onRemoveItem={removeItem}
-              onClearCart={clear}
-              onNewOrder={handleNewOrder}
-              onPay={handlePayClick}
-              onSaveOpenBill={handleSaveOpenBill}
-              saving={saving}
-              validationError={null}
-            />
+            {orderPanel}
           </div>
         )}
       </aside>
@@ -793,27 +797,7 @@ export default function POS() {
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
-              <OrderDetailsPanel
-                mode={panelMode}
-                orderNumber={isNewPanel ? null : openOrder?.id ?? null}
-                items={items}
-                customerName={customerName}
-                setCustomerName={setCustomerName}
-                customerGender={customerGender}
-                setCustomerGender={setCustomerGender}
-                orderType={orderType}
-                setOrderType={setOrderType}
-                onIncrease={increase}
-                onDecrease={decrease}
-                onEditItem={handleEditLine}
-                onRemoveItem={removeItem}
-                onClearCart={clear}
-                onNewOrder={handleNewOrder}
-                onPay={handlePayClick}
-                onSaveOpenBill={handleSaveOpenBill}
-                saving={saving}
-                validationError={null}
-              />
+              {orderPanel}
             </div>
           </div>
         </div>
@@ -853,7 +837,6 @@ export default function POS() {
         <PaymentModal
           grandTotal={panelMode === 'open' && openOrder ? openOrder.grandTotal : cartSubtotal}
           itemCount={cartItemCount}
-          tableNumber={null}
           gender={customerGender}
           submitting={submittingPayment}
           onSubmit={handleCheckout}

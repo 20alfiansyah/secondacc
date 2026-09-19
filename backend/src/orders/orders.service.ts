@@ -10,42 +10,20 @@ import { Prisma as PrismaNS } from '@prisma/client';
 import {
   calculateItemSubtotal,
   calculateGrandTotal,
-  calculateCashChange,
-  assertValidAmount,
+  assertPaymentCoversTotal,
   InsufficientPaymentError,
   InvalidMoneyInputError,
 } from './financial.calculator';
+import {
+  CheckoutDto,
+  OpenBillDto,
+  OpenBillItemDto,
+  UpdateOpenBillItemsDto,
+} from './dto/orders.dto';
 import { buildInvoice, dailyPrefix, extractSequence, toDateKey } from './invoice.generator';
 
 /** Format tanggal yang diterima filter history (YYYY-MM-DD). */
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-export interface OpenBillItemInput {
-  productId: number;
-  quantity: number;
-  notes?: string;
-}
-
-export interface OpenBillInput {
-  orderType: OrderType;
-  customerName: string;
-  customerGender?: 'L' | 'P';
-  items: OpenBillItemInput[];
-}
-
-/** Body untuk PUT /orders/:id/items — full replace items order OPEN_BILL. */
-export interface UpdateOpenBillInput {
-  customerName?: string;
-  customerGender?: 'L' | 'P';
-  items: OpenBillItemInput[];
-}
-
-export interface CheckoutInput {
-  customerGender?: 'L' | 'P';
-  paymentCategory: PaymentCategory;
-  methodName: string;
-  amountPaid: number;
-}
 
 type Tx = PrismaNS.TransactionClient;
 
@@ -69,7 +47,7 @@ export class OrdersService {
    * POST /api/orders/open-bill — ACID: buat Order + OrderItems dalam satu
    * transaksi. Harga `unitPrice` di-snapshot dari DB (BUKAN dari client).
    */
-  async openBill(input: OpenBillInput, cashierId: number) {
+  async openBill(input: OpenBillDto, cashierId: number) {
     const customerName = input.customerName?.trim();
     if (!customerName) {
       throw new BadRequestException({
@@ -77,13 +55,6 @@ export class OrdersService {
         message: 'Nama pelanggan wajib diisi',
       });
     }
-    if (!input.items || input.items.length === 0) {
-      throw new BadRequestException({
-        code: 'EMPTY_ITEMS',
-        message: 'Pesanan minimal berisi 1 item',
-      });
-    }
-
     // Unique constraint pada invoiceNumber bisa bentrok saat 2 kasir open
     // bill bersamaan (sequence read-then-write). Retry: transaksi baru
     // membaca ulang sequence terbaru, sehingga percobaan ke-2 pasti unik.
@@ -132,7 +103,7 @@ export class OrdersService {
    * Snapshot harga SEMUA item dari DB (BUKAN dari client) + hitung grandTotal
    * server-side. Dipakai openBill (create) dan updateItems (full replace).
    */
-  private async resolveOrderItems(tx: Tx, items: OpenBillItemInput[]) {
+  private async resolveOrderItems(tx: Tx, items: OpenBillItemDto[]) {
     const productIds = items.map((i) => i.productId);
     const products = await tx.product.findMany({ where: { id: { in: productIds } } });
     const productById = new Map(products.map((p) => [p.id, p]));
@@ -174,14 +145,7 @@ export class OrdersService {
    * tiket kasir). ACID: hapus + buat ulang OrderItems, snapshot harga ulang
    * dari DB, hitung ulang total server-side. Menolak order bukan OPEN_BILL.
    */
-  async updateItems(id: number, input: UpdateOpenBillInput) {
-    if (!input.items || input.items.length === 0) {
-      throw new BadRequestException({
-        code: 'EMPTY_ITEMS',
-        message: 'Pesanan minimal berisi 1 item',
-      });
-    }
-
+  async updateItems(id: number, input: UpdateOpenBillItemsDto) {
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({ where: { id } });
       if (!order) {
@@ -288,11 +252,11 @@ export class OrdersService {
       // kontrak OrderDetail frontend tidak berubah.
       tableId: null,
       tableNumber: null,
-      cashierName: cashier?.name ?? null,
+      cashierName: cashier.name,
       payment: payment ?? null,
       items: orderItems.map((i) => ({
         productId: i.productId,
-        productName: i.product?.name ?? 'Item',
+        productName: i.product.name,
         quantity: i.quantity,
         unitPrice: i.unitPrice,
         subtotal: i.subtotal,
@@ -305,7 +269,7 @@ export class OrdersService {
    * POST /api/orders/:id/checkout — ACID: validasi status, hitung ulang
    * finansial server-side, simpan Payment, set PAID. Rollback jika gagal.
    */
-  async checkout(id: number, input: CheckoutInput) {
+  async checkout(id: number, input: CheckoutDto) {
     try {
       return await this.checkoutInTx(id, input);
     } catch (err) {
@@ -330,7 +294,7 @@ export class OrdersService {
     return err;
   }
 
-  private async checkoutInTx(id: number, input: CheckoutInput) {
+  private async checkoutInTx(id: number, input: CheckoutDto) {
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id },
@@ -354,17 +318,10 @@ export class OrdersService {
         order.orderItems.map((o) => ({ quantity: o.quantity, unitPrice: o.unitPrice })),
       );
 
-      let changeDue = 0;
-      if (input.paymentCategory === PaymentCategory.CASH) {
-        changeDue = calculateCashChange(input.amountPaid, grandTotal); // throw jika kurang
-      } else {
-        // Non-tunai tidak punya kembalian, tapi tetap wajib menutup bill:
-        // tolak amountPaid tidak valid atau kurang dari grandTotal.
-        assertValidAmount(input.amountPaid, 'amountPaid', { positive: true });
-        if (input.amountPaid < grandTotal) {
-          throw new InsufficientPaymentError(grandTotal, input.amountPaid);
-        }
-      }
+      // CASH & non-CASH sama-sama wajib menutup bill; hanya CASH yang
+      // menghasilkan kembalian.
+      const overpaid = assertPaymentCoversTotal(grandTotal, input.amountPaid);
+      const changeDue = input.paymentCategory === PaymentCategory.CASH ? overpaid : 0;
 
       // Klaim atomik status OPEN_BILL -> PAID. Kasir kedua yang kehilangan
       // balapan mendapat 409, bukan double-payment (update tanpa guard bisa
@@ -406,8 +363,8 @@ export class OrdersService {
         grandTotal: updated.grandTotal,
         amountPaid: input.amountPaid,
         changeDue,
-        paidAt: updated.payment?.paidAt ?? new Date(),
-        cashierName: updated.cashier?.name ?? null,
+        paidAt: updated.payment!.paidAt,
+        cashierName: updated.cashier.name,
         tableNumber: null,
       };
     });

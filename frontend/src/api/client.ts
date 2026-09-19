@@ -58,8 +58,6 @@ api.interceptors.response.use(
     // kadaluarsa — jangan bersihkan sesi / redirect (biarkan Login menampilkan error).
     const isLoginCall = error.config?.url?.includes('/auth/login')
     if (error.response?.status === 401 && !isLoginCall) {
-      localStorage.removeItem(TOKEN_KEY)
-      localStorage.removeItem(USER_KEY)
       if (onUnauthorized) {
         onUnauthorized()
       }
@@ -137,15 +135,9 @@ interface ListResponse<T> {
   data: T
 }
 
-/** GET /api/products dengan filter opsional. */
-export async function fetchProducts(params?: {
-  categoryId?: number
-  search?: string
-  isAvailable?: boolean
-  isRecommended?: boolean
-  isBestSeller?: boolean
-}): Promise<Product[]> {
-  const { data } = await api.get<ListResponse<RawProduct[]>>('/products', { params })
+/** GET /api/products — daftar produk utk katalog. */
+export async function fetchProducts(): Promise<Product[]> {
+  const { data } = await api.get<ListResponse<RawProduct[]>>('/products')
   return (data.data ?? []).map(toProduct)
 }
 
@@ -166,7 +158,6 @@ export interface OpenBillItemInput {
 export interface OpenBillResult {
   orderId: number
   invoiceNumber: string
-  orderNumber: string
   orderType: OrderType
   status: OrderStatus
   tableNumber: string | null
@@ -197,13 +188,9 @@ export async function fetchActiveOrders(): Promise<OrderSummary[]> {
   return (data.data ?? []).map(toOrderSummary)
 }
 
-/** GET /api/orders/history — order PAID + filter tanggal & search. */
-export async function fetchOrderHistory(params?: {
-  from?: string
-  to?: string
-  search?: string
-}): Promise<OrderSummary[]> {
-  const { data } = await api.get<ListResponse<RawOrder[]>>('/orders/history', { params })
+/** GET /api/orders/history — order PAID. */
+export async function fetchOrderHistory(): Promise<OrderSummary[]> {
+  const { data } = await api.get<ListResponse<RawOrder[]>>('/orders/history')
   return (data.data ?? []).map(toOrderSummary)
 }
 

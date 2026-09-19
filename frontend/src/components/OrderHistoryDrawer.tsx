@@ -3,7 +3,7 @@ import Icon from '@/components/ui/Icon'
 import EmptyState from '@/components/ui/EmptyState'
 import type { OrderDetail, OrderSummary } from '@/api/client'
 import { fetchOrderDetail, fetchOrderHistory } from '@/api/client'
-import { formatRupiah } from '@/utils/format'
+import { dayKey, formatRupiah, formatTime } from '@/utils/format'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import ReceiptModal from '@/components/ReceiptModal'
@@ -13,17 +13,6 @@ type DateFilter = 'ALL' | 'TODAY' | 'YESTERDAY'
 interface OrderHistoryDrawerProps {
   open: boolean
   onClose: () => void
-}
-
-function dayKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-/** Short time format (e.g. 21:04) for table rows. */
-function formatTime(iso: string): string {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
 /**

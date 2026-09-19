@@ -1,7 +1,7 @@
 import {
   calculateItemSubtotal,
   calculateGrandTotal,
-  calculateCashChange,
+  assertPaymentCoversTotal,
   InsufficientPaymentError,
 } from './financial.calculator';
 
@@ -57,24 +57,27 @@ describe('FinancialCalculator (uang integer Rupiah, tanpa float)', () => {
     });
   });
 
-  describe('calculateCashChange — kembalian tunai', () => {
-    it('menghitung kembalian amountPaid - grandTotal', () => {
-      expect(calculateCashChange(50000, 35000)).toBe(15000);
-      expect(calculateCashChange(20000, 20000)).toBe(0);
+  describe('assertPaymentCoversTotal — pembayaran wajib menutup bill (CASH & non-CASH)', () => {
+    it('pembayaran cukup: mengembalikan kelebihan bayar, pembayaran pas = 0', () => {
+      expect(assertPaymentCoversTotal(35000, 50000)).toBe(15000);
+      expect(assertPaymentCoversTotal(35000, 35000)).toBe(0);
     });
 
-    it('menolak pembayaran kurang dari grandTotal dengan error spesifik', () => {
+    it('pembayaran kurang: InsufficientPaymentError dengan pesan informatif', () => {
       try {
-        calculateCashChange(10000, 15000);
+        assertPaymentCoversTotal(50000, 10000);
         throw new Error('seharusnya melempar error');
       } catch (err) {
         expect(err).toBeInstanceOf(InsufficientPaymentError);
-        expect((err as Error).message).toContain('kurang');
+        expect((err as Error).message).toBe(
+          'Pembayaran kurang: amountPaid 10000 < grandTotal 50000',
+        );
       }
     });
 
-    it('menolak amountPaid negatif', () => {
-      expect(() => calculateCashChange(-1000, 15000)).toThrow();
+    it('menolak amountPaid non-integer (float) dan negatif', () => {
+      expect(() => assertPaymentCoversTotal(50000, 50000.5)).toThrow();
+      expect(() => assertPaymentCoversTotal(50000, -1)).toThrow();
     });
   });
 });
