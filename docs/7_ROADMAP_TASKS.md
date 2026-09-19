@@ -146,15 +146,27 @@
 
 ## 🟡 FASE 2: Manajemen Akun & Pengaturan Sistem
 
+> **Strategi paralel (kontrak-first + Orca worktrees):** kontrak final di `docs/6_API_CONTRACTS.md` §6.2/6.4/6.5; pola & konvensi Fase 1 terdokumentasi di `docs/8_PHASE1_REFERENCE.md`. Backend & frontend dibangun saling lepas sesuai kontrak.
+> **Wave 0 (paralel):** 2.0 ∥ 2.1B ∥ 2.2B ∥ 2.3B → **Wave 1 (paralel, butuh 2.0):** 2.1F ∥ 2.2F ∥ 2.3F → **Wave 2:** integrasi `app.module.ts`, smoke test E2E, commit.
+> **Kepemilikan file:** `frontend/src/App.tsx` + `NavigationRail` + layout = Task 2.0 saja; `backend/src/app.module.ts` = Wave 2 saja; `client.ts` = tiap task menambah section-nya sendiri di area berbeda.
+
+- [ ] **Task 2.0: Dashboard Shell, Routing & Nav (frontend)**
+  - `pages/dashboard/DashboardLayout.tsx` (NavigationRail + TopBar + `<Outlet/>`); props POS-only (`onOpenHistory`, `onLockRegister`) dibuat opsional tanpa merusak POS.
+  - Route `/dashboard`, `/dashboard/account`, `/dashboard/menu`, `/dashboard/payment` di `App.tsx` (semua `ProtectedRoute roles={['ADMIN']}`) + 3 stub page.
+  - Nav item Dashboard/Account/Menu/Payment di grup "Management & Ops" `NavigationRail` (role ADMIN).
 - [ ] **Task 2.1: Manajemen Akun Staf (`/dashboard/account`)**
-  - Backend API CRUD user (Role: CASHIER & ADMIN, hash password bcrypt, toggle status aktif).
-  - Frontend UI tabel staf: Tambah akun, ganti password, toggle aktif/disable.
+  - [ ] **2.1B Backend (TDD)**: modul `backend/src/users/` — `GET /api/users`, `POST /api/users` (bcryptjs, min 6 char), `PATCH /api/users/:id/password`, `PATCH /api/users/:id/toggle-status`; semua JwtAuthGuard + RolesGuard ADMIN. Error: `409 USERNAME_TAKEN`, `400 CANNOT_DISABLE_SELF`, `404 USER_NOT_FOUND`. Unit test `users.service.spec.ts` (hash on create, duplikat username, toggle, proteksi diri sendiri, re-hash password). JANGAN edit `app.module.ts`.
+  - [ ] **2.1F Frontend**: `pages/dashboard/AccountPage.tsx` (ganti stub) + section `Users` di `client.ts` (`fetchUsers`, `createUser`, `updateUserPassword`, `toggleUserStatus`, tipe `StaffUser`). UI: tabel staf (nama, username, badge role, status, tanggal buat), dialog tambah akun, dialog ganti password, toggle aktif/nonaktif dgn confirm, search nama/username.
 - [ ] **Task 2.2: Manajemen Menu & Upload Gambar Lokal (`/dashboard/menu`)**
-  - Backend: Konfigurasi Multer untuk penyimpanan disk gambar ke `./uploads/products` dan sajikan static assets di `app.module.ts`.
-  - Backend: Buat endpoint `POST /api/products` (dengan file upload), `PUT /api/products/:id`, dan `DELETE /api/products/:id`.
-  - Frontend UI Admin: Tambah menu baru, ubah harga, upload foto, toggle status Tersedia/Sold Out.
+  - [ ] **2.2B Backend (TDD)**: Multer disk storage `./uploads/products`, filename UUID v4, filter MIME JPEG/PNG/WEBP, limit 2MB (§4.4 Architecture); serving statis `/uploads` via ServeStaticModule (file modul terpisah, didaftarkan di Wave 2); endpoint `POST /api/products`, `PUT /api/products/:id` (gambar baru → hapus file lama), `DELETE /api/products/:id` (`409 PRODUCT_IN_USE` jika sudah ada di OrderItem; else hard delete + hapus file). Extend `products.service.spec.ts`. JANGAN edit `app.module.ts`.
+  - [ ] **2.2F Frontend**: `pages/dashboard/MenuPage.tsx` (ganti stub) + section `Menu Admin` di `client.ts` (`createProduct` FormData, `updateProduct`, `deleteProduct`). UI: grid/tabel produk dgn thumb, form modal create/edit (upload + preview, kategori, harga integer rupiah, flag Recommended/BestSeller), toggle Sold Out, delete confirm. Tambah proxy `/uploads` → `http://localhost:3001` di `vite.config.ts`.
 - [ ] **Task 2.3: Pengaturan Channel Pembayaran (`/dashboard/payment`)**
-  - Pengaturan daftar channel aktif (Cash, QRIS BCA/GoPay, EDC Mandiri/BCA).
+  - [ ] **2.3B Backend (TDD)**: modul `backend/src/payment-channels/` — `GET /api/payment-channels?isActive=` (Kasir & Admin), `POST` + `PATCH /:id/toggle` (ADMIN). Error: `400 INVALID_CATEGORY`, `404 CHANNEL_NOT_FOUND`. Unit test `payment-channels.service.spec.ts` (list+filter, create, toggle). JANGAN edit `app.module.ts`.
+  - [ ] **2.3F Frontend**: `pages/dashboard/PaymentPage.tsx` (ganti stub) + section `Payment Channels` di `client.ts`. UI: daftar channel + switch aktif + dialog tambah (name + category). **Wire `PaymentModal` POS** ke `GET /api/payment-channels?isActive=true` (ganti array hardcoded CASH/QRIS/EDC).
+- [ ] **Task 2.4: Integrasi & Verifikasi (integrator, Wave 2)**
+  - Register `UsersModule` + `PaymentChannelsModule` + serving static upload di `app.module.ts`; `prisma generate` & install deps bila ada.
+  - Jalankan test backend 100% lulus + build frontend; smoke test E2E: login admin → 3 halaman baru berfungsi, PaymentModal POS menampilkan channel aktif hasil toggle.
+  - Centang roadmap + commit per task.
 
 ---
 

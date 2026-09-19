@@ -6,7 +6,7 @@ Base URL: `http://localhost:3000/api`
 
 Format Respons Standar:
 - **Sukses:** `{ "success": true, "data": ... }`
-- **Error:** `{ "success": false, "error": { "code": "STRING_CODE", "message": "Pesan deskriptif" } }`
+- **Error:** HTTP status + body `{ "code": "STRING_CODE", "message": "Pesan deskriptif" }` — dilempar langsung lewat NestJS exception (`BadRequestException({ code, message })` dll) TANPA wrapper, konsisten dengan implementasi Fase 1. Frontend membaca `error.response.data.message`.
 
 ---
 
@@ -114,7 +114,15 @@ Format Respons Standar:
 ### `PUT /api/products/:id` (Admin Only)
 - **Akses:** Admin
 - **Content-Type:** `multipart/form-data` / `application/json`
-- **Form Fields:** Update nama, harga, deskripsi, dan/atau file foto baru.
+- **Form Fields:** Update nama, harga, deskripsi, dan/atau file foto baru (`image`). Jika file baru di-upload, file lama dihapus dari disk.
+- **Error:** `404 PRODUCT_NOT_FOUND`, `400 INVALID_CATEGORY_ID`, `413 FILE_TOO_LARGE`, `415 INVALID_FILE_TYPE`
+
+### `DELETE /api/products/:id` (Admin Only)
+- **Akses:** Admin
+- **Response 200 OK:** `{ "success": true, "data": { "id": 11 } }`
+- **Error:** `409 PRODUCT_IN_USE` — produk sudah pernah masuk `OrderItem` (FK Restrict; riwayat transaksi immutable tidak boleh rusak). Produk yang belum pernah di-order boleh hard-delete beserta file gambarnya.
+
+> **Konvensi `imageUrl`:** path relatif `/uploads/products/<uuid>.<ext>` — disajikan statis via ServeStaticModule di `/uploads`. Dev: Vite proxy `/uploads` → backend; prod: nginx static.
 
 ### `PATCH /api/products/:id/toggle-availability`
 - **Akses:** Kasir & Admin
@@ -207,11 +215,27 @@ Format Respons Standar:
 - **Response 200 OK:** Mengambil rincian invoice lengkap untuk pratinjau struk belanja & reprint.
 
 ---
-
 ## 6.4 Modul Manajemen Staf (`/dashboard/account`)
 
 ### `GET /api/users` (Admin Only)
-- **Response 200 OK:** Mengembalikan daftar seluruh akun (Admin & Kasir) beserta status `isActive`.
+- **Akses:** Admin (`JwtAuthGuard` + `RolesGuard('ADMIN')`)
+- **Response 200 OK:**
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "id": 1,
+        "username": "admin",
+        "name": "Admin",
+        "role": "ADMIN",
+        "isActive": true,
+        "createdAt": "2026-09-01T00:00:00.000Z"
+      }
+    ]
+  }
+  ```
+  *(Field `passwordHash` TIDAK PERNAH dikirim ke client.)*
 
 ### `POST /api/users` (Admin Only)
 - **Request Body:**
@@ -223,12 +247,17 @@ Format Respons Standar:
     "role": "CASHIER"
   }
   ```
+- **Response 201 Created:** objek user seperti di `GET` (tanpa hash). Password di-hash `bcryptjs`, minimal 6 karakter.
+- **Error:** `409 USERNAME_TAKEN`, `400` (validasi field / role bukan `ADMIN|CASHIER`)
 
 ### `PATCH /api/users/:id/password` (Admin Only)
-- **Request Body:** `{ "newPassword": "passwordBaru123" }`
+- **Request Body:** `{ "newPassword": "passwordBaru123" }` (min 6 char, di-hash ulang)
+- **Response 200 OK:** `{ "success": true, "data": { "id": 3, "username": "kasir2", "isActive": true } }`
+- **Error:** `404 USER_NOT_FOUND`
 
 ### `PATCH /api/users/:id/toggle-status` (Admin Only)
 - **Response 200 OK:** `{ "success": true, "data": { "id": 3, "isActive": false } }`
+- **Error:** `400 CANNOT_DISABLE_SELF` — admin tidak boleh menonaktifkan akunnya sendiri; `404 USER_NOT_FOUND`.
 
 ---
 
@@ -236,13 +265,29 @@ Format Respons Standar:
 
 ### `GET /api/payment-channels`
 - **Akses:** Kasir & Admin
-- **Response 200 OK:** Daftar channel aktif (Cash, QRIS BCA, GoPay, EDC Mandiri, dll).
+- **Query Params:** `?isActive=true` — POS hanya butuh channel aktif; halaman admin memanggil tanpa filter.
+- **Response 200 OK:**
+  ```json
+  {
+    "success": true,
+    "data": [
+      { "id": 1, "name": "Tunai (Cash)", "category": "CASH", "isActive": true },
+      { "id": 2, "name": "QRIS BCA", "category": "THIRD_PARTY", "isActive": true },
+      { "id": 3, "name": "EDC Mandiri", "category": "EDC", "isActive": true }
+    ]
+  }
+  ```
 
 ### `POST /api/payment-channels` (Admin Only)
-- **Request Body:** `{ "name": "ShopeePay QRIS", "category": "THIRD_PARTY" }`
+- **Request Body:** `{ "name": "ShopeePay QRIS", "category": "THIRD_PARTY" }` — `category` enum `CASH | THIRD_PARTY | EDC`.
+- **Response 201 Created:** objek channel baru.
+- **Error:** `400 INVALID_CATEGORY` (di luar enum)
 
 ### `PATCH /api/payment-channels/:id/toggle` (Admin Only)
-- **Response 200 OK:** Toggle status aktif channel.
+- **Response 200 OK:** `{ "success": true, "data": { "id": 2, "name": "QRIS BCA", "isActive": false } }`
+- **Error:** `404 CHANNEL_NOT_FOUND`
+
+> **Integrasi POS:** `PaymentModal` kasir mengganti array metode hardcoded dengan `GET /api/payment-channels?isActive=true`.
 
 ---
 
