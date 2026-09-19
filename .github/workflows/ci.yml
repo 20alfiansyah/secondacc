@@ -7,11 +7,28 @@ on:
 
 jobs:
   backend:
-    name: Backend (lint, test, build)
+    name: Backend (lint, test, e2e, build)
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cafe_pos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: backend
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/cafe_pos?schema=public
+      JWT_SECRET: ci_only_secret_min_16_chars
     steps:
       - uses: actions/checkout@v4
 
@@ -27,11 +44,17 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
+      - name: Push database schema
+        run: npx prisma db push --skip-generate
+
       - name: Lint
         run: npm run lint
 
-      - name: Test
+      - name: Unit tests
         run: npm test -- --ci
+
+      - name: E2E bootstrap test
+        run: npm run test:e2e
 
       - name: Build
         run: npm run build
