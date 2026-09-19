@@ -2,23 +2,34 @@ import { Test } from '@nestjs/testing';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { OrderStatus, OrderType, PaymentCategory, Role } from '@prisma/client';
+import { OrderStatus, OrderType, PaymentCategory } from '@prisma/client';
+
+/** Callback mock generik: argumen tak berbentuk (payload prisma), hasil bebas. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MockImpl = (payload?: any) => unknown;
 
 // Helper: bangun objek mock ber-nested dengan jest.fn, implememtasi bisa dioverride.
-function buildMockTree(paths: Record<string, (...a: any[]) => any>) {
-  const root: any = {};
+function buildMockTree(paths: Record<string, MockImpl>): Record<string, unknown> {
+  // Tree mock bersarang secara dinamis — satu-satunya cara tanpa menduplikasi
+  // seluruh bentuk PrismaClient di spec (bentuk framework, bukan yang diuji).
+  const root: Record<string, unknown> = {};
   for (const [path, impl] of Object.entries(paths)) {
     const parts = path.split('.');
     let cur = root;
-    for (const p of parts.slice(0, -1)) cur = cur[p] ??= {};
-    cur[parts[parts.length - 1]] = jest.fn(impl);
+    for (const p of parts.slice(0, -1)) {
+      cur[p] ??= {};
+      cur = cur[p] as Record<string, unknown>;
+    }
+    cur[parts[parts.length - 1]] = jest.fn(impl as (...args: never[]) => unknown);
   }
   return root;
 }
 
 describe('OrdersService (ACID & finansial server-side)', () => {
   let service: OrdersService;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let prisma: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let tx: any;
 
   const productA = { id: 10, name: 'Kopi Susu Gula Aren', price: 25000, isAvailable: true };
@@ -34,27 +45,26 @@ describe('OrdersService (ACID & finansial server-side)', () => {
     grandTotal: 50000,
     cashier: { id: 2, name: 'Siti' },
     table: null,
-    orderItems: [
-      { productId: 10, quantity: 2, unitPrice: 25000, subtotal: 50000 },
-    ],
+    orderItems: [{ productId: 10, quantity: 2, unitPrice: 25000, subtotal: 50000 }],
   };
 
-  const defaults: Record<string, (...a: any[]) => any> = {
+  const defaults: Record<string, MockImpl> = {
     'product.findMany': () => Promise.resolve([productA, productB]),
     'order.findFirst': () => Promise.resolve(null),
-    'order.create': (d: any) => Promise.resolve({ id: 45, ...d.data }),
+    'order.create': (d) => Promise.resolve({ id: 45, ...d.data }),
     'order.findUnique': () => Promise.resolve(null),
     'order.updateMany': () => Promise.resolve({ count: 1 }),
     'order.findMany': () => Promise.resolve([]),
-    'order.update': (d: any) => Promise.resolve({ id: 45, ...d.data }),
-    'payment.create': (d: any) => Promise.resolve({ id: 1, ...d.data }),
+    'order.update': (d) => Promise.resolve({ id: 45, ...d.data }),
+    'payment.create': (d) => Promise.resolve({ id: 1, ...d.data }),
   };
 
-  async function setup(overrides: Record<string, (...a: any[]) => any> = {}) {
+  async function setup(overrides: Record<string, MockImpl> = {}) {
     const merged = { ...defaults, ...overrides };
     tx = buildMockTree(merged);
     // panggilan di luar transaksi (getActive/history) memakai this.prisma.order
     prisma = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       $transaction: jest.fn(async (cb: any) => cb(tx)),
       order: tx.order,
     };
@@ -96,7 +106,7 @@ describe('OrdersService (ACID & finansial server-side)', () => {
   describe('openBill', () => {
     it('membuat Order OPEN_BILL + OrderItems dengan snapshot harga dari DB', async () => {
       await setup({
-        'order.create': (d: any) => Promise.resolve({ id: 45, ...d.data }),
+        'order.create': (d) => Promise.resolve({ id: 45, ...d.data }),
       });
       const r = await service.openBill({
         orderType: OrderType.DINE_IN,
@@ -173,7 +183,7 @@ describe('OrdersService (ACID & finansial server-side)', () => {
         })(),
         'order.updateMany': () => Promise.resolve({ count: 1 }),
         'orderItem.deleteMany': () => Promise.resolve({ count: 1 }),
-        'orderItem.createMany': (d: any) => Promise.resolve({ count: d.data.length }),
+        'orderItem.createMany': (d) => Promise.resolve({ count: d.data.length }),
       });
       const r = await service.updateItems(45, {
         customerName: 'Rian',
@@ -223,9 +233,9 @@ describe('OrdersService (ACID & finansial server-side)', () => {
     it('checkout tunai: klaim atomik OPEN_BILL→PAID, payment + changeDue benar', async () => {
       await setup({
         'order.findUnique': () => Promise.resolve(openOrder),
-        'order.update': (d: any) =>
-          Promise.resolve({ id: 45, ...openOrder, ...d.data, status: OrderStatus.PAID }),
-        'payment.create': (d: any) => Promise.resolve({ id: 1, ...d.data }),
+        'order.update': (d) =>
+          Promise.resolve({ ...openOrder, ...d.data, id: 45, status: OrderStatus.PAID }),
+        'payment.create': (d) => Promise.resolve({ id: 1, ...d.data }),
       });
       const r = await service.checkout(45, {
         paymentCategory: PaymentCategory.CASH,
@@ -289,7 +299,7 @@ describe('OrdersService (ACID & finansial server-side)', () => {
     it('checkout tanpa gender mempertahankan gender order', async () => {
       await setup({
         'order.findUnique': () => Promise.resolve({ ...openOrder, customerGender: 'P' }),
-        'order.update': (d: any) => Promise.resolve({ id: 45, ...openOrder, ...d.data }),
+        'order.update': (d) => Promise.resolve({ ...openOrder, ...d.data, id: 45 }),
       });
       await service.checkout(45, {
         paymentCategory: PaymentCategory.THIRD_PARTY,

@@ -1,23 +1,30 @@
 #!/bin/sh
 set -e
 
-# Jalankan migrasi database. Karena tidak ada folder migrations, gunakan
-# `prisma db push --accept-data-loss` untuk menyinkronkan schema Prisma
-# ke PostgreSQL secara non-interaktif. Opsional: set SKIP_DB_PUSH=1 untuk
-# melewati (misal DB sudah di-manage terpisah).
-if [ "${SKIP_DB_PUSH:-0}" != "1" ]; then
-  echo "⏳ Applying Prisma schema (db push)..."
-  npx prisma db push --accept-data-loss
+# Terapkan migrasi Prisma. Folder prisma/migrations wajib ter-commit di repo;
+# skema TIDAK lagi disinkronkan via `db push` di produksi.
+# Catatan one-time untuk database lama yang dibuat via `db push`:
+#   npx prisma migrate resolve --applied 20260912000000_init
+# Set SKIP_MIGRATE=1 untuk melewati (mis. DB di-manage terpisah).
+# Kredensial seed wajib sebelum migrate/seed jalan — menggantikan guard
+# `${VAR:?}` yang dulu ada di docker-compose.yml (false positive GitGuardian).
+if [ "${SKIP_SEED:-0}" != "1" ] && { [ -z "${SEED_ADMIN_PASSWORD:-}" ] || [ -z "${SEED_CASHIER_PASSWORD:-}" ]; }; then
+  echo "ERROR: SEED_ADMIN_PASSWORD dan SEED_CASHIER_PASSWORD wajib diisi di .env" >&2
+  echo "       (atau set SKIP_SEED=1 bila DB sudah berisi data)." >&2
+  exit 1
+fi
+
+if [ "${SKIP_MIGRATE:-0}" != "1" ]; then
+  echo "⏳ Applying Prisma migrations..."
+  npx prisma migrate deploy
 fi
 
 # Seed data awal (opsional). Set SKIP_SEED=1 untuk melewati.
-# Jalankan via ts-node/register dengan modul CommonJS paksa, agar kompatibel
-# dengan Node 20 / ESM resolution dalam image (tanpa ini seed error
-# "Unknown file extension .ts").
+# Memakai seed hasil compile (dist-seed/seed.js) — runtime image TIDAK punya
+# ts-node. Seed membaca SEED_ADMIN_PASSWORD / SEED_CASHIER_PASSWORD dari env.
 if [ "${SKIP_SEED:-0}" != "1" ]; then
   echo "🌱 Seeding database..."
-  TS_NODE_COMPILER_OPTIONS='{"module":"commonjs"}' \
-    node -r ts-node/register prisma/seed.ts
+  node dist-seed/seed.js
 fi
 
 # Panggil command utama (node dist/main.js)
