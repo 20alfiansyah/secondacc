@@ -13,6 +13,9 @@ interface NavigationRailProps {
   onFeatureNotice?: (featureName: string) => void
   /** Optional sign-out override — POS wraps it with the unsaved-changes guard. */
   onSignOut?: () => void
+  /** Kelas tambahan di root <aside> (mis. `hidden lg:flex` agar rail
+   *  desktop-only; mobile memakai MobileNav). */
+  className?: string
 }
 
 /** Get name initials (e.g. "Nahid Zaman" -> "NZ", "Siti" -> "S") for the avatar. */
@@ -43,8 +46,8 @@ const COLLAPSE_KEY = 'cafe_pos_sidebar_collapsed'
 export const SIDEBAR_TOGGLE_EVENT = 'cafe_pos:toggle-sidebar'
 
 /**
- * Collapsible left sidebar (Stitch screen1 markup 1:1): brand header + LIVE
- * badge, nav Cashier Ops / Management & Ops, footer shift row + user card,
+ * Collapsible left sidebar (Stitch screen1 markup 1:1): brand header, nav
+ * Cashier Ops / Management & Ops, footer shift row + user card,
  * floating center toggle. Collapsed state = w-[4.5rem] dengan label tersembunyi.
  */
 export default function NavigationRail({
@@ -52,6 +55,7 @@ export default function NavigationRail({
   onLockRegister,
   onFeatureNotice,
   onSignOut,
+  className,
 }: NavigationRailProps) {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
@@ -167,11 +171,12 @@ export default function NavigationRail({
       className={cn(
         'relative z-30 flex h-full shrink-0 select-none flex-col justify-between border-r border-slate-200/80 bg-white transition-all duration-300 ease-in-out',
         collapsed ? 'w-[4.5rem]' : 'w-[240px]',
+        className,
       )}
     >
       <div className="flex flex-col">
 
-      {/* ===== Brand header with logo + LIVE badge ===== */}
+      {/* ===== Brand header with logo ===== */}
       <div
         className={cn(
           'flex h-16 shrink-0 items-center justify-between border-b border-slate-100',
@@ -193,15 +198,6 @@ export default function NavigationRail({
             </div>
           )}
         </div>
-        {!collapsed && (
-          <div
-            className="flex items-center gap-1.5 rounded-full border border-[#65AF92]/40 bg-[#edf7f3] px-2 py-0.5 text-[#2d5258]"
-            title="Online POS System"
-          >
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#65AF92]" />
-            <span className="font-display text-[10px] font-bold uppercase tracking-wider">LIVE</span>
-          </div>
-        )}
       </div>
 
       {/* ===== Navigation groups (spec screen1) ===== */}

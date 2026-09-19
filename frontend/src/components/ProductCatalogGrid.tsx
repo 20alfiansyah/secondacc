@@ -26,7 +26,7 @@ function categoryGlyph(name: string): string {
  * eksternal; kalau placeholder (mis. SVG kosong dari seed) atau blank, pakai
  * mapping getProductImage agar tampil foto real (hindari image broken/blank).
  */
-function resolveProductImage(p: Product): string {
+export function resolveProductImage(p: Product): string {
   const url = p.imageUrl
   if (url && /^https?:\/\//.test(url)) return url
   return getProductImage(p.name, p.categoryName)
@@ -208,5 +208,3 @@ export default function ProductCatalogGrid({
     </div>
   )
 }
-
-export { categoryGlyph }

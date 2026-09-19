@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useBlocker } from 'react-router-dom'
-import Icon from '@/components/ui/Icon'
-import EmptyState from '@/components/ui/EmptyState'
-import TopBar from '@/components/TopBar'
+
 import {
   checkoutRequest,
   fetchActiveOrders,
@@ -14,6 +12,7 @@ import {
 } from '@/api/client'
 import type {
   Category,
+  CheckoutResult,
   CustomerGender,
   OpenBillItemInput,
   OrderSummary,
@@ -21,25 +20,30 @@ import type {
   Product,
   UpdateOrderItemsResult,
 } from '@/api/client'
-import type { CategoryFilter, SortOption } from '@/components/CategoryFilterBar'
-import { useCartStore } from '@/store/cartStore'
 import { useAuthStore } from '@/store/authStore'
+import { useCartStore } from '@/store/cartStore'
 import type { CartItem } from '@/store/cartStore'
 import { formatRupiah } from '@/utils/format'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import PaymentModal from '@/components/PaymentModal'
-import ReceiptModal from '@/components/ReceiptModal'
-import CustomItemModal from '@/components/CustomItemModal'
-import OrderHistoryDrawer from '@/components/OrderHistoryDrawer'
-import NavigationRail, { SIDEBAR_TOGGLE_EVENT } from '@/components/NavigationRail'
+
+import Icon from '@/components/ui/Icon'
+import { Button } from '@/components/ui/button'
+import EmptyState from '@/components/ui/EmptyState'
 import ActiveOrdersLine from '@/components/ActiveOrdersLine'
-import CategoryFilterBar from '@/components/CategoryFilterBar'
-import ProductCatalogGrid from '@/components/ProductCatalogGrid'
+import CategoryFilterBar, { type CategoryFilter, type SortOption } from '@/components/CategoryFilterBar'
+import CustomItemModal from '@/components/CustomItemModal'
+import MobileNav from '@/components/MobileNav'
+import NavigationRail, { SIDEBAR_TOGGLE_EVENT } from '@/components/NavigationRail'
 import OrderDetailsPanel from '@/components/OrderDetailsPanel'
-import type { CheckoutResult } from '@/api/client'
+import OrderHistoryDrawer from '@/components/OrderHistoryDrawer'
+import PaymentModal from '@/components/PaymentModal'
+import ProductCatalogGrid from '@/components/ProductCatalogGrid'
+import ReceiptModal from '@/components/ReceiptModal'
+import TopBar from '@/components/TopBar'
+import UnsavedChangesModal from '@/components/UnsavedChangesModal'
 
 const PANEL_TOGGLE_EVENT = 'cafe_pos:toggle-panel'
+
 export default function POS() {
   const { items, increase, decrease, addItem, setNotes, setQuantity, removeItem, clear } = useCartStore()
   const logout = useAuthStore((s) => s.logout)
@@ -75,8 +79,10 @@ export default function POS() {
   const [ticketItemsJson, setTicketItemsJson] = useState<string | null>(null)
   // Snapshot meta (nama+gender) tiket saat dimuat — pasangan dirty utk ticketItemsJson.
   const [ticketMetaJson, setTicketMetaJson] = useState<string | null>(null)
-  // Aksi tertunda yang menunggu konfirmasi "perubahan belum disimpan".
-  const [confirmLeave, setConfirmLeave] = useState<(() => void) | null>(null)
+  // Aksi tertunda yang menunggu konfirmasi "perubahan belum disimpan"
+  // (pindah tiket, New Order, sign out). Nilai confirmLeave sendiri
+  // diturunkan di bawah: state ini ATAU blocker navigasi react-router.
+  const [pendingLeaveAction, setPendingLeaveAction] = useState<(() => void) | null>(null)
 
   // Panel kanan bisa diciutkan jadi rail vertikal (persist localStorage)
   const [panelCollapsed, setPanelCollapsed] = useState(() => {
@@ -253,13 +259,12 @@ export default function POS() {
     (cartKey() !== ticketItemsJson || metaSnapshot() !== ticketMetaJson)
 
   // Perubahan belum tersimpan: tiket open bill yang diedit ATAU keranjang order
-  // baru yang sudah berisi item (reload/logout berarti kehilangan data).
   const unsavedChanges = openBillDirty || (panelMode === 'new' && items.length > 0)
 
   // Pintu keluar dari mode edit tiket: bila dirty, minta konfirmasi dulu.
   function guardUnsaved(action: () => void) {
     if (unsavedChanges) {
-      setConfirmLeave(() => action)
+      setPendingLeaveAction(() => action)
     } else {
       action()
     }
@@ -276,15 +281,11 @@ export default function POS() {
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [unsavedChanges])
 
-  // Navigasi route (tombol back / link router) saat ada perubahan belum
-  // disimpan -> modal konfirmasi yang sama. Tidak ada auto-reset di cleanup:
-  // blokir dibatalkan lewat tombol "Keep Editing" di modal.
+  // Blokir navigasi react-router saat ada perubahan yang belum disimpan.
   const blocker = useBlocker(unsavedChanges)
-  useEffect(() => {
-    if (blocker.state === 'blocked') {
-      setConfirmLeave(() => () => blocker.proceed())
-    }
-  }, [blocker.state])
+  const confirmLeave =
+    pendingLeaveAction ??
+    (blocker.state === 'blocked' ? () => blocker.proceed() : null)
 
   function applyUpdatedOrder(updated: UpdateOrderItemsResult) {
     setOpenOrder((prev) =>
@@ -406,7 +407,7 @@ export default function POS() {
     if (!confirmLeave) return
     const ok = await handleSaveOpenBill()
     if (ok) {
-      setConfirmLeave(null)
+      setPendingLeaveAction(null)
       confirmLeave()
     }
   }
@@ -414,7 +415,7 @@ export default function POS() {
   function handleConfirmDiscard() {
     const action = confirmLeave
     if (!action) return
-    setConfirmLeave(null)
+    setPendingLeaveAction(null)
     action()
   }
 
@@ -536,9 +537,17 @@ export default function POS() {
   const isNewPanel = panelMode === 'new'
 
   return (
-    <div className="flex h-svh bg-[#F8FAFC] text-slate-900 selection:bg-[#65AF92]/30 selection:text-[#2d5258]">
-      {/* ===== Zone 1: Collapsible sidebar (Stitch screen1) ===== */}
+    <div className="flex h-svh flex-col bg-[#F8FAFC] text-slate-900 selection:bg-[#65AF92]/30 selection:text-[#2d5258] lg:flex-row">
+      {/* ===== Zone 1: Sidebar (desktop ≥lg) / Top bar + drawer (mobile <lg) ===== */}
+      <MobileNav
+        page="Register"
+        onOpenHistory={() => setHistoryOpen(true)}
+        onLockRegister={lockRegister}
+        onFeatureNotice={(msg) => showFeedback(msg)}
+        onSignOut={() => guardUnsaved(logout)}
+      />
       <NavigationRail
+        className="hidden lg:flex"
         onOpenHistory={() => setHistoryOpen(true)}
         onLockRegister={lockRegister}
         onFeatureNotice={(msg) => showFeedback(msg)}
@@ -546,9 +555,8 @@ export default function POS() {
       />
 
       {/* ===== Zone 2: Scrollable main content ===== */}
-      <main className="flex min-w-0 flex-1 flex-col space-y-4 overflow-y-auto bg-[#F8FAFC] p-4">
+      <main className="flex min-w-0 flex-1 flex-col space-y-4 overflow-y-auto bg-[#F8FAFC] p-4 pb-24 lg:pb-4">
         <TopBar page="Register" />
-
         {/* Feedback Banner */}
         {feedback && (
           <div
@@ -571,7 +579,7 @@ export default function POS() {
         />
 
         {/* ===== Menu Catalog section (flex-1, grid scroll di dalam) ===== */}
-        <section className="flex min-h-0 flex-1 flex-col space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="flex flex-col space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:min-h-0 lg:flex-1">
           {/* Header band */}
           <div className="flex flex-shrink-0 items-center justify-between pb-1">
             <div className="flex items-center gap-3">
@@ -616,7 +624,7 @@ export default function POS() {
 
 
           {/* Grid produk + header per kategori */}
-          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto pr-1">
+          <div className="space-y-6 pr-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             {loading ? (
               <div className="flex h-64 flex-col items-center justify-center gap-2 text-slate-400">
                 <Icon name="coffee" className="animate-bounce text-3xl text-[#447C84]/60" />
@@ -759,7 +767,7 @@ export default function POS() {
       <div className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-slate-200/80 bg-white/95 px-4 py-3 shadow-modal backdrop-blur-md lg:hidden">
         <div>
           <span className="text-xs font-bold text-slate-500">
-            {customerName.trim() || 'No name yet'}
+            {customerName.trim() || 'Walk-in'}
           </span>
           <p className="text-base font-black tabular-nums text-[#447C84]">
             {formatRupiah(cartSubtotal)}
@@ -781,14 +789,14 @@ export default function POS() {
       {mobileCartOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm lg:hidden animate-in fade-in duration-200">
           <div className="flex max-h-[90vh] w-full flex-col rounded-t-3xl border-t border-slate-200/80 bg-white p-5 shadow-modal animate-in slide-in-from-bottom duration-200">
-            <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Icon name="receipt_long" className="text-lg text-[#447C84]" />
-                <h2 className="text-base font-bold text-slate-900">Order Details</h2>
-              </div>
+            {/* Grabber + close — judul dari OrderDetailsPanel saja, tidak diduplikasi di sini */}
+            <div className="relative mb-2 flex h-6 shrink-0 items-center justify-center">
+              <span className="h-1.5 w-10 rounded-full bg-slate-200" />
               <button
+                type="button"
                 onClick={() => setMobileCartOpen(false)}
-                className="flex h-11 w-11 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                aria-label="Close order details"
+                className="absolute right-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
               >
                 <Icon name="close" className="text-lg" />
               </button>
@@ -839,58 +847,17 @@ export default function POS() {
         />
       )}
       {confirmLeave && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-100 bg-white p-6 shadow-modal animate-in zoom-in-95 duration-150">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-                <Icon name="warning" className="text-xl" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Unsaved changes</h3>
-                <p className="mt-1 text-sm leading-5 text-slate-500">
-                  This ticket has changes that haven&apos;t been saved yet. Save them before leaving, or discard
-                  the changes.
-                </p>
-              </div>
-            </div>
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant="destructive"
-                size="lg"
-                className="cursor-pointer"
-                disabled={saving}
-                onClick={handleConfirmDiscard}
-              >
-                Discard
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                className="cursor-pointer"
-                disabled={saving}
-                onClick={handleConfirmSave}
-              >
-                {saving ? 'Saving...' : 'Save & Continue'}
-              </Button>
-            </div>
-            <button
-              type="button"
-              className="mt-2 w-full cursor-pointer rounded-xl py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed"
-              disabled={saving}
-              onClick={() => {
-                setConfirmLeave(null)
-                // Modal tertutup tanpa keputusan: bila pemicunya navigasi yang
-                // diblokir, batalkan blokir agar router tidak menggantung.
-                if (blocker.state === 'blocked') blocker.reset()
-              }}
-            >
-              Keep Editing
-            </button>
-          </div>
-        </div>
+        <UnsavedChangesModal
+          saving={saving}
+          onSave={handleConfirmSave}
+          onDiscard={handleConfirmDiscard}
+          onClose={() => {
+            // Modal tertutup tanpa keputusan: bila pemicunya navigasi yang
+            // diblokir, batalkan blokir agar router tidak menggantung.
+            setPendingLeaveAction(null)
+          }}
+        />
       )}
-
       {payOpen && (
         <PaymentModal
           grandTotal={panelMode === 'open' && openOrder ? openOrder.grandTotal : cartSubtotal}
