@@ -139,7 +139,8 @@ export default function PaymentModal({
                   type="button"
                   onClick={() => {
                     setMethod(m.key)
-                    setSelectedMethodName(m.label.split(' ')[0])
+                    // Rekam label UTUH ('QRIS / E-Wallet'), bukan kata pertama.
+                    setSelectedMethodName(m.label)
                   }}
                   className={cn(
                     'flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-semibold transition-all duration-150 active:scale-95',

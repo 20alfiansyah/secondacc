@@ -42,6 +42,8 @@ export const useAuthStore = create<AuthState>((set) => {
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(USER_KEY)
       set({ token: null, user: null })
+      // Keranjang milik sesi kasir — kosongkan saat logout.
+      useCartStore.getState().clear()
     },
   }
 })

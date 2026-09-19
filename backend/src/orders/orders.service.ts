@@ -220,6 +220,12 @@ export class OrdersService {
       }
 
       const updated = await tx.order.findUnique({ where: { id } });
+      if (!updated) {
+        throw new NotFoundException({
+          code: 'ORDER_NOT_FOUND',
+          message: `Order id ${id} tidak ditemukan`,
+        });
+      }
 
       return {
         orderId: updated.id,
@@ -438,6 +444,47 @@ export class OrdersService {
         payment: true,
       },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * PATCH /api/orders/:id/cancel — void order OPEN_BILL (ADMIN saja via
+   * RolesGuard). Klaim atomik OPEN_BILL -> CANCELLED mencegah cancel vs
+   * checkout balapan; meja yang masih di-claim ikut dikosongkan.
+   */
+  async cancel(id: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({ where: { id } });
+      if (!order) {
+        throw new NotFoundException({
+          code: 'ORDER_NOT_FOUND',
+          message: `Order id ${id} tidak ditemukan`,
+        });
+      }
+
+      // Klaim atomik OPEN_BILL -> CANCELLED: kasir lain yang checkout
+      // bersamaan kalah race dan mendapat 409.
+      const claim = await tx.order.updateMany({
+        where: { id, status: OrderStatus.OPEN_BILL },
+        data: { status: OrderStatus.CANCELLED },
+      });
+      if (claim.count === 0) {
+        throw new ConflictException({
+          code: 'ORDER_NOT_OPEN_BILL',
+          message: 'Order bukan OPEN_BILL, tidak bisa dibatalkan',
+        });
+      }
+
+      // Kosongkan meja bila order melekat pada meja (relasi SetNull hanya
+      // aktif saat order dihapus; order masih ada -> lepas okupansi manual).
+      if (order.tableId !== null) {
+        await tx.table.update({
+          where: { id: order.tableId },
+          data: { isOccupied: false },
+        });
+      }
+
+      return { id: order.id, invoiceNumber: order.invoiceNumber, status: OrderStatus.CANCELLED };
     });
   }
 }
