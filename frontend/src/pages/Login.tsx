@@ -13,7 +13,7 @@ import {
 import { useAuthStore } from '@/store/authStore'
 
 /** Path tujuan setelah login berdasarkan role. */
-export function homePathForRole(role: string): string {
+function homePathForRole(role: string): string {
   if (role === 'ADMIN') return '/dashboard'
   return '/pos'
 }

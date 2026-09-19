@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useBlocker } from 'react-router-dom'
-import Icon from '@/components/ui/Icon'
-import EmptyState from '@/components/ui/EmptyState'
-import TopBar from '@/components/TopBar'
+
 import {
   checkoutRequest,
   fetchActiveOrders,
@@ -14,6 +12,7 @@ import {
 } from '@/api/client'
 import type {
   Category,
+  CheckoutResult,
   CustomerGender,
   OpenBillItemInput,
   OrderSummary,
@@ -21,26 +20,30 @@ import type {
   Product,
   UpdateOrderItemsResult,
 } from '@/api/client'
-import type { CategoryFilter, SortOption } from '@/components/CategoryFilterBar'
-import { useCartStore } from '@/store/cartStore'
 import { useAuthStore } from '@/store/authStore'
+import { useCartStore } from '@/store/cartStore'
 import type { CartItem } from '@/store/cartStore'
 import { formatRupiah } from '@/utils/format'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import PaymentModal from '@/components/PaymentModal'
-import ReceiptModal from '@/components/ReceiptModal'
+
+import Icon from '@/components/ui/Icon'
+import { Button } from '@/components/ui/button'
+import EmptyState from '@/components/ui/EmptyState'
+import ActiveOrdersLine from '@/components/ActiveOrdersLine'
+import CategoryFilterBar, { type CategoryFilter, type SortOption } from '@/components/CategoryFilterBar'
 import CustomItemModal from '@/components/CustomItemModal'
-import OrderHistoryDrawer from '@/components/OrderHistoryDrawer'
 import MobileNav from '@/components/MobileNav'
 import NavigationRail, { SIDEBAR_TOGGLE_EVENT } from '@/components/NavigationRail'
-import ActiveOrdersLine from '@/components/ActiveOrdersLine'
-import CategoryFilterBar from '@/components/CategoryFilterBar'
-import ProductCatalogGrid from '@/components/ProductCatalogGrid'
 import OrderDetailsPanel from '@/components/OrderDetailsPanel'
-import type { CheckoutResult } from '@/api/client'
+import OrderHistoryDrawer from '@/components/OrderHistoryDrawer'
+import PaymentModal from '@/components/PaymentModal'
+import ProductCatalogGrid from '@/components/ProductCatalogGrid'
+import ReceiptModal from '@/components/ReceiptModal'
+import TopBar from '@/components/TopBar'
+import UnsavedChangesModal from '@/components/UnsavedChangesModal'
 
 const PANEL_TOGGLE_EVENT = 'cafe_pos:toggle-panel'
+
 export default function POS() {
   const { items, increase, decrease, addItem, setNotes, setQuantity, removeItem, clear } = useCartStore()
   const logout = useAuthStore((s) => s.logout)
@@ -76,8 +79,10 @@ export default function POS() {
   const [ticketItemsJson, setTicketItemsJson] = useState<string | null>(null)
   // Snapshot meta (nama+gender) tiket saat dimuat — pasangan dirty utk ticketItemsJson.
   const [ticketMetaJson, setTicketMetaJson] = useState<string | null>(null)
-  // Aksi tertunda yang menunggu konfirmasi "perubahan belum disimpan".
-  const [confirmLeave, setConfirmLeave] = useState<(() => void) | null>(null)
+  // Aksi tertunda yang menunggu konfirmasi "perubahan belum disimpan"
+  // (pindah tiket, New Order, sign out). Nilai confirmLeave sendiri
+  // diturunkan di bawah: state ini ATAU blocker navigasi react-router.
+  const [pendingLeaveAction, setPendingLeaveAction] = useState<(() => void) | null>(null)
 
   // Panel kanan bisa diciutkan jadi rail vertikal (persist localStorage)
   const [panelCollapsed, setPanelCollapsed] = useState(() => {
@@ -254,13 +259,12 @@ export default function POS() {
     (cartKey() !== ticketItemsJson || metaSnapshot() !== ticketMetaJson)
 
   // Perubahan belum tersimpan: tiket open bill yang diedit ATAU keranjang order
-  // baru yang sudah berisi item (reload/logout berarti kehilangan data).
   const unsavedChanges = openBillDirty || (panelMode === 'new' && items.length > 0)
 
   // Pintu keluar dari mode edit tiket: bila dirty, minta konfirmasi dulu.
   function guardUnsaved(action: () => void) {
     if (unsavedChanges) {
-      setConfirmLeave(() => action)
+      setPendingLeaveAction(() => action)
     } else {
       action()
     }
@@ -277,15 +281,11 @@ export default function POS() {
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [unsavedChanges])
 
-  // Navigasi route (tombol back / link router) saat ada perubahan belum
-  // disimpan -> modal konfirmasi yang sama. Tidak ada auto-reset di cleanup:
-  // blokir dibatalkan lewat tombol "Keep Editing" di modal.
+  // Blokir navigasi react-router saat ada perubahan yang belum disimpan.
   const blocker = useBlocker(unsavedChanges)
-  useEffect(() => {
-    if (blocker.state === 'blocked') {
-      setConfirmLeave(() => () => blocker.proceed())
-    }
-  }, [blocker.state])
+  const confirmLeave =
+    pendingLeaveAction ??
+    (blocker.state === 'blocked' ? () => blocker.proceed() : null)
 
   function applyUpdatedOrder(updated: UpdateOrderItemsResult) {
     setOpenOrder((prev) =>
@@ -407,7 +407,7 @@ export default function POS() {
     if (!confirmLeave) return
     const ok = await handleSaveOpenBill()
     if (ok) {
-      setConfirmLeave(null)
+      setPendingLeaveAction(null)
       confirmLeave()
     }
   }
@@ -415,7 +415,7 @@ export default function POS() {
   function handleConfirmDiscard() {
     const action = confirmLeave
     if (!action) return
-    setConfirmLeave(null)
+    setPendingLeaveAction(null)
     action()
   }
 
@@ -557,7 +557,6 @@ export default function POS() {
       {/* ===== Zone 2: Scrollable main content ===== */}
       <main className="flex min-w-0 flex-1 flex-col space-y-4 overflow-y-auto bg-[#F8FAFC] p-4">
         <TopBar page="Register" />
-
         {/* Feedback Banner */}
         {feedback && (
           <div
@@ -848,58 +847,17 @@ export default function POS() {
         />
       )}
       {confirmLeave && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-100 bg-white p-6 shadow-modal animate-in zoom-in-95 duration-150">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-                <Icon name="warning" className="text-xl" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Unsaved changes</h3>
-                <p className="mt-1 text-sm leading-5 text-slate-500">
-                  This ticket has changes that haven&apos;t been saved yet. Save them before leaving, or discard
-                  the changes.
-                </p>
-              </div>
-            </div>
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant="destructive"
-                size="lg"
-                className="cursor-pointer"
-                disabled={saving}
-                onClick={handleConfirmDiscard}
-              >
-                Discard
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                className="cursor-pointer"
-                disabled={saving}
-                onClick={handleConfirmSave}
-              >
-                {saving ? 'Saving...' : 'Save & Continue'}
-              </Button>
-            </div>
-            <button
-              type="button"
-              className="mt-2 w-full cursor-pointer rounded-xl py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed"
-              disabled={saving}
-              onClick={() => {
-                setConfirmLeave(null)
-                // Modal tertutup tanpa keputusan: bila pemicunya navigasi yang
-                // diblokir, batalkan blokir agar router tidak menggantung.
-                if (blocker.state === 'blocked') blocker.reset()
-              }}
-            >
-              Keep Editing
-            </button>
-          </div>
-        </div>
+        <UnsavedChangesModal
+          saving={saving}
+          onSave={handleConfirmSave}
+          onDiscard={handleConfirmDiscard}
+          onClose={() => {
+            // Modal tertutup tanpa keputusan: bila pemicunya navigasi yang
+            // diblokir, batalkan blokir agar router tidak menggantung.
+            setPendingLeaveAction(null)
+          }}
+        />
       )}
-
       {payOpen && (
         <PaymentModal
           grandTotal={panelMode === 'open' && openOrder ? openOrder.grandTotal : cartSubtotal}

@@ -7,7 +7,7 @@ export type CategoryFilter = 'all' | 'recommended' | 'best-seller' | number
 export type SortOption = 'default' | 'price-asc' | 'price-desc' | 'name-asc'
 
 /** Label pendek utk tombol "Sort: …" sesuai Stitch spec. */
-export const SORT_SHORT_LABEL: Record<SortOption, string> = {
+const SORT_SHORT_LABEL: Record<SortOption, string> = {
   default: 'Popular',
   'price-asc': 'Price ↑',
   'price-desc': 'Price ↓',

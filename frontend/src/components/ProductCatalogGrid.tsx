@@ -208,5 +208,3 @@ export default function ProductCatalogGrid({
     </div>
   )
 }
-
-export { categoryGlyph }
