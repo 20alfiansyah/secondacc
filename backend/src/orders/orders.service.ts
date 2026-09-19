@@ -17,6 +17,9 @@ import {
 } from './financial.calculator';
 import { buildInvoice, dailyPrefix, extractSequence, toDateKey } from './invoice.generator';
 
+/** Format tanggal yang diterima filter history (YYYY-MM-DD). */
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 export interface OpenBillItemInput {
   productId: number;
   quantity: number;
@@ -295,20 +298,25 @@ export class OrdersService {
     try {
       return await this.checkoutInTx(id, input);
     } catch (err) {
-      if (err instanceof InsufficientPaymentError) {
-        throw new BadRequestException({
-          code: 'INSUFFICIENT_PAYMENT',
-          message: err.message,
-        });
-      }
-      if (err instanceof InvalidMoneyInputError) {
-        throw new BadRequestException({
-          code: 'INVALID_MONEY_INPUT',
-          message: err.message,
-        });
-      }
-      throw err;
+      throw this.mapCheckoutError(err);
     }
+  }
+
+  /** Terjemahkan error kalkulasi finansial ke HTTP 400 yang konsisten. */
+  private mapCheckoutError(err: unknown): unknown {
+    if (err instanceof InsufficientPaymentError) {
+      return new BadRequestException({
+        code: 'INSUFFICIENT_PAYMENT',
+        message: err.message,
+      });
+    }
+    if (err instanceof InvalidMoneyInputError) {
+      return new BadRequestException({
+        code: 'INVALID_MONEY_INPUT',
+        message: err.message,
+      });
+    }
+    return err;
   }
 
   private async checkoutInTx(id: number, input: CheckoutInput) {
@@ -396,7 +404,6 @@ export class OrdersService {
 
   /** GET /api/orders/history — transaksi PAID dgn filter tanggal & search. */
   async history(query: { from?: string; to?: string; search?: string }) {
-    const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
     if ((query.from && !DATE_RE.test(query.from)) || (query.to && !DATE_RE.test(query.to))) {
       throw new BadRequestException({
         code: 'INVALID_DATE_FORMAT',
