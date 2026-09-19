@@ -14,8 +14,10 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: cafe_pos
+          # Trust auth: kredensial tak relevan di container CI ephemeral,
+          # sekaligus menghindari false positive "hardcoded password" GitGuardian.
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -27,12 +29,10 @@ jobs:
       run:
         working-directory: backend
     env:
-      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/cafe_pos?schema=public
+      DATABASE_URL: postgresql://postgres@127.0.0.1:5432/cafe_pos?schema=public
       JWT_SECRET: ci_only_secret_min_16_chars
       SEED_ADMIN_USERNAME: admin
-      SEED_ADMIN_PASSWORD: ci-admin-password
       SEED_CASHIER_USERNAME: kasir1
-      SEED_CASHIER_PASSWORD: ci-kasir123
     steps:
       - uses: actions/checkout@v4
 
@@ -41,6 +41,11 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: backend/package-lock.json
+
+      - name: Generate ephemeral seed credentials
+        run: |
+          echo "SEED_ADMIN_PASSWORD=ci-$(openssl rand -hex 12)" >> "$GITHUB_ENV"
+          echo "SEED_CASHIER_PASSWORD=ci-$(openssl rand -hex 12)" >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: npm ci
