@@ -28,7 +28,6 @@ export interface OpenBillItemInput {
 
 export interface OpenBillInput {
   orderType: OrderType;
-  tableId?: number;
   customerName: string;
   customerGender?: 'L' | 'P';
   items: OpenBillItemInput[];
@@ -98,7 +97,6 @@ export class OrdersService {
             data: {
               invoiceNumber,
               orderType: input.orderType,
-              tableId: input.tableId ?? null,
               cashierId,
               customerName,
               customerGender: input.customerGender ?? null,
@@ -107,7 +105,6 @@ export class OrdersService {
               grandTotal,
               orderItems: { create: orderItems },
             },
-            include: { table: true },
           });
 
           return {
@@ -116,7 +113,7 @@ export class OrdersService {
             orderNumber,
             orderType: order.orderType,
             status: order.status,
-            tableNumber: order.table?.tableNumber ?? null,
+            tableNumber: null,
             customerName: order.customerName,
             subtotal: order.subtotal,
             grandTotal: order.grandTotal,
@@ -138,16 +135,24 @@ export class OrdersService {
   private async resolveOrderItems(tx: Tx, items: OpenBillItemInput[]) {
     const productIds = items.map((i) => i.productId);
     const products = await tx.product.findMany({ where: { id: { in: productIds } } });
-    const priceById = new Map(products.map((p) => [p.id, p.price]));
+    const productById = new Map(products.map((p) => [p.id, p]));
 
     const orderItems = items.map((item) => {
-      const price = priceById.get(item.productId);
-      if (price === undefined) {
+      const product = productById.get(item.productId);
+      if (!product) {
         throw new NotFoundException({
           code: 'PRODUCT_NOT_FOUND',
           message: `Produk id ${item.productId} tidak ditemukan`,
         });
       }
+      if (!product.isAvailable) {
+        // Align dengan frontend: produk sold out tidak boleh masuk keranjang.
+        throw new BadRequestException({
+          code: 'PRODUCT_SOLD_OUT',
+          message: `${product.name} sedang sold out`,
+        });
+      }
+      const price = product.price;
       const subtotal = calculateItemSubtotal(item.quantity, price);
       return {
         productId: item.productId,
@@ -247,7 +252,6 @@ export class OrdersService {
       where: { status: OrderStatus.OPEN_BILL },
       include: {
         orderItems: { select: { quantity: true } },
-        table: true,
         cashier: { select: { id: true, name: true } },
       },
       orderBy: { id: 'desc' },
@@ -259,12 +263,11 @@ export class OrdersService {
   }
 
   /** GET /api/orders/:id — rincian lengkap order utk pratinjau struk & reprint
-   *  (items + product name, payment, kasir, meja). Per kontrak 6_API_CONTRACTS. */
+   *  (items + product name, payment, kasir). Per kontrak 6_API_CONTRACTS. */
   async getById(id: number) {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
-        table: true,
         cashier: { select: { id: true, name: true } },
         payment: true,
         orderItems: {
@@ -278,11 +281,13 @@ export class OrdersService {
         message: `Order id ${id} tidak ditemukan`,
       });
     }
-    const { table, cashier, payment, orderItems, ...rest } = order;
+    const { cashier, payment, orderItems, ...rest } = order;
     return {
       ...rest,
-      tableId: table?.id ?? null,
-      tableNumber: table?.tableNumber ?? null,
+      // Kolom table_id sudah dihapus dari DB; field tetap dikirim null agar
+      // kontrak OrderDetail frontend tidak berubah.
+      tableId: null,
+      tableNumber: null,
       cashierName: cashier?.name ?? null,
       payment: payment ?? null,
       items: orderItems.map((i) => ({
@@ -389,7 +394,7 @@ export class OrdersService {
             },
           },
         },
-        include: { cashier: { select: { name: true } }, table: true, payment: true },
+        include: { cashier: { select: { name: true } }, payment: true },
       });
 
       return {
@@ -403,7 +408,7 @@ export class OrdersService {
         changeDue,
         paidAt: updated.payment?.paidAt ?? new Date(),
         cashierName: updated.cashier?.name ?? null,
-        tableNumber: updated.table?.tableNumber ?? null,
+        tableNumber: null,
       };
     });
   }
@@ -450,7 +455,7 @@ export class OrdersService {
   /**
    * PATCH /api/orders/:id/cancel — void order OPEN_BILL (ADMIN saja via
    * RolesGuard). Klaim atomik OPEN_BILL -> CANCELLED mencegah cancel vs
-   * checkout balapan; meja yang masih di-claim ikut dikosongkan.
+   * checkout balapan.
    */
   async cancel(id: number) {
     return this.prisma.$transaction(async (tx) => {
@@ -475,14 +480,6 @@ export class OrdersService {
         });
       }
 
-      // Kosongkan meja bila order melekat pada meja (relasi SetNull hanya
-      // aktif saat order dihapus; order masih ada -> lepas okupansi manual).
-      if (order.tableId !== null) {
-        await tx.table.update({
-          where: { id: order.tableId },
-          data: { isOccupied: false },
-        });
-      }
 
       return { id: order.id, invoiceNumber: order.invoiceNumber, status: OrderStatus.CANCELLED };
     });

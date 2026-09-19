@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { PrismaClient, Role, PaymentCategory } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -120,55 +120,6 @@ async function main() {
     }
   }
   logger.log(`✅ ${productsData.length} Menu kafe berhasil di-seed (Termasuk sample Sold Out)`);
-
-  // 4. SEED TABLES (10 Meja Kafe)
-  for (let i = 1; i <= 10; i++) {
-    const tableNum = `Meja ${i.toString().padStart(2, '0')}`;
-    await prisma.table.upsert({
-      where: { tableNumber: tableNum },
-      update: {},
-      create: {
-        tableNumber: tableNum,
-        qrIdentifier: `tb-${i}-qr-code`,
-        isOccupied: false,
-      },
-    });
-  }
-  logger.log('✅ 10 Meja kafe berhasil di-seed (Meja 01 s/d Meja 10)');
-
-  // 5. SEED PAYMENT CHANNELS
-  const channels = [
-    { name: 'Tunai Laci (Cash)', category: PaymentCategory.CASH },
-    { name: 'Midtrans Dynamic QRIS', category: PaymentCategory.THIRD_PARTY },
-    { name: 'EDC Debit / Kredit BCA', category: PaymentCategory.EDC },
-  ];
-
-  for (const ch of channels) {
-    const existing = await prisma.paymentChannel.findFirst({ where: { name: ch.name } });
-    if (!existing) {
-      await prisma.paymentChannel.create({
-        data: ch,
-      });
-    }
-  }
-  logger.log('✅ 3 Channel pembayaran berhasil di-seed (Cash, Midtrans QRIS, EDC)');
-
-  // 6. SEED MONTHLY TARGET (Bulan September 2026)
-  await prisma.monthlyTarget.upsert({
-    where: {
-      month_year: {
-        month: 9,
-        year: 2026,
-      },
-    },
-    update: {},
-    create: {
-      month: 9,
-      year: 2026,
-      targetAmount: BigInt(50000000), // Rp 50.000.000
-    },
-  });
-  logger.log('✅ Target omset September 2026 di-seed: Rp 50.000.000');
 
   logger.log('🎉 Seeding database selesai 100%!');
 }

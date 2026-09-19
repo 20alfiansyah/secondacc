@@ -41,12 +41,6 @@ export class OpenBillDto {
   @IsEnum(OrderType)
   orderType!: OrderType;
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  tableId?: number;
-
   @IsString()
   @Length(1, 60)
   customerName!: string;

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { CustomerGender, PaymentCategory } from '@/api/client'
+import type { CheckoutInput, CustomerGender, PaymentCategory } from '@/api/client'
 import { formatRupiah } from '@/utils/format'
 import { calculateChange } from '@/utils/financial'
 import { Input } from '@/components/ui/input'
@@ -8,8 +8,6 @@ import Icon from '@/components/ui/Icon'
 
 const QUICK_CASH = [20000, 50000, 100000]
 
-export type PaymentMethod = 'CASH' | 'THIRD_PARTY' | 'EDC'
-
 interface PaymentModalProps {
   grandTotal: number
   itemCount: number
@@ -17,14 +15,11 @@ interface PaymentModalProps {
   /** Gender pelanggan sudah dipilih di panel ORDER DETAIL, bukan di modal. */
   gender: CustomerGender | null
   submitting: boolean
-  onSubmit: (payload: {
-    customerGender: CustomerGender
-    payment: { category: PaymentCategory; methodName: string; amountPaid: number }
-  }) => void
+  onSubmit: (payload: CheckoutInput) => void
   onClose: () => void
 }
 
-const METHOD_META: { key: PaymentMethod; label: string; icon: string }[] = [
+const METHOD_META: { key: PaymentCategory; label: string; icon: string }[] = [
   { key: 'CASH', label: 'Cash', icon: 'payments' },
   { key: 'THIRD_PARTY', label: 'QRIS / E-Wallet', icon: 'qr_code_2' },
   { key: 'EDC', label: 'EDC / Card', icon: 'credit_card' },
@@ -39,8 +34,9 @@ export default function PaymentModal({
   onSubmit,
   onClose,
 }: PaymentModalProps) {
-  const [method, setMethod] = useState<PaymentMethod>('CASH')
-  const [selectedMethodName, setSelectedMethodName] = useState('Cash')
+  const [method, setMethod] = useState<PaymentCategory>('CASH')
+  // Label metode non-tunai yang dikirim ke backend ('QRIS / E-Wallet' / 'EDC / Card').
+  const [methodName, setMethodName] = useState('QRIS / E-Wallet')
   const [cash, setCash] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
 
@@ -83,7 +79,9 @@ export default function PaymentModal({
       }
       onSubmit({
         customerGender: gender,
-        payment: { category: 'CASH', methodName: 'Cash', amountPaid },
+        paymentCategory: 'CASH',
+        methodName: 'Cash',
+        amountPaid,
       })
       return
     }
@@ -91,7 +89,9 @@ export default function PaymentModal({
     // Non-tunai: bayar penuh.
     onSubmit({
       customerGender: gender,
-      payment: { category: method, methodName: selectedMethodName, amountPaid: grandTotal },
+      paymentCategory: method,
+      methodName,
+      amountPaid: grandTotal,
     })
   }
 
@@ -140,7 +140,7 @@ export default function PaymentModal({
                   onClick={() => {
                     setMethod(m.key)
                     // Rekam label UTUH ('QRIS / E-Wallet'), bukan kata pertama.
-                    setSelectedMethodName(m.label)
+                    setMethodName(m.label)
                   }}
                   className={cn(
                     'flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-semibold transition-all duration-150 active:scale-95',

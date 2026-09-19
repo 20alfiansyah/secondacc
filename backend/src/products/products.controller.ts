@@ -29,8 +29,8 @@ export class ProductsController {
     return this.productsService.findAll(filter).then((data) => ({ success: true, data }));
   }
 
-  // Sold out / tersedia = urusan menu & stok: ADMIN atau INVENTORY.
-  @Roles(Role.ADMIN, Role.INVENTORY)
+  // Sold out / tersedia = urusan menu & stok: ADMIN saja.
+  @Roles(Role.ADMIN)
   @Patch(':id/toggle-availability')
   async toggleAvailability(@Param('id', ParseIntPipe) id: number) {
     const data = await this.productsService.toggleAvailability(id);

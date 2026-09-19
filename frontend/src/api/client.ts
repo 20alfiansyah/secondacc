@@ -102,8 +102,22 @@ export interface Category {
   activeProductCount: number
 }
 
+/** Bentuk mentah produk dari backend (relasi `category` dibawa sebagai objek). */
+interface RawProduct {
+  id: number
+  name: string
+  price: number
+  categoryId: number
+  category?: { name: string } | null
+  description: string | null
+  imageUrl: string | null
+  isAvailable: boolean
+  isRecommended?: boolean
+  isBestSeller?: boolean
+}
+
 /** Normalisasi produk ke bentuk frontend (category.name -> categoryName, dsb). */
-function toProduct(raw: any): Product {
+function toProduct(raw: RawProduct): Product {
   return {
     id: raw.id,
     name: raw.name,
@@ -131,7 +145,7 @@ export async function fetchProducts(params?: {
   isRecommended?: boolean
   isBestSeller?: boolean
 }): Promise<Product[]> {
-  const { data } = await api.get<ListResponse<any[]>>('/products', { params })
+  const { data } = await api.get<ListResponse<RawProduct[]>>('/products', { params })
   return (data.data ?? []).map(toProduct)
 }
 
@@ -151,8 +165,6 @@ export interface OpenBillItemInput {
 
 export interface OpenBillResult {
   orderId: number
-  /** Alias orderId — bukti kompatibilitas utk POS rewrite (lihat blok kompat di bawah). */
-  id: number
   invoiceNumber: string
   orderNumber: string
   orderType: OrderType
@@ -181,7 +193,7 @@ export interface OrderSummary {
 
 /** GET /api/orders/active — seluruh order OPEN_BILL. */
 export async function fetchActiveOrders(): Promise<OrderSummary[]> {
-  const { data } = await api.get<ListResponse<any[]>>('/orders/active')
+  const { data } = await api.get<ListResponse<RawOrder[]>>('/orders/active')
   return (data.data ?? []).map(toOrderSummary)
 }
 
@@ -191,7 +203,7 @@ export async function fetchOrderHistory(params?: {
   to?: string
   search?: string
 }): Promise<OrderSummary[]> {
-  const { data } = await api.get<ListResponse<any[]>>('/orders/history', { params })
+  const { data } = await api.get<ListResponse<RawOrder[]>>('/orders/history', { params })
   return (data.data ?? []).map(toOrderSummary)
 }
 
@@ -201,7 +213,25 @@ export async function fetchOrderDetail(orderId: number): Promise<OrderDetail> {
   return data.data
 }
 
-function toOrderSummary(raw: any): OrderSummary {
+/** Bentuk mentah order dari backend (list aktif / riwayat / detail). */
+interface RawOrder {
+  id: number
+  invoiceNumber: string
+  orderType: OrderType
+  status: OrderStatus
+  customerName?: string | null
+  customerGender?: CustomerGender | null
+  subtotal: number
+  grandTotal: number
+  tableNumber?: string | null
+  itemCount?: number
+  orderItems?: unknown[]
+  _count?: { orderItems?: number }
+  createdAt: string
+  payment?: { methodName: string } | null
+}
+
+function toOrderSummary(raw: RawOrder): OrderSummary {
   return {
     id: raw.id,
     invoiceNumber: raw.invoiceNumber,
@@ -211,7 +241,7 @@ function toOrderSummary(raw: any): OrderSummary {
     customerGender: raw.customerGender ?? null,
     subtotal: raw.subtotal,
     grandTotal: raw.grandTotal,
-    tableNumber: raw.table?.tableNumber ?? null,
+    tableNumber: raw.tableNumber ?? null,
     // Backend /orders/active menghitung itemCount = TOTAL qty (jumlah item, bukan
     // jumlah baris). Pakai field tsb bila tersedia; fallback lama utk endpoint lain.
     itemCount:
@@ -227,30 +257,23 @@ function toOrderSummary(raw: any): OrderSummary {
 
 /** POST /api/orders/open-bill — simpan order baru berstatus OPEN_BILL. */
 export async function openBillRequest(payload: {
-  orderType?: OrderType
+  orderType: OrderType
   customerName?: string
   customerGender?: CustomerGender
-  tableId?: number
   items: OpenBillItemInput[]
 }): Promise<OpenBillResult> {
-  // Default DINE_IN bila orderType tidak dikirim (POS legacy masih menyimpan
-  // per-meja; field orderType akan diisi penuh di Task 1.3.4+).
-  const body = {
-    orderType: payload.orderType ?? 'DINE_IN',
+  const { data } = await api.post<ListResponse<OpenBillResult>>('/orders/open-bill', {
+    orderType: payload.orderType,
     customerName: payload.customerName,
     customerGender: payload.customerGender ?? undefined,
-    tableId: payload.tableId ?? undefined,
     items: payload.items,
-  }
-  const { data } = await api.post<ListResponse<OpenBillResult>>('/orders/open-bill', body)
-  return { ...data.data, id: data.data.orderId }
+  })
+  return data.data
 }
 
 /** Hasil PUT /orders/:id/items — ringkasan order yang sudah diperbarui. */
 export interface UpdateOrderItemsResult {
   orderId: number
-  /** Alias orderId. */
-  id: number
   invoiceNumber: string
   orderType: OrderType
   status: OrderStatus
@@ -273,24 +296,14 @@ export async function updateOrderItemsRequest(
     customerGender: payload.customerGender ?? undefined,
     items: payload.items,
   })
-  return { ...data.data, id: data.data.orderId }
+  return data.data
 }
 
 export interface CheckoutInput {
-  customerGender?: CustomerGender
-  /** Backend PRD TIDAK menyimpan customerName saat checkout (sudah di set saat
-   *  open-bill). Field ini diterima utk kompatibilitas POS legacy; diabaikan. */
-  customerName?: string
+  customerGender: CustomerGender
   paymentCategory: PaymentCategory
   methodName: string
   amountPaid: number
-}
-
-/** Bentuk legacy yang dikirim POS lama (nested `payment`). */
-export interface LegacyCheckoutPayload {
-  customerName?: string
-  customerGender?: CustomerGender
-  payment: { category: PaymentCategory; methodName: string; amountPaid: number }
 }
 
 export interface CheckoutResult {
@@ -322,30 +335,21 @@ export interface CheckoutResult {
 /** POST /api/orders/:id/checkout — selesaikan pembayaran order OPEN_BILL. */
 export async function checkoutRequest(
   orderId: number,
-  payload: CheckoutInput | LegacyCheckoutPayload,
+  payload: CheckoutInput,
 ): Promise<CheckoutResult> {
-  // Normalisasi bentuk legacy (nested `payment`) ke bentuk flat backend PRD.
-  const flat: CheckoutInput = 'payment' in payload
-    ? {
-        customerGender: payload.customerGender,
-        paymentCategory: payload.payment.category,
-        methodName: payload.payment.methodName,
-        amountPaid: payload.payment.amountPaid,
-      }
-    : payload
   const { data } = await api.post<ListResponse<CheckoutResult>>(
     `/orders/${orderId}/checkout`,
-    flat,
+    payload,
   )
   const result = data.data
-  // Enrich data flat backend -> bentuk yang diterima ReceiptModal legacy.
+  // Enrich data flat backend -> bentuk yang diterima ReceiptModal.
   return {
     ...result,
     items: result.items ?? [],
     payment: result.payment ?? {
-      category: flat.paymentCategory,
-      methodName: flat.methodName,
-      amountPaid: flat.amountPaid,
+      category: payload.paymentCategory,
+      methodName: payload.methodName,
+      amountPaid: payload.amountPaid,
       changeDue: result.changeDue ?? 0,
       paidAt: result.paidAt ?? null,
     },

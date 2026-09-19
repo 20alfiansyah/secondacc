@@ -12,6 +12,7 @@ import {
 } from '@/api/client'
 import type {
   Category,
+  CheckoutInput,
   CheckoutResult,
   CustomerGender,
   OpenBillItemInput,
@@ -21,9 +22,8 @@ import type {
   UpdateOrderItemsResult,
 } from '@/api/client'
 import { useAuthStore } from '@/store/authStore'
-import { useCartStore } from '@/store/cartStore'
-import type { CartItem } from '@/store/cartStore'
-import { formatRupiah } from '@/utils/format'
+import { useCartStore, type CartItem } from '@/store/cartStore'
+import { formatOrderLabel, formatRupiah } from '@/utils/format'
 import { cn } from '@/lib/utils'
 
 import Icon from '@/components/ui/Icon'
@@ -41,8 +41,9 @@ import ProductCatalogGrid from '@/components/ProductCatalogGrid'
 import ReceiptModal from '@/components/ReceiptModal'
 import TopBar from '@/components/TopBar'
 import UnsavedChangesModal from '@/components/UnsavedChangesModal'
-
 const PANEL_TOGGLE_EVENT = 'cafe_pos:toggle-panel'
+/** Persistensi collapsed/expanded panel order kanan. */
+const PANEL_COLLAPSED_KEY = 'cafe_pos_panel_collapsed'
 
 export default function POS() {
   const { items, increase, decrease, addItem, setNotes, setQuantity, removeItem, clear } = useCartStore()
@@ -87,7 +88,7 @@ export default function POS() {
   // Panel kanan bisa diciutkan jadi rail vertikal (persist localStorage)
   const [panelCollapsed, setPanelCollapsed] = useState(() => {
     try {
-      return localStorage.getItem('cafe_pos_panel_collapsed') === 'true'
+      return localStorage.getItem(PANEL_COLLAPSED_KEY) === 'true'
     } catch {
       return false
     }
@@ -97,7 +98,7 @@ export default function POS() {
     setPanelCollapsed((prev) => {
       const next = !prev
       try {
-        localStorage.setItem('cafe_pos_panel_collapsed', String(next))
+        localStorage.setItem(PANEL_COLLAPSED_KEY, String(next))
       } catch {
         // ignore
       }
@@ -355,6 +356,17 @@ export default function POS() {
     })
   }
 
+  /** Simpan editan tiket open-bill ke server (full replace items + meta). */
+  async function persistOpenTicket(order: OrderSummary): Promise<UpdateOrderItemsResult> {
+    const updated = await updateOrderItemsRequest(order.id, {
+      customerName: customerName.trim(),
+      customerGender: customerGender ?? undefined,
+      items: itemsPayload(),
+    })
+    applyUpdatedOrder(updated)
+    return updated
+  }
+
   // ---- Save: order baru -> open bill baru; tiket lama -> update items ----
   async function handleSaveOpenBill() {
     if (!customerName.trim()) {
@@ -369,12 +381,7 @@ export default function POS() {
     setFeedback(null)
     try {
       if (panelMode === 'open' && openOrder) {
-        const updated = await updateOrderItemsRequest(openOrder.id, {
-          customerName: customerName.trim(),
-          customerGender: customerGender ?? undefined,
-          items: itemsPayload(),
-        })
-        applyUpdatedOrder(updated)
+        const updated = await persistOpenTicket(openOrder)
         showFeedback(`Order ${updated.invoiceNumber} updated.`)
       } else {
         const saved = await openBillRequest({
@@ -430,12 +437,7 @@ export default function POS() {
       setSaving(true)
       setFeedback(null)
       try {
-        const updated = await updateOrderItemsRequest(openOrder.id, {
-          customerName: customerName.trim(),
-          customerGender: customerGender ?? undefined,
-          items: itemsPayload(),
-        })
-        applyUpdatedOrder(updated)
+        await persistOpenTicket(openOrder)
         await loadData()
       } catch {
         showFeedback('Failed to update the order before payment. Please try again.', true)
@@ -448,10 +450,7 @@ export default function POS() {
   }
 
   // ---- Bayar (create-then-pay untuk order baru / langsung bayar order open) ----
-  async function handleCheckout(payload: {
-    customerGender: CustomerGender
-    payment: { category: 'CASH' | 'THIRD_PARTY' | 'EDC'; methodName: string; amountPaid: number }
-  }) {
+  async function handleCheckout(payload: CheckoutInput) {
     setSubmittingPayment(true)
     try {
       let orderId: number
@@ -469,23 +468,18 @@ export default function POS() {
           setSubmittingPayment(false)
           return
         }
-        const itemsPayload: OpenBillItemInput[] = items.map((i) => ({
-          productId: i.product.id,
-          quantity: i.quantity,
-          notes: i.notes?.trim() ? i.notes : undefined,
-        }))
         const created = await openBillRequest({
           orderType,
           customerName: customerName.trim(),
           customerGender: customerGender ?? undefined,
-          items: itemsPayload,
+          items: itemsPayload(),
         })
-        orderId = created.id
+        orderId = created.orderId
         // Adopt tiket baru SEGERA: bila checkout gagal, retry memakai orderId
         // yang sama (tidak membuat tiket duplikat di server).
         setPanelMode('open')
         setOpenOrder({
-          id: created.id,
+          id: created.orderId,
           invoiceNumber: created.invoiceNumber,
           orderType: created.orderType,
           status: created.status,
@@ -501,10 +495,7 @@ export default function POS() {
         setTicketMetaJson(metaSnapshot())
       }
 
-      const done = await checkoutRequest(orderId, {
-        customerGender: payload.customerGender,
-        payment: payload.payment,
-      })
+      const done = await checkoutRequest(orderId, payload)
       setPayOpen(false)
       setOpenOrder(null)
       setPanelMode('new')
@@ -693,7 +684,7 @@ export default function POS() {
                 )}
                 title={panelMode === 'open' ? 'Active Ticket' : 'New Ticket'}
               >
-                {panelMode === 'open' && openOrder ? `#${String(openOrder.id).padStart(3, '0')}` : 'NEW'}
+                {panelMode === 'open' && openOrder ? formatOrderLabel(openOrder.id) : 'NEW'}
               </div>
               <button
                 type="button"

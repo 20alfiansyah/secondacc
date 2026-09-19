@@ -44,7 +44,6 @@ describe('OrdersService (ACID & finansial server-side)', () => {
     subtotal: 50000,
     grandTotal: 50000,
     cashier: { id: 2, name: 'Siti' },
-    table: null,
     orderItems: [{ productId: 10, quantity: 2, unitPrice: 25000, subtotal: 50000 }],
   };
 
@@ -158,6 +157,21 @@ describe('OrdersService (ACID & finansial server-side)', () => {
       }, 1);
       expect(tx.order.create.mock.calls[0][0].data.customerGender).toBe('L');
     });
+    it('menolak produk sold out saat open bill', async () => {
+      await setup({
+        'product.findMany': () => Promise.resolve([{ ...productA, isAvailable: false }, productB]),
+      });
+      await expect(
+        service.openBill(
+          {
+            orderType: OrderType.DINE_IN,
+            customerName: 'Rian',
+            items: [{ productId: 10, quantity: 1 }],
+          },
+          1,
+        ),
+      ).rejects.toThrow('Kopi Susu Gula Aren sedang sold out');
+    });
   });
 
 
@@ -225,6 +239,15 @@ describe('OrdersService (ACID & finansial server-side)', () => {
       await expect(
         service.updateItems(45, { items: [{ productId: 999, quantity: 1 }] }),
       ).rejects.toThrow();
+    });
+    it('menolak produk sold out saat update items', async () => {
+      await setup({
+        'order.findUnique': () => Promise.resolve(openOrder),
+        'product.findMany': () => Promise.resolve([{ ...productB, isAvailable: false }]),
+      });
+      await expect(
+        service.updateItems(45, { items: [{ productId: 15, quantity: 1 }] }),
+      ).rejects.toThrow('Lychee Splash sedang sold out');
     });
   });
 

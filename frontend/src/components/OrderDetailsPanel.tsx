@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { CustomerGender, OrderType, Product } from '@/api/client'
 import { cn } from '@/lib/utils'
-import { formatRupiah } from '@/utils/format'
+import { formatOrderLabel, formatRupiah } from '@/utils/format'
 import Icon from '@/components/ui/Icon'
 import EmptyState from '@/components/ui/EmptyState'
 import { resolveProductImage } from '@/utils/productImage'
@@ -50,10 +50,6 @@ function formatDateTime(iso: string | null): string {
     hour: '2-digit',
     minute: '2-digit',
   })
-}
-
-function padOrder(id: number): string {
-  return `#${String(id).padStart(3, '0')}`
 }
 
 /* Inline stroke SVG (Stitch spec screen3) */
@@ -223,7 +219,7 @@ export default function OrderDetailsPanel({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="font-display text-sm font-bold tracking-tight text-slate-900">
-                  Ticket {padOrder(orderNumber!)}
+                  Ticket {formatOrderLabel(orderNumber!)}
                 </span>
                 <span className="text-xs text-slate-300">•</span>
                 <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
