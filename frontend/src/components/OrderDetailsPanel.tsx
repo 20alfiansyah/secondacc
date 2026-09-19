@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { formatRupiah } from '@/utils/format'
 import Icon from '@/components/ui/Icon'
 import EmptyState from '@/components/ui/EmptyState'
+import { resolveProductImage } from '@/components/ProductCatalogGrid'
 
 export interface OrderLine {
   id: string
@@ -375,14 +376,20 @@ export default function OrderDetailsPanel({
                   key={line.id}
                   className="group space-y-2.5 rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-xs transition hover:border-[#447C84]"
                 >
-                  {/* Header row: nama + @price kiri, tombol hapus kanan */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
+                  {/* Header row: thumbnail + nama + harga satuan kiri, tombol hapus kanan */}
+                  <div className="flex items-start gap-2.5">
+                    <img
+                      src={resolveProductImage(line.product)}
+                      alt={line.product.name}
+                      loading="lazy"
+                      className="h-11 w-11 shrink-0 rounded-lg border border-slate-200/80 object-cover object-center"
+                    />
+                    <div className="min-w-0 flex-1">
                       <h4 className="text-xs font-bold leading-tight text-slate-900">
                         {line.product.name}
                       </h4>
                       <p className="mt-0.5 text-[11px] tabular-nums text-slate-400">
-                        @ {formatRupiah(line.product.price)}
+                        {formatRupiah(line.product.price)} / item
                       </p>
                     </div>
                     <button
