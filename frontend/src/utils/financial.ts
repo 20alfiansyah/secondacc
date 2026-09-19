@@ -19,8 +19,3 @@ export function calculateChange(grandTotal: number, amountPaid: number): number 
   }
   return amountPaid - grandTotal
 }
-
-/** Jumlah uang bulat agar pembayaran >= total (tombol "uang pas"). */
-export function exactPayment(total: number): number {
-  return total
-}

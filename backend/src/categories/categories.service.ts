@@ -10,7 +10,7 @@ export class CategoriesService {
       include: {
         products: {
           where: { isAvailable: true },
-          select: { id: true, isAvailable: true },
+          select: { id: true },
         },
       },
       orderBy: { name: 'asc' },
@@ -20,8 +20,7 @@ export class CategoriesService {
       id: c.id,
       name: c.name,
       slug: c.slug,
-      // Hitung hanya produk dengan isAvailable=true (defensif terhadap hasil query)
-      activeProductCount: c.products.filter((p) => p.isAvailable).length,
+      activeProductCount: c.products.length,
     }));
   }
 }

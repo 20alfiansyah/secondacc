@@ -10,7 +10,6 @@ generator client {
 enum Role {
   ADMIN
   CASHIER
-  INVENTORY
 }
 
 enum Gender {
@@ -49,18 +48,6 @@ model User {
   @@map("users")
 }
 
-model Table {
-  id           Int      @id @default(autoincrement())
-  tableNumber  String   @unique @map("table_number")
-  qrIdentifier String   @unique @default(uuid()) @map("qr_identifier")
-  isOccupied   Boolean  @default(false) @map("is_occupied")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  orders Order[]
-
-  @@map("tables")
-}
-
 model Category {
   id       Int       @id @default(autoincrement())
   name     String
@@ -92,7 +79,6 @@ model Order {
   id             Int         @id @default(autoincrement())
   invoiceNumber  String      @unique @map("invoice_number")
   orderType      OrderType   @default(DINE_IN) @map("order_type")
-  tableId        Int?        @map("table_id") // Nullable: opsional untuk Take Away atau Dine In walk-in
   cashierId      Int         @map("cashier_id")
   customerName   String?     @map("customer_name")
   customerGender Gender?     @map("customer_gender")
@@ -102,14 +88,12 @@ model Order {
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
-  table      Table?      @relation(fields: [tableId], references: [id], onDelete: SetNull)
   cashier    User        @relation(fields: [cashierId], references: [id])
   orderItems OrderItem[]
   payment    Payment?
 
   @@index([createdAt])
   @@index([status])
-  @@index([tableId])
   @@map("orders")
 }
 
@@ -142,23 +126,3 @@ model Payment {
   @@map("payments")
 }
 
-model MonthlyTarget {
-  id           Int      @id @default(autoincrement())
-  month        Int
-  year         Int
-  targetAmount BigInt   @map("target_amount")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  @@unique([month, year])
-  @@map("monthly_targets")
-}
-
-model PaymentChannel {
-  id       Int             @id @default(autoincrement())
-  name     String
-  category PaymentCategory
-  isActive Boolean         @default(true) @map("is_active")
-
-  @@map("payment_channels")
-}

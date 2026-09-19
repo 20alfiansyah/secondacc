@@ -4,14 +4,6 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 
-// BigInt tidak punya toJSON bawaan — perluas prototipe agar JSON.stringify
-// mengembalikan number (uang rupiah selalu integer aman JSON).
-type BigIntWithToJSON = { toJSON: (this: bigint) => number };
-const bigIntProto = BigInt.prototype as unknown as BigIntWithToJSON;
-bigIntProto.toJSON = function (this: bigint) {
-  return Number(this);
-};
-
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 

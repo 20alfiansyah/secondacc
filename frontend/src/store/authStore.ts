@@ -37,13 +37,12 @@ export const useAuthStore = create<AuthState>((set) => {
     },
 
     logout: () => {
-      // Keranjang ikut dibersihkan agar sesi berikutnya tidak mewarisi tiket lama.
+      // Keranjang milik sesi kasir — ikut dibersihkan agar sesi berikutnya
+      // tidak mewarisi tiket lama.
       useCartStore.getState().clear()
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(USER_KEY)
       set({ token: null, user: null })
-      // Keranjang milik sesi kasir — kosongkan saat logout.
-      useCartStore.getState().clear()
     },
   }
 })

@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import {
   Banknote,
+  Calendar,
   Cake,
   Calculator,
   ChartColumn,
@@ -18,7 +19,6 @@ import {
   Croissant,
   CupSoda,
   Flame,
-  KeyRound,
   LayoutDashboard,
   Lock,
   LogOut,
@@ -37,6 +37,7 @@ import {
   SlidersHorizontal,
   Star,
   Store,
+  Trash2,
   Utensils,
   UtensilsCrossed,
   User,
@@ -52,19 +53,17 @@ import { cn } from '@/lib/utils'
  * Ukuran ikon mengikuti font-size lewat `.icon-inline` (width/height: 1em),
  * warna mengikuti `currentColor` — jadi call site lama (text-lg, text-[20px],
  * text-[#447C84], dst.) tidak perlu diubah.
- *
- * `filled` dipertahankan demi kompatibilitas API (stroke-width lebih tebal).
  */
 const MAP: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
   add: Plus,
   add_shopping_cart: ShoppingCart,
   analytics: ChartColumn,
   bolt: Zap,
+  calendar: Calendar,
   check_circle: CircleCheck,
-  chevron_down: ChevronDown,
   chevron_left: ChevronLeft,
   chevron_right: ChevronRight,
-  chevron_up: ChevronUp,
+  clock: Clock,
   close: X,
   cloud_done: CloudCheck,
   coffee: Coffee,
@@ -80,7 +79,6 @@ const MAP: Record<string, ComponentType<{ className?: string; strokeWidth?: numb
   lock: Lock,
   logout: LogOut,
   menu: Menu,
-  password: KeyRound,
   payments: Banknote,
   person: User,
   point_of_sale: Calculator,
@@ -101,25 +99,23 @@ const MAP: Record<string, ComponentType<{ className?: string; strokeWidth?: numb
   storefront: Store,
   sync: RefreshCw,
   takeout_dining: ShoppingBag,
+  trash: Trash2,
   tune: SlidersHorizontal,
-  username: User,
 }
 
 export default function Icon({
   name,
   className,
-  filled = false,
 }: {
   name: string
   className?: string
-  filled?: boolean
 }) {
   const Cmp = MAP[name] ?? CircleAlert
   return (
     <Cmp
       aria-hidden="true"
       className={cn('icon-inline shrink-0', className)}
-      strokeWidth={filled ? 2.5 : 2}
+      strokeWidth={2}
     />
   )
 }
