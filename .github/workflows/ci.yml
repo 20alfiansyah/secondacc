@@ -29,6 +29,10 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/cafe_pos?schema=public
       JWT_SECRET: ci_only_secret_min_16_chars
+      SEED_ADMIN_USERNAME: admin
+      SEED_ADMIN_PASSWORD: ci-admin-password
+      SEED_CASHIER_USERNAME: kasir1
+      SEED_CASHIER_PASSWORD: ci-kasir123
     steps:
       - uses: actions/checkout@v4
 
@@ -46,6 +50,9 @@ jobs:
 
       - name: Push database schema
         run: npx prisma db push --skip-generate
+
+      - name: Seed database (untuk e2e login)
+        run: npm run prisma:seed
 
       - name: Lint
         run: npm run lint
