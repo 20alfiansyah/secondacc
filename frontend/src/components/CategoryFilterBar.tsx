@@ -122,7 +122,7 @@ export default function CategoryFilterBar({
             onSortChange(order[(order.indexOf(sortOption) + 1) % order.length]!)
           }}
           title="Urutkan produk"
-          className="flex flex-shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 shadow-xs transition hover:border-slate-300"
+          className="flex h-10 flex-shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-700 shadow-xs transition hover:border-slate-300"
         >
           <Icon name="tune" className="text-sm text-[#447C84]" />
           <span className="text-[11px] font-medium">Sort: {SORT_SHORT_LABEL[sortOption]}</span>
@@ -130,7 +130,7 @@ export default function CategoryFilterBar({
       </div>
 
       {/* Category pills */}
-      <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
+      <div className="flex flex-wrap items-center gap-1.5">
         {pills.map((pill) => {
           const isActive = activeCategory === pill.value
           return (

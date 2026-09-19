@@ -31,10 +31,19 @@ interface OrderDetailsPanelProps {
   saving: boolean
 }
 
+/** Pecah notes jadi chip terpisah per koma — ditampilkan stacked di item card. */
+function noteChips(notes?: string): string[] {
+  return (notes ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
 const GENDERS: { v: CustomerGender; label: string }[] = [
   { v: 'L', label: 'Male (L)' },
   { v: 'P', label: 'Female (P)' },
 ]
+
 
 function GenderIcon({ value, active }: { value: CustomerGender; active: boolean }) {
   const cls = cn('h-4 w-4', active ? 'text-[#447C84]' : 'text-slate-400')
@@ -164,7 +173,7 @@ export default function OrderDetailsPanel({
               {customerGender && (
                 <div className="flex items-center gap-1 text-[11px] text-slate-400">
                   <GenderIcon value={customerGender} active />
-                  <span>{customerGender === 'L' ? 'Laki-laki' : 'Perempuan'}</span>
+                  <span>{customerGender === 'L' ? 'Male' : 'Female'}</span>
                 </div>
               )}
             </div>
@@ -323,18 +332,19 @@ export default function OrderDetailsPanel({
                     </button>
                   </div>
 
-                      {/* Baris catatan: chip + "+ Edit notes" / "+ Add notes" */}
+                      {/* Baris catatan: chip per note (wrap/stack ke bawah saat banyak) + "+ Edit notes" */}
                       <div className="flex flex-wrap items-center gap-1.5">
-                        {line.notes?.trim() && (
+                        {noteChips(line.notes).map((note, i) => (
                           <button
+                            key={`${note}-${i}`}
                             type="button"
                             onClick={() => onEditItem(line)}
                             title="Edit notes"
-                            className="max-w-[60%] cursor-pointer truncate rounded-md border border-[#b9e2d3] bg-[#edf7f3] px-2 py-0.5 text-[10px] font-medium text-[#2d5258]"
+                            className="cursor-pointer break-words rounded-md border border-[#b9e2d3] bg-[#edf7f3] px-2 py-0.5 text-left text-[10px] font-medium text-[#2d5258]"
                           >
-                            {line.notes}
+                            {note}
                           </button>
-                        )}
+                        ))}
                         <button
                           type="button"
                           onClick={() => onEditItem(line)}
