@@ -555,7 +555,7 @@ export default function POS() {
       />
 
       {/* ===== Zone 2: Scrollable main content ===== */}
-      <main className="flex min-w-0 flex-1 flex-col space-y-4 overflow-y-auto bg-[#F8FAFC] p-4">
+      <main className="flex min-w-0 flex-1 flex-col space-y-4 overflow-y-auto bg-[#F8FAFC] p-4 pb-24 lg:pb-4">
         <TopBar page="Register" />
         {/* Feedback Banner */}
         {feedback && (
@@ -579,7 +579,7 @@ export default function POS() {
         />
 
         {/* ===== Menu Catalog section (flex-1, grid scroll di dalam) ===== */}
-        <section className="flex min-h-0 flex-1 flex-col space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="flex flex-col space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:min-h-0 lg:flex-1">
           {/* Header band */}
           <div className="flex flex-shrink-0 items-center justify-between pb-1">
             <div className="flex items-center gap-3">
@@ -624,7 +624,7 @@ export default function POS() {
 
 
           {/* Grid produk + header per kategori */}
-          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto pr-1">
+          <div className="space-y-6 pr-1 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             {loading ? (
               <div className="flex h-64 flex-col items-center justify-center gap-2 text-slate-400">
                 <Icon name="coffee" className="animate-bounce text-3xl text-[#447C84]/60" />
@@ -767,7 +767,7 @@ export default function POS() {
       <div className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between border-t border-slate-200/80 bg-white/95 px-4 py-3 shadow-modal backdrop-blur-md lg:hidden">
         <div>
           <span className="text-xs font-bold text-slate-500">
-            {customerName.trim() || 'No name yet'}
+            {customerName.trim() || 'Walk-in'}
           </span>
           <p className="text-base font-black tabular-nums text-[#447C84]">
             {formatRupiah(cartSubtotal)}
@@ -789,14 +789,14 @@ export default function POS() {
       {mobileCartOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60 backdrop-blur-sm lg:hidden animate-in fade-in duration-200">
           <div className="flex max-h-[90vh] w-full flex-col rounded-t-3xl border-t border-slate-200/80 bg-white p-5 shadow-modal animate-in slide-in-from-bottom duration-200">
-            <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Icon name="receipt_long" className="text-lg text-[#447C84]" />
-                <h2 className="text-base font-bold text-slate-900">Order Details</h2>
-              </div>
+            {/* Grabber + close — judul dari OrderDetailsPanel saja, tidak diduplikasi di sini */}
+            <div className="relative mb-2 flex h-6 shrink-0 items-center justify-center">
+              <span className="h-1.5 w-10 rounded-full bg-slate-200" />
               <button
+                type="button"
                 onClick={() => setMobileCartOpen(false)}
-                className="flex h-11 w-11 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                aria-label="Close order details"
+                className="absolute right-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
               >
                 <Icon name="close" className="text-lg" />
               </button>
