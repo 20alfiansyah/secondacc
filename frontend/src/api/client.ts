@@ -385,3 +385,40 @@ export interface OrderDetail {
     paidAt: string | null
   } | null
 }
+
+// ===== Payment Channels (Fase 2.3) =====
+
+export interface PaymentChannel {
+  id: number
+  name: string
+  category: PaymentCategory
+  isActive: boolean
+}
+
+/** GET /api/payment-channels — daftar channel (opsional filter isActive). */
+export async function fetchPaymentChannels(params?: {
+  isActive?: boolean
+}): Promise<PaymentChannel[]> {
+  const { data } = await api.get<ListResponse<PaymentChannel[]>>('/payment-channels', { params })
+  return (data.data ?? []).map((raw): PaymentChannel => ({
+    id: raw.id,
+    name: raw.name,
+    category: raw.category,
+    isActive: raw.isActive ?? true,
+  }))
+}
+
+/** POST /api/payment-channels — buat channel baru (admin). */
+export async function createPaymentChannel(payload: {
+  name: string
+  category: PaymentCategory
+}): Promise<PaymentChannel> {
+  const { data } = await api.post<ListResponse<PaymentChannel>>('/payment-channels', payload)
+  return data.data
+}
+
+/** PATCH /api/payment-channels/:id/toggle — aktif/nonaktifkan channel (admin). */
+export async function togglePaymentChannel(id: number): Promise<PaymentChannel> {
+  const { data } = await api.patch<ListResponse<PaymentChannel>>(`/payment-channels/${id}/toggle`)
+  return data.data
+}
