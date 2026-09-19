@@ -7,6 +7,9 @@ import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
 import { CategoriesModule } from './categories/categories.module';
 import { OrdersModule } from './orders/orders.module';
+import { UsersModule } from './users/users.module';
+import { PaymentChannelsModule } from './payment-channels/payment-channels.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -18,6 +21,9 @@ import { OrdersModule } from './orders/orders.module';
     ProductsModule,
     CategoriesModule,
     OrdersModule,
+    UsersModule,
+    PaymentChannelsModule,
+    UploadsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
