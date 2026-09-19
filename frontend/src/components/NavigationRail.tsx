@@ -46,8 +46,8 @@ const COLLAPSE_KEY = 'cafe_pos_sidebar_collapsed'
 export const SIDEBAR_TOGGLE_EVENT = 'cafe_pos:toggle-sidebar'
 
 /**
- * Collapsible left sidebar (Stitch screen1 markup 1:1): brand header + LIVE
- * badge, nav Cashier Ops / Management & Ops, footer shift row + user card,
+ * Collapsible left sidebar (Stitch screen1 markup 1:1): brand header, nav
+ * Cashier Ops / Management & Ops, footer shift row + user card,
  * floating center toggle. Collapsed state = w-[4.5rem] dengan label tersembunyi.
  */
 export default function NavigationRail({
@@ -176,7 +176,7 @@ export default function NavigationRail({
     >
       <div className="flex flex-col">
 
-      {/* ===== Brand header with logo + LIVE badge ===== */}
+      {/* ===== Brand header with logo ===== */}
       <div
         className={cn(
           'flex h-16 shrink-0 items-center justify-between border-b border-slate-100',
@@ -198,15 +198,6 @@ export default function NavigationRail({
             </div>
           )}
         </div>
-        {!collapsed && (
-          <div
-            className="flex items-center gap-1.5 rounded-full border border-[#65AF92]/40 bg-[#edf7f3] px-2 py-0.5 text-[#2d5258]"
-            title="Online POS System"
-          >
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#65AF92]" />
-            <span className="font-display text-[10px] font-bold uppercase tracking-wider">LIVE</span>
-          </div>
-        )}
       </div>
 
       {/* ===== Navigation groups (spec screen1) ===== */}

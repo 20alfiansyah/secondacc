@@ -143,17 +143,13 @@ export default function MobileNav({
         <Icon name="menu" className="text-[20px]" />
       </button>
 
-      {/* Tengah: brand + LIVE */}
+      {/* Tengah: brand */}
       <div className="flex min-w-0 items-center gap-2">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-800 bg-slate-950 p-0.5">
           <img alt="2ND ACC Logo" className="h-full w-full rounded-md object-contain" src="/favicon.svg" />
         </div>
         <span className="truncate font-display text-sm font-bold tracking-tight text-slate-900">
           2ND ACC
-        </span>
-        <span className="flex items-center gap-1 rounded-full border border-[#65AF92]/40 bg-[#edf7f3] px-1.5 py-0.5">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#65AF92]" />
-          <span className="font-display text-[9px] font-bold uppercase tracking-wider text-[#2d5258]">LIVE</span>
         </span>
       </div>
 
@@ -179,7 +175,7 @@ export default function MobileNav({
             aria-label="Navigation menu"
             className="absolute inset-y-0 left-0 flex w-[270px] max-w-[85vw] flex-col justify-between border-r border-slate-200/80 bg-white shadow-modal animate-in slide-in-from-left duration-200"
           >
-            {/* Header drawer: brand + tombol tutup */}
+            {/* Header drawer: brand (tutup via tap backdrop) */}
             <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-800 bg-slate-950 p-1 shadow-sm">
@@ -193,10 +189,6 @@ export default function MobileNav({
                     Roastery &amp; Coffee
                   </span>
                 </div>
-              </div>
-              <div className="flex items-center gap-1.5 rounded-full border border-[#65AF92]/40 bg-[#edf7f3] px-2 py-0.5 text-[#2d5258]">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#65AF92]" />
-                <span className="font-display text-[10px] font-bold uppercase tracking-wider">LIVE</span>
               </div>
             </div>
 
