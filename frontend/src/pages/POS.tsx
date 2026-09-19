@@ -32,6 +32,7 @@ import PaymentModal from '@/components/PaymentModal'
 import ReceiptModal from '@/components/ReceiptModal'
 import CustomItemModal from '@/components/CustomItemModal'
 import OrderHistoryDrawer from '@/components/OrderHistoryDrawer'
+import MobileNav from '@/components/MobileNav'
 import NavigationRail, { SIDEBAR_TOGGLE_EVENT } from '@/components/NavigationRail'
 import ActiveOrdersLine from '@/components/ActiveOrdersLine'
 import CategoryFilterBar from '@/components/CategoryFilterBar'
@@ -536,9 +537,17 @@ export default function POS() {
   const isNewPanel = panelMode === 'new'
 
   return (
-    <div className="flex h-svh bg-[#F8FAFC] text-slate-900 selection:bg-[#65AF92]/30 selection:text-[#2d5258]">
-      {/* ===== Zone 1: Collapsible sidebar (Stitch screen1) ===== */}
+    <div className="flex h-svh flex-col bg-[#F8FAFC] text-slate-900 selection:bg-[#65AF92]/30 selection:text-[#2d5258] lg:flex-row">
+      {/* ===== Zone 1: Sidebar (desktop ≥lg) / Top bar + drawer (mobile <lg) ===== */}
+      <MobileNav
+        page="Register"
+        onOpenHistory={() => setHistoryOpen(true)}
+        onLockRegister={lockRegister}
+        onFeatureNotice={(msg) => showFeedback(msg)}
+        onSignOut={() => guardUnsaved(logout)}
+      />
       <NavigationRail
+        className="hidden lg:flex"
         onOpenHistory={() => setHistoryOpen(true)}
         onLockRegister={lockRegister}
         onFeatureNotice={(msg) => showFeedback(msg)}

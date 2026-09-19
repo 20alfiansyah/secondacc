@@ -13,6 +13,9 @@ interface NavigationRailProps {
   onFeatureNotice?: (featureName: string) => void
   /** Optional sign-out override — POS wraps it with the unsaved-changes guard. */
   onSignOut?: () => void
+  /** Kelas tambahan di root <aside> (mis. `hidden lg:flex` agar rail
+   *  desktop-only; mobile memakai MobileNav). */
+  className?: string
 }
 
 /** Get name initials (e.g. "Nahid Zaman" -> "NZ", "Siti" -> "S") for the avatar. */
@@ -52,6 +55,7 @@ export default function NavigationRail({
   onLockRegister,
   onFeatureNotice,
   onSignOut,
+  className,
 }: NavigationRailProps) {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
@@ -167,6 +171,7 @@ export default function NavigationRail({
       className={cn(
         'relative z-30 flex h-full shrink-0 select-none flex-col justify-between border-r border-slate-200/80 bg-white transition-all duration-300 ease-in-out',
         collapsed ? 'w-[4.5rem]' : 'w-[240px]',
+        className,
       )}
     >
       <div className="flex flex-col">
