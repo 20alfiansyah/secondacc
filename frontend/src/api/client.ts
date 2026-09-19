@@ -385,3 +385,80 @@ export interface OrderDetail {
     paidAt: string | null
   } | null
 }
+
+// ===== Users (Fase 2.1) =====
+
+/** User staf (ADMIN/CASHIER) hasil GET /api/users — hash password TIDAK pernah dikirim backend. */
+export interface StaffUser {
+  id: number
+  username: string
+  name: string
+  role: Role
+  isActive: boolean
+  /** ISO date string dari backend. */
+  createdAt: string
+}
+
+/** Normalisasi user backend ke bentuk frontend (field opsional -> default). */
+function toStaffUser(raw: Partial<StaffUser> | null | undefined): StaffUser {
+  return {
+    id: Number(raw?.id ?? 0),
+    username: raw?.username ?? '',
+    name: raw?.name ?? '',
+    role: raw?.role === 'ADMIN' ? 'ADMIN' : 'CASHIER',
+    isActive: raw?.isActive ?? false,
+    createdAt: raw?.createdAt ?? '',
+  }
+}
+
+/** Ambil pesan error backend (error.response.data.message) atau fallback generik. */
+function staffApiMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) {
+    const message = err.response?.data?.message
+    if (typeof message === 'string' && message) return message
+  }
+  return fallback
+}
+
+/** GET /api/users — daftar seluruh user staf (admin). */
+export async function fetchUsers(): Promise<StaffUser[]> {
+  try {
+    const { data } = await api.get<ListResponse<Partial<StaffUser>[]>>('/users')
+    return (data.data ?? []).map(toStaffUser)
+  } catch (err) {
+    throw new Error(staffApiMessage(err, 'Gagal memuat daftar staf.'))
+  }
+}
+
+/** POST /api/users — buat akun staf baru (password min 6 char, di-hash bcryptjs backend). */
+export async function createUserRequest(payload: {
+  name: string
+  username: string
+  password: string
+  role: Role
+}): Promise<StaffUser> {
+  try {
+    const { data } = await api.post<ListResponse<StaffUser>>('/users', payload)
+    return toStaffUser(data.data)
+  } catch (err) {
+    throw new Error(staffApiMessage(err, 'Gagal membuat akun staf.'))
+  }
+}
+
+/** PATCH /api/users/:id/password — ganti password staf (newPassword min 6 char). */
+export async function updateUserPasswordRequest(userId: number, newPassword: string): Promise<void> {
+  try {
+    await api.patch(`/users/${userId}/password`, { newPassword })
+  } catch (err) {
+    throw new Error(staffApiMessage(err, 'Gagal mengganti password.'))
+  }
+}
+
+/** PATCH /api/users/:id/toggle-status — aktif/nonaktifkan akun staf (400 CANNOT_DISABLE_SELF utk diri sendiri). */
+export async function toggleUserStatusRequest(userId: number): Promise<void> {
+  try {
+    await api.patch(`/users/${userId}/toggle-status`)
+  } catch (err) {
+    throw new Error(staffApiMessage(err, 'Gagal mengubah status akun.'))
+  }
+}

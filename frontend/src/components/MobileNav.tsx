@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import Icon from '@/components/ui/Icon'
@@ -38,6 +39,7 @@ export default function MobileNav({
   onSignOut,
 }: MobileNavProps) {
   const { user } = useAuthStore()
+  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
   const role = user?.role ?? 'CASHIER'
@@ -84,9 +86,40 @@ export default function MobileNav({
           id: 'dashboard',
           label: 'Dashboard',
           icon: 'dashboard',
+          active: page === 'Dashboard',
           onClick: () => {
             setMenuOpen(false)
-            onFeatureNotice?.('Dashboard is available for Admin accounts.')
+            navigate('/dashboard')
+          },
+        },
+        {
+          id: 'account',
+          label: 'Account',
+          icon: 'manage_accounts',
+          active: page === 'Account',
+          onClick: () => {
+            setMenuOpen(false)
+            navigate('/dashboard/account')
+          },
+        },
+        {
+          id: 'menu',
+          label: 'Menu',
+          icon: 'restaurant_menu',
+          active: page === 'Menu',
+          onClick: () => {
+            setMenuOpen(false)
+            navigate('/dashboard/menu')
+          },
+        },
+        {
+          id: 'payment',
+          label: 'Payment',
+          icon: 'payments',
+          active: page === 'Payment',
+          onClick: () => {
+            setMenuOpen(false)
+            navigate('/dashboard/payment')
           },
         },
         {
