@@ -109,7 +109,7 @@ export default function CustomItemModal({
               <h3 className="truncate font-display text-base font-bold tracking-tight text-slate-900">
                 {product.name}
               </h3>
-              <p className="truncate text-[11px] text-slate-500">
+              <p className="text-[11px] leading-relaxed text-slate-500">
                 {product.description || product.categoryName}
               </p>
               <p className="mt-0.5 text-sm font-bold text-[#447C84]">{formatRupiah(product.price)}</p>
