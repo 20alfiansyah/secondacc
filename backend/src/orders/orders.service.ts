@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus, OrderType, PaymentCategory } from '@prisma/client';
+import { OrderStatus, PaymentCategory } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma as PrismaNS } from '@prisma/client';
 import {
