@@ -13,6 +13,8 @@ interface NavigationRailProps {
   onFeatureNotice?: (featureName: string) => void
   /** Optional sign-out override — POS wraps it with the unsaved-changes guard. */
   onSignOut?: () => void
+  /** Halaman aktif — item nav yang cocok ikut menyala (POS memakai default 'Register'). */
+  page?: string
   /** Kelas tambahan di root <aside> (mis. `hidden lg:flex` agar rail
    *  desktop-only; mobile memakai MobileNav). */
   className?: string
@@ -55,6 +57,7 @@ export default function NavigationRail({
   onLockRegister,
   onFeatureNotice,
   onSignOut,
+  page = 'Register',
   className,
 }: NavigationRailProps) {
   const { user, logout } = useAuthStore()
@@ -123,7 +126,7 @@ export default function NavigationRail({
           id: 'register',
           label: 'Register',
           icon: 'point_of_sale',
-          active: true,
+          active: page === 'Register',
           onClick: () => navigate('/pos'),
         },
         {
@@ -142,7 +145,29 @@ export default function NavigationRail({
           id: 'dashboard',
           label: 'Dashboard',
           icon: 'dashboard',
+          active: page === 'Dashboard',
           onClick: () => navigate('/dashboard'),
+        },
+        {
+          id: 'account',
+          label: 'Account',
+          icon: 'manage_accounts',
+          active: page === 'Account',
+          onClick: () => navigate('/dashboard/account'),
+        },
+        {
+          id: 'menu',
+          label: 'Menu',
+          icon: 'restaurant_menu',
+          active: page === 'Menu',
+          onClick: () => navigate('/dashboard/menu'),
+        },
+        {
+          id: 'payment',
+          label: 'Payment',
+          icon: 'payments',
+          active: page === 'Payment',
+          onClick: () => navigate('/dashboard/payment'),
         },
         {
           id: 'inventory',
