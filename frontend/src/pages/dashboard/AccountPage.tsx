@@ -726,7 +726,7 @@ export default function AccountPage() {
       agar kartu putih + shadow-card kontras di atas bg slate-50. */}
       <div className="space-y-3 sm:hidden">
         {filtered.map((u) => (
-          <Card key={u.id} className="space-y-3 p-4">
+          <Card key={u.id} className="space-y-3 p-4 shadow-md!">
             <div>
               <p className="font-medium text-foreground">
                 {u.name}
