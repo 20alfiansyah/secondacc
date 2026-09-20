@@ -28,7 +28,9 @@ export interface LoginResponse {
  */
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '/api',
-  headers: { 'Content-Type': 'application/json' },
+  // Tanpa Content-Type default — axios set otomatis: multipart dgn boundary utk FormData,
+  // application/json utk object (cookie-crumb: instance-level JSON header mem-blokir multipart upload).
+  headers: {},
 })
 
 /** Request interceptor — auto-attach JWT token dari localStorage ke Authorization. */
