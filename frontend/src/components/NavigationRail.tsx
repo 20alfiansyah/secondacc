@@ -115,8 +115,9 @@ export default function NavigationRail({
   const role = user?.role ?? 'CASHIER'
   const roleLabelText = role === 'ADMIN' ? 'Administrator' : 'Active Cashier'
 
-  // Menu structure 1:1 dengan Stitch screen1 (role gating di route level,
-  // bukan di nav — sesuai desain).
+  // Menu structure 1:1 dengan Stitch screen1. Fase 2.5: grup Management & Ops
+  // hanya tampil untuk ADMIN — kasir tidak melihatnya sama sekali (route level
+  // tetap melakukan gating sendiri).
   const groups: NavGroup[] = [
     {
       id: 'cashier-ops',
@@ -191,6 +192,9 @@ export default function NavigationRail({
     },
   ]
 
+  // Fase 2.5: kasir hanya melihat grup cashier-ops; ADMIN melihat semuanya.
+  const visibleGroups = role === 'ADMIN' ? groups : groups.filter((g) => g.id === 'cashier-ops')
+
   return (
     <aside
       className={cn(
@@ -227,7 +231,7 @@ export default function NavigationRail({
 
       {/* ===== Navigation groups (spec screen1) ===== */}
       <nav className="space-y-1 p-3">
-        {groups.map((group, index) => (
+        {visibleGroups.map((group, index) => (
           <div key={group.id} className={cn('space-y-1', index > 0 && 'pt-3')}>
             {collapsed ? (
               index > 0 && <div className="mx-auto my-2 h-px w-6 bg-slate-200/80" />
