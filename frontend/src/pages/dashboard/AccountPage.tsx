@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import EmptyState from '@/components/ui/EmptyState'
 import { Input } from '@/components/ui/input'
+import PrimaryAction from '@/components/ui/PrimaryAction'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 
@@ -509,8 +510,8 @@ export default function AccountPage() {
         {/* Header: judul + search + CTA tambah akun */}
         <div className="flex flex-col gap-3 border-b border-border/70 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <h1 className="font-display text-lg font-bold text-foreground">Staff Accounts</h1>
-            <p className="text-xs text-muted-foreground">
+            <h1 className="font-display text-base font-bold tracking-tight text-slate-900">Staff Accounts</h1>
+            <p className="text-xs text-slate-400">
               Manage cashier and admin accounts, passwords, and access status.
             </p>
           </div>
@@ -527,10 +528,10 @@ export default function AccountPage() {
                 className="h-9 w-full pl-9 sm:w-60"
               />
             </div>
-            <Button onClick={() => setAddOpen(true)} className="h-9 shrink-0 font-display text-xs font-bold">
-              <Icon name="person_add" className="text-base" />
+            <PrimaryAction onClick={() => setAddOpen(true)}>
+              <Icon name="person_add" className="text-sm" />
               Add Staff
-            </Button>
+            </PrimaryAction>
           </div>
         </div>
 
