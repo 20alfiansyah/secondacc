@@ -331,7 +331,7 @@ function ProductActions({
         <Icon name="sync" className={cn('text-[15px]', toggling && 'animate-spin')} />
         {product.isAvailable ? 'Sold Out' : 'Available'}
       </Button>
-      <div className="ml-auto flex items-center gap-1">
+      <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={() => onEdit(product)}
