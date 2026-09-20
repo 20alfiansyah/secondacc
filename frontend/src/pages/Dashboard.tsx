@@ -13,17 +13,17 @@ export default function Dashboard() {
             <Icon name="coffee" className="text-3xl" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Dashboard Admin</h1>
+            <h1 className="text-xl font-bold text-foreground">Admin Dashboard</h1>
             <p className="text-xs text-muted-foreground mt-1">
-              Selamat datang, <span className="font-semibold text-foreground">{user?.name}</span> ({user?.role}).
+              Welcome, <span className="font-semibold text-foreground">{user?.name}</span> ({user?.role}).
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              Modul analitik & pengaturan akan diimplementasikan pada Fase 2 & Fase 3.
+              Analytics & settings modules will be implemented in Phase 2 & Phase 3.
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={logout} className="mt-2">
             <Icon name="logout" className="text-base" />
-            Keluar
+            Sign Out
           </Button>
         </CardContent>
       </Card>

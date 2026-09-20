@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import Icon from '@/components/ui/Icon'
+import StatusPill from '@/components/ui/StatusPill'
 import { cn } from '@/lib/utils'
 
 const CATEGORY_META: Record<PaymentCategory, { label: string; icon: string }> = {
-  CASH: { label: 'Tunai (Cash)', icon: 'payments' },
+  CASH: { label: 'Cash', icon: 'payments' },
   THIRD_PARTY: { label: 'QRIS / E-Wallet', icon: 'qr_code_2' },
   EDC: { label: 'EDC / Card', icon: 'credit_card' },
 }
@@ -38,7 +39,7 @@ export default function PaymentPage() {
         const data = await fetchPaymentChannels()
         if (!cancelled) setChannels(data)
       } catch {
-        if (!cancelled) setError('Gagal memuat channel pembayaran. Coba lagi.')
+        if (!cancelled) setError('Failed to load payment channels. Try again.')
       } finally {
         if (!cancelled) setListLoading(false)
       }
@@ -61,7 +62,7 @@ export default function PaymentPage() {
       const data = axios.isAxiosError(err)
         ? (err.response?.data as { message?: string } | undefined)
         : undefined
-      setServerError(data?.message ?? 'Gagal menambahkan channel. Coba lagi.')
+      setServerError(data?.message ?? 'Failed to add channel. Try again.')
     } finally {
       setSaving(false)
     }
@@ -78,7 +79,7 @@ export default function PaymentPage() {
       const data = axios.isAxiosError(err)
         ? (err.response?.data as { message?: string } | undefined)
         : undefined
-      setError(data?.message ?? 'Gagal mengubah status channel. Coba lagi.')
+      setError(data?.message ?? 'Failed to update channel status. Try again.')
       setConfirmTarget(null)
     } finally {
       setTogglingId(null)
@@ -89,9 +90,9 @@ export default function PaymentPage() {
     <Card>
       <CardHeader className="flex-row items-start justify-between space-y-0">
         <div className="space-y-1.5">
-          <CardTitle className="font-display text-base">Channel Pembayaran</CardTitle>
+          <CardTitle className="font-display text-base">Payment Channels</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Channel aktif tampil sebagai pilihan pembayaran di layar kasir (POS).
+            Active channels appear as payment options on the cashier screen (POS).
           </p>
         </div>
         <Button
@@ -102,7 +103,7 @@ export default function PaymentPage() {
           }}
         >
           <Icon name="add" className="text-base" />
-          Tambah Channel
+          Add Channel
         </Button>
       </CardHeader>
       <CardContent className="space-y-2.5">
@@ -119,14 +120,14 @@ export default function PaymentPage() {
           <EmptyState
             loading
             icon="payments"
-            title="Memuat channel..."
-            description="Mengambil daftar channel pembayaran dari server."
+            title="Loading channels..."
+            description="Fetching payment channels from the server."
           />
         ) : channels.length === 0 ? (
           <EmptyState
             icon="payments"
-            title="Belum ada channel"
-            description="Tambahkan channel pembayaran seperti Tunai, QRIS, atau EDC agar bisa dipakai kasir."
+            title="No channels yet"
+            description="Add payment channels such as Cash, QRIS, or EDC so cashiers can use them."
           />
         ) : (
           channels.map((channel) => (
@@ -145,15 +146,8 @@ export default function PaymentPage() {
                   {CATEGORY_META[channel.category].label}
                 </p>
               </div>
-              <span
-                className={cn(
-                  'hidden rounded-full px-2.5 py-0.5 text-[11px] font-bold sm:inline',
-                  channel.isActive
-                    ? 'bg-accent text-primary-dark'
-                    : 'bg-slate-100 text-slate-500',
-                )}
-              >
-                {channel.isActive ? 'Aktif' : 'Nonaktif'}
+              <span className="hidden sm:inline">
+                <StatusPill active={channel.isActive} />
               </span>
               <Switch
                 checked={channel.isActive}
@@ -246,7 +240,7 @@ function AddChannelDialog({
     e.preventDefault()
     const trimmed = name.trim()
     if (!trimmed) {
-      setNameError('Nama channel wajib diisi.')
+      setNameError('Channel name is required.')
       return
     }
     setNameError(null)
@@ -265,7 +259,7 @@ function AddChannelDialog({
         className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-modal animate-in zoom-in-95 duration-150"
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-lg font-bold text-slate-900">Tambah Channel</h2>
+          <h2 className="font-display text-lg font-bold text-slate-900">Add Channel</h2>
           <button
             type="button"
             onClick={onClose}
@@ -282,13 +276,13 @@ function AddChannelDialog({
               htmlFor="channel-name"
               className="block font-display text-xs font-bold uppercase tracking-wider text-slate-400"
             >
-              Nama Channel
+              Channel Name
             </label>
             <Input
               id="channel-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="cth. Tunai (Cash), QRIS BCA, EDC Mandiri"
+              placeholder="e.g. Cash, QRIS BCA, EDC Mandiri"
               autoFocus
             />
           </div>
@@ -298,7 +292,7 @@ function AddChannelDialog({
               htmlFor="channel-category"
               className="block font-display text-xs font-bold uppercase tracking-wider text-slate-400"
             >
-              Kategori
+              Category
             </label>
             <select
               id="channel-category"
@@ -306,7 +300,7 @@ function AddChannelDialog({
               onChange={(e) => setCategory(e.target.value as PaymentCategory)}
               className="h-10 w-full cursor-pointer rounded-xl border border-input/80 bg-background px-3.5 text-sm shadow-subtle transition-all duration-150 focus-visible:border-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
             >
-              <option value="CASH">Tunai (Cash)</option>
+              <option value="CASH">Cash</option>
               <option value="THIRD_PARTY">QRIS / E-Wallet</option>
               <option value="EDC">EDC / Card</option>
             </select>
@@ -323,10 +317,10 @@ function AddChannelDialog({
 
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={onClose}>
-              Batal
+              Cancel
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? 'Menyimpan...' : 'Simpan'}
+              {saving ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </div>
@@ -368,20 +362,20 @@ function ToggleConfirmDialog({
             <Icon name="payments" className="text-xl" />
           </div>
           <h2 className="font-display text-base font-bold text-slate-900">
-            {channel.isActive ? 'Nonaktifkan channel?' : 'Aktifkan channel?'}
+            {channel.isActive ? 'Deactivate channel?' : 'Activate channel?'}
           </h2>
         </div>
         <p className="text-sm text-slate-500">
           {channel.isActive
-            ? `"${channel.name}" akan hilang dari pilihan pembayaran di layar kasir.`
-            : `"${channel.name}" akan tampil kembali sebagai pilihan pembayaran di layar kasir.`}
+            ? `"${channel.name}" will be removed from payment options on the cashier screen.`
+            : `"${channel.name}" will appear again as a payment option on the cashier screen.`}
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
-            Batal
+            Cancel
           </Button>
           <Button onClick={onConfirm} disabled={busy}>
-            {busy ? 'Memproses...' : 'Ya, Lanjutkan'}
+            {busy ? 'Processing...' : 'Yes, Continue'}
           </Button>
         </div>
       </div>

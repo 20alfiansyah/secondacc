@@ -35,16 +35,16 @@ export default function DashboardLayout({ page, children }: DashboardLayoutProps
       {/* Zone 1: top bar mobile (<lg) / rail desktop (≥lg) */}
       <MobileNav
         page={page}
-        onOpenHistory={() => setNotice('Order History tersedia di layar Register (POS).')}
-        onLockRegister={() => setNotice('Lock register hanya berlaku di layar Register (POS).')}
+        onOpenHistory={() => setNotice('Order History is available on the Register (POS) screen.')}
+        onLockRegister={() => setNotice('Lock register only applies on the Register (POS) screen.')}
         onFeatureNotice={setNotice}
         onSignOut={logout}
       />
       <NavigationRail
         className="hidden lg:flex"
         page={page}
-        onOpenHistory={() => setNotice('Order History tersedia di layar Register (POS).')}
-        onLockRegister={() => setNotice('Lock register hanya berlaku di layar Register (POS).')}
+        onOpenHistory={() => setNotice('Order History is available on the Register (POS) screen.')}
+        onLockRegister={() => setNotice('Lock register only applies on the Register (POS) screen.')}
         onFeatureNotice={setNotice}
         onSignOut={logout}
       />
