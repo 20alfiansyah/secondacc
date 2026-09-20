@@ -143,6 +143,23 @@ export async function fetchCategories(): Promise<Category[]> {
   return data.data ?? []
 }
 
+/** POST /api/categories — buat kategori baru (admin). */
+export async function createCategory(name: string): Promise<Category> {
+  const { data } = await api.post<ListResponse<Category>>('/categories', { name })
+  return data.data
+}
+
+/** PATCH /api/categories/:id — rename kategori (admin). */
+export async function renameCategory(id: number, name: string): Promise<Category> {
+  const { data } = await api.patch<ListResponse<Category>>(`/categories/${id}`, { name })
+  return data.data
+}
+
+/** DELETE /api/categories/:id — hapus kategori (admin, ditolak bila masih ada produk). */
+export async function deleteCategory(id: number): Promise<void> {
+  await api.delete(`/categories/${id}`)
+}
+
 // ===== Orders =====
 
 export interface OpenBillItemInput {
