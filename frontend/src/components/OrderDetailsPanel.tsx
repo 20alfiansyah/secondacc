@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { formatRupiah } from '@/utils/format'
 import Icon from '@/components/ui/Icon'
 import EmptyState from '@/components/ui/EmptyState'
-import { resolveProductImage } from '@/components/ProductCatalogGrid'
+import { resolveProductImage } from '@/components/ProductCard'
 
 export interface OrderLine {
   id: string
