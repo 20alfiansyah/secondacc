@@ -209,7 +209,7 @@ export default function MenuPage() {
 
           {/* Pills kategori gaya POS: All + Popular + Best Seller + tiap kategori. */}
           {!loading && (
-            <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
+            <div className="flex flex-wrap items-center gap-1.5">
               {pills.map((pill) => {
                 const isActive = activeCategory === pill.value
                 return (
