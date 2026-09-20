@@ -509,7 +509,7 @@ export default function AccountPage() {
 
       <Card className="flex flex-col shadow-card">
         {/* Header: judul + search + CTA tambah akun */}
-        <CardHeader className="flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex flex-col items-start gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 space-y-0.5">
             {/* Header band gaya POS: ikon + judul uppercase + subtitle di bawah. */}
             <div className="flex items-center gap-2">

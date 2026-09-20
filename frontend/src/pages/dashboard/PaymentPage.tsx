@@ -89,7 +89,7 @@ export default function PaymentPage() {
 
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
+      <CardHeader className="flex flex-col items-start gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-0.5">
           {/* Header band gaya POS: ikon + judul uppercase + subtitle di bawah. */}
           <div className="flex items-center gap-2">
