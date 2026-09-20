@@ -89,7 +89,7 @@ export default function PaymentPage() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-col items-start gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+      <CardHeader className="flex flex-col items-start gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6">
         <div className="space-y-0.5">
           {/* Header band gaya POS: ikon + judul uppercase + subtitle di bawah. */}
           <div className="flex items-center gap-2">
@@ -108,7 +108,7 @@ export default function PaymentPage() {
           Add Channel
         </PrimaryAction>
       </CardHeader>
-      <CardContent className="space-y-2.5">
+      <CardContent className="space-y-2.5 p-4 pt-0 sm:p-6 sm:pt-0">
         {error && (
           <p
             role="alert"

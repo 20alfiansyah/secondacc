@@ -559,7 +559,7 @@ export default function AccountPage() {
 
       <Card className="flex flex-col shadow-card">
         {/* Header: judul + search + CTA tambah akun */}
-        <CardHeader className="flex flex-col items-start gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <CardHeader className="flex flex-col items-start gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6">
           <div className="min-w-0 space-y-0.5">
             {/* Header band gaya POS: ikon + judul uppercase + subtitle di bawah. */}
             <div className="flex items-center gap-2">
@@ -575,8 +575,8 @@ export default function AccountPage() {
               Manage cashier and admin accounts, passwords, and access status.
             </p>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="w-full sm:w-60">
+          <div className="flex flex-row items-center gap-2">
+            <div className="min-w-0 flex-1 sm:w-60 sm:flex-initial">
               <SearchBar
                 value={search}
                 onChange={setSearch}
@@ -604,7 +604,7 @@ export default function AccountPage() {
 
         {/* Body: tabel / state kosong */}
         {loading ? (
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <EmptyState
               icon="manage_accounts"
               loading
@@ -612,7 +612,7 @@ export default function AccountPage() {
             />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {loadError ? (
               <EmptyState
                 icon="error"
