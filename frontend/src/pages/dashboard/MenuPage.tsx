@@ -91,9 +91,31 @@ export default function MenuPage() {
     })
   }, [products, search, activeCategory])
 
-  // Pills kategori gaya POS (CategoryFilterBar): All + Popular + Best Seller +
-  // tiap kategori; count dihitung dari produk yang dimuat agar konsisten
-  // dengan grid di bawah.
+/** Lucide glyph per nama kategori (sama dengan POS ProductCatalogGrid). */
+function categoryGlyph(name: string): string {
+  const lower = name.toLowerCase()
+  if (lower.includes('coffee') || lower.includes('espresso') || lower.includes('kopi')) return 'coffee'
+  if (lower.includes('tea') || lower.includes('beverage') || lower.includes('non-coffee') || lower.includes('drink'))
+    return 'emoji_food_beverage'
+  if (lower.includes('pastry') || lower.includes('bakery') || lower.includes('roti') || lower.includes('bread'))
+    return 'bakery_dining'
+  if (lower.includes('main') || lower.includes('dessert') || lower.includes('cake') || lower.includes('makanan'))
+    return 'cake'
+  if (lower.includes('snack') || lower.includes('cemilan')) return 'cookie'
+  return 'restaurant'
+}
+
+/** Grup section utk tab "All": tiap kategori (urutan kategori) — pola POS. */
+function groupByCategory(products: Product[]): { title: string; items: Product[] }[] {
+  const byCategory = new Map<string, Product[]>()
+  for (const p of products) {
+    const list = byCategory.get(p.categoryName) ?? []
+    list.push(p)
+    byCategory.set(p.categoryName, list)
+  }
+  return Array.from(byCategory, ([title, items]) => ({ title, items }))
+}
+
   const pills = useMemo<
     { key: string; label: string; count: number; value: CategoryFilter }[]
   >(() => {
@@ -119,6 +141,12 @@ export default function MenuPage() {
       })),
     ]
   }, [products, categories])
+
+  // Section "All" per kategori (urutan kemunculan produk = urutan kategori) — pola POS.
+  const groupedProducts = useMemo(
+    () => groupByCategory(filteredProducts),
+    [filteredProducts],
+  )
 
   async function handleToggleSoldOut(product: Product) {
     setTogglingId(product.id)
@@ -277,24 +305,63 @@ export default function MenuPage() {
               }
             />
           ) : (
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  subtitle={product.categoryName}
-                  actions={
-                    <ProductActions
-                      product={product}
-                      toggling={togglingId === product.id}
-                      onToggleSoldOut={handleToggleSoldOut}
-                      onEdit={openEdit}
-                      onDelete={setDeleting}
-                    />
-                  }
-                />
-              ))}
-            </div>
+            activeCategory === 'all' ? (
+              // Tab "All": dikelompokkan per kategori (pola POS ProductCatalogGrid).
+              <div className="space-y-6">
+                {groupedProducts.map((section) => (
+                  <section key={section.title} className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-200/80 pb-1">
+                      <div className="flex items-center gap-2">
+                        <Icon name={categoryGlyph(section.title)} className="text-[18px] text-[#447C84]" />
+                        <h3 className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">
+                          {section.title}
+                        </h3>
+                        <span className="rounded-full border border-slate-200/80 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-slate-600">
+                          {section.items.length} {section.items.length === 1 ? 'Item' : 'Items'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                      {section.items.map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          subtitle={product.categoryName}
+                          actions={
+                            <ProductActions
+                              product={product}
+                              toggling={togglingId === product.id}
+                              onToggleSoldOut={handleToggleSoldOut}
+                              onEdit={openEdit}
+                              onDelete={setDeleting}
+                            />
+                          }
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    subtitle={product.categoryName}
+                    actions={
+                      <ProductActions
+                        product={product}
+                        toggling={togglingId === product.id}
+                        onToggleSoldOut={handleToggleSoldOut}
+                        onEdit={openEdit}
+                        onDelete={setDeleting}
+                      />
+                    }
+                  />
+                ))}
+              </div>
+            )
           )}
         </CardContent>
       </Card>
