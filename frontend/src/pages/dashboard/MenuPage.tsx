@@ -12,6 +12,7 @@ import {
   updateProduct,
 } from '@/api/client'
 import type { Category, Product } from '@/api/client'
+import ManageCategoriesDialog from './ManageCategoriesDialog'
 import Icon from '@/components/ui/Icon'
 import EmptyState from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -58,6 +59,9 @@ export default function MenuPage() {
   // Modal konfirmasi delete.
   const [deleting, setDeleting] = useState<Product | null>(null)
   const [deletingBusy, setDeletingBusy] = useState(false)
+
+  // Dialog manajemen kategori (CRUD kategori oleh admin).
+  const [catsOpen, setCatsOpen] = useState(false)
 
   const loadProducts = useCallback(async () => {
     try {
@@ -201,6 +205,16 @@ export default function MenuPage() {
             <div className="min-w-0 flex-1">
               <SearchBar value={search} onChange={setSearch} ariaLabel="Search products" />
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCatsOpen(true)}
+              disabled={loading}
+              className="h-[30px] rounded-lg px-3 text-xs font-semibold"
+            >
+              <Icon name="category" className="text-sm" />
+              Categories
+            </Button>
             <PrimaryAction onClick={openCreate} disabled={loading}>
               <Icon name="add" className="text-sm" />
               Add Product
@@ -291,6 +305,18 @@ export default function MenuPage() {
           onClose={() => setFormOpen(false)}
           onSaved={(message) => {
             setFormOpen(false)
+            setNotice(message)
+            void loadProducts()
+          }}
+        />
+      )}
+
+      {catsOpen && (
+        <ManageCategoriesDialog
+          categories={categories}
+          onClose={() => setCatsOpen(false)}
+          onSaved={(message) => {
+            // Dialog tetap terbuka; parent re-fetch supaya pills & dropdown refresh.
             setNotice(message)
             void loadProducts()
           }}
