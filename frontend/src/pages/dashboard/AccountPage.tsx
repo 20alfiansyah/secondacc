@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import EmptyState from '@/components/ui/EmptyState'
 import { Input } from '@/components/ui/input'
+import StatusPill from '@/components/ui/StatusPill'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 
@@ -57,23 +58,6 @@ function RoleBadge({ role }: { role: Role }) {
       )}
     >
       {role}
-    </span>
-  )
-}
-
-/** Badge status akses: Aktif (live) / Nonaktif (abu). */
-function StatusBadge({ isActive }: { isActive: boolean }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold',
-        isActive
-          ? 'border-live-border bg-live-light text-primary-dark'
-          : 'border-slate-200 bg-slate-100 text-slate-500',
-      )}
-    >
-      <span className={cn('h-1.5 w-1.5 rounded-full', isActive ? 'bg-live' : 'bg-slate-400')} />
-      {isActive ? 'Aktif' : 'Nonaktif'}
     </span>
   )
 }
@@ -619,7 +603,7 @@ export default function AccountPage() {
                       <RoleBadge role={u.role} />
                     </td>
                     <td className="px-5 py-3">
-                      <StatusBadge isActive={u.isActive} />
+                      <StatusPill active={u.isActive} />
                     </td>
                     <td className="px-5 py-3 text-slate-500">{formatCreatedDate(u.createdAt)}</td>
                     <td className="px-5 py-3">
