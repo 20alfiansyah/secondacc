@@ -510,11 +510,13 @@ export default function AccountPage() {
       <Card className="flex flex-col shadow-card">
         {/* Header: judul + search + CTA tambah akun */}
         <div className="flex flex-col gap-3 border-b border-border/70 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="font-display text-base font-bold tracking-tight text-slate-900">Staff Accounts</h1>
-            <p className="text-xs text-slate-400">
-              Manage cashier and admin accounts, passwords, and access status.
-            </p>
+          <div className="min-w-0 space-y-0.5">
+            {/* Header band gaya POS: ikon + judul uppercase + subtitle di bawah. */}
+            <div className="flex items-center gap-2">
+              <Icon name="manage_accounts" className="text-[20px] text-[#447C84]" />
+              <span className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">STAFF ACCOUNTS</span>
+            </div>
+            <p className="text-xs text-slate-400">Manage cashier and admin accounts, passwords, and access status.</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="w-full sm:w-60">

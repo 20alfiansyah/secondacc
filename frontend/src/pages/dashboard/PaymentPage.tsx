@@ -89,12 +89,14 @@ export default function PaymentPage() {
 
   return (
     <Card>
-      <CardHeader className="flex-row items-start justify-between space-y-0">
-        <div className="space-y-1.5">
-          <h2 className="font-display text-base font-bold tracking-tight text-slate-900">Payment Channels</h2>
-          <p className="text-xs text-slate-400">
-            Active channels appear as payment options on the cashier screen (POS).
-          </p>
+      <CardHeader className="flex-row items-center justify-between space-y-0">
+        <div className="space-y-0.5">
+          {/* Header band gaya POS: ikon + judul uppercase + subtitle di bawah. */}
+          <div className="flex items-center gap-2">
+            <Icon name="payments" className="text-[20px] text-[#447C84]" />
+            <span className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">PAYMENT CHANNELS</span>
+          </div>
+          <p className="text-xs text-slate-400">Active channels appear as payment options on the cashier screen (POS).</p>
         </div>
         <PrimaryAction
           onClick={() => {
