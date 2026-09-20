@@ -57,7 +57,7 @@ const imageUpload: MulterOptions = {
       cb(
         new UnsupportedMediaTypeException({
           code: 'INVALID_FILE_TYPE',
-          message: 'Tipe file harus JPEG, PNG, atau WEBP',
+          message: 'File type must be JPEG, PNG, or WEBP',
         }),
         false,
       );

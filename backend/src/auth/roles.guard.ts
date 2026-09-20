@@ -39,7 +39,7 @@ export class RolesGuard implements CanActivate {
     if (!user || !requiredRoles.includes(user.role!)) {
       throw new ForbiddenException({
         code: 'FORBIDDEN',
-        message: 'Anda tidak memiliki akses ke resource ini',
+        message: 'You do not have access to this resource',
       });
     }
     return true;

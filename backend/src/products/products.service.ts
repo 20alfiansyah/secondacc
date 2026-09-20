@@ -41,7 +41,7 @@ export class ProductsService {
       if (!Number.isInteger(categoryId)) {
         throw new BadRequestException({
           code: 'INVALID_CATEGORY_ID',
-          message: `categoryId harus bilangan bulat: ${filter.categoryId}`,
+          message: `categoryId must be an integer: ${filter.categoryId}`,
         });
       }
       where.categoryId = categoryId;
@@ -71,7 +71,7 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException({
         code: 'PRODUCT_NOT_FOUND',
-        message: `Produk dengan id ${id} tidak ditemukan`,
+        message: `Product with id ${id} not found`,
       });
     }
 
@@ -89,7 +89,7 @@ export class ProductsService {
     if (!category) {
       throw new BadRequestException({
         code: 'INVALID_CATEGORY_ID',
-        message: `Kategori dengan id ${categoryId} tidak ditemukan`,
+        message: `Category with id ${categoryId} not found`,
       });
     }
   }
@@ -131,7 +131,7 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException({
         code: 'PRODUCT_NOT_FOUND',
-        message: `Produk dengan id ${id} tidak ditemukan`,
+        message: `Product with id ${id} not found`,
       });
     }
     if (dto.categoryId !== undefined) {
@@ -169,7 +169,7 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException({
         code: 'PRODUCT_NOT_FOUND',
-        message: `Produk dengan id ${id} tidak ditemukan`,
+        message: `Product with id ${id} not found`,
       });
     }
 
@@ -181,7 +181,7 @@ export class ProductsService {
     if (usedCount > 0) {
       throw new ConflictException({
         code: 'PRODUCT_IN_USE',
-        message: `Produk "${product.name}" sudah pernah dipakai di transaksi dan tidak dapat dihapus`,
+        message: `Product "${product.name}" has been used in transactions and cannot be deleted`,
       });
     }
 

@@ -12,7 +12,7 @@ export class CreateUserDto {
   name!: string;
 
   @IsString()
-  @MinLength(6, { message: 'Password minimal 6 karakter' })
+  @MinLength(6, { message: 'Password must be at least 6 characters' })
   password!: string;
 
   @IsEnum(Role)
@@ -22,6 +22,6 @@ export class CreateUserDto {
 /** Body PATCH /api/users/:id/password. */
 export class UpdatePasswordDto {
   @IsString()
-  @MinLength(6, { message: 'Password minimal 6 karakter' })
+  @MinLength(6, { message: 'Password must be at least 6 characters' })
   newPassword!: string;
 }

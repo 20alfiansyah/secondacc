@@ -69,7 +69,7 @@ describe('FinancialCalculator (uang integer Rupiah, tanpa float)', () => {
         throw new Error('seharusnya melempar error');
       } catch (err) {
         expect(err).toBeInstanceOf(InsufficientPaymentError);
-        expect((err as Error).message).toContain('kurang');
+        expect((err as Error).message).toContain('Insufficient payment');
       }
     });
 

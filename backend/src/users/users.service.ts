@@ -37,7 +37,7 @@ export class UsersService {
     if (existing) {
       throw new ConflictException({
         code: 'USERNAME_TAKEN',
-        message: `Username "${dto.username}" sudah digunakan`,
+        message: `Username "${dto.username}" is already taken`,
       });
     }
 
@@ -59,7 +59,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException({
         code: 'USER_NOT_FOUND',
-        message: `User dengan id ${id} tidak ditemukan`,
+        message: `User with id ${id} not found`,
       });
     }
 
@@ -77,13 +77,13 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException({
         code: 'USER_NOT_FOUND',
-        message: `User dengan id ${id} tidak ditemukan`,
+        message: `User with id ${id} not found`,
       });
     }
     if (id === requesterId && user.isActive) {
       throw new BadRequestException({
         code: 'CANNOT_DISABLE_SELF',
-        message: 'Anda tidak dapat menonaktifkan akun Anda sendiri',
+        message: 'You cannot deactivate your own account',
       });
     }
 
