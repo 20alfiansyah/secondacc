@@ -177,7 +177,7 @@ export default function MenuPage() {
       )}
 
       <Card>
-        <CardHeader className="flex flex-col items-start gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <CardHeader className="flex flex-col items-start gap-3 space-y-0 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div className="space-y-0.5">
             {/* Header band gaya POS (band MENU CATALOG): ikon + judul uppercase + separator + badge. */}
             <div className="flex items-center gap-2">
@@ -194,13 +194,18 @@ export default function MenuPage() {
             </div>
             <p className="text-xs text-slate-400">Manage your cafe menu, prices, categories, and availability.</p>
           </div>
-          <PrimaryAction onClick={openCreate} disabled={loading}>
-            <Icon name="add" className="text-sm" />
-            Add Product
-          </PrimaryAction>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <SearchBar value={search} onChange={setSearch} ariaLabel="Search products" />
+        <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
+          {/* Baris kontrol: search + CTA sebaris di semua breakpoint — header hanya informasi. */}
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <SearchBar value={search} onChange={setSearch} ariaLabel="Search products" />
+            </div>
+            <PrimaryAction onClick={openCreate} disabled={loading}>
+              <Icon name="add" className="text-sm" />
+              Add Product
+            </PrimaryAction>
+          </div>
 
           {/* Pills kategori gaya POS: All + Popular + Best Seller + tiap kategori. */}
           {!loading && (
