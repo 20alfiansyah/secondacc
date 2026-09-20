@@ -4,8 +4,9 @@ import type { PaymentCategory, PaymentChannel } from '@/api/client'
 import { createPaymentChannel, fetchPaymentChannels, togglePaymentChannel } from '@/api/client'
 import EmptyState from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import PrimaryAction from '@/components/ui/PrimaryAction'
 import Icon from '@/components/ui/Icon'
 import StatusPill from '@/components/ui/StatusPill'
 import { cn } from '@/lib/utils'
@@ -90,21 +91,20 @@ export default function PaymentPage() {
     <Card>
       <CardHeader className="flex-row items-start justify-between space-y-0">
         <div className="space-y-1.5">
-          <CardTitle className="font-display text-base">Payment Channels</CardTitle>
-          <p className="text-xs text-muted-foreground">
+          <h2 className="font-display text-base font-bold tracking-tight text-slate-900">Payment Channels</h2>
+          <p className="text-xs text-slate-400">
             Active channels appear as payment options on the cashier screen (POS).
           </p>
         </div>
-        <Button
-          size="sm"
+        <PrimaryAction
           onClick={() => {
             setServerError(null)
             setAddOpen(true)
           }}
         >
-          <Icon name="add" className="text-base" />
+          <Icon name="add" className="text-sm" />
           Add Channel
-        </Button>
+        </PrimaryAction>
       </CardHeader>
       <CardContent className="space-y-2.5">
         {error && (

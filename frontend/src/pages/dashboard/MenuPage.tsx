@@ -2,7 +2,7 @@ import { isAxiosError } from 'axios'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
 import ProductCard from '@/components/ProductCard'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import {
   createProduct,
   deleteProduct,
@@ -16,6 +16,9 @@ import Icon from '@/components/ui/Icon'
 import EmptyState from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import PrimaryAction from '@/components/ui/PrimaryAction'
+import SearchBar from '@/components/ui/SearchBar'
+import type { CategoryFilter } from '@/components/CategoryFilterBar'
 import { cn } from '@/lib/utils'
 
 /** Validasi harga: string input harus bilangan bulat positif (rupiah integer). */
@@ -42,6 +45,8 @@ export default function MenuPage() {
   const [pageError, setPageError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  // Filter kategori gaya POS: 'all' | 'recommended' | 'best-seller' | categoryId.
+  const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all')
 
   // Toggle sold out per produk (disable tombol saat request berjalan).
   const [togglingId, setTogglingId] = useState<number | null>(null)
@@ -73,11 +78,43 @@ export default function MenuPage() {
 
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return products
-    return products.filter(
-      (p) => p.name.toLowerCase().includes(q) || p.categoryName.toLowerCase().includes(q),
-    )
-  }, [products, search])
+    return products.filter((p) => {
+      if (activeCategory === 'recommended' && !p.isRecommended) return false
+      if (activeCategory === 'best-seller' && !p.isBestSeller) return false
+      if (typeof activeCategory === 'number' && p.categoryId !== activeCategory) return false
+      if (!q) return true
+      return p.name.toLowerCase().includes(q) || p.categoryName.toLowerCase().includes(q)
+    })
+  }, [products, search, activeCategory])
+
+  // Pills kategori gaya POS (CategoryFilterBar): All + Popular + Best Seller +
+  // tiap kategori; count dihitung dari produk yang dimuat agar konsisten
+  // dengan grid di bawah.
+  const pills = useMemo<
+    { key: string; label: string; count: number; value: CategoryFilter }[]
+  >(() => {
+    return [
+      { key: 'all', label: 'All', count: products.length, value: 'all' },
+      {
+        key: 'recommended',
+        label: 'Popular',
+        count: products.filter((p) => p.isRecommended).length,
+        value: 'recommended',
+      },
+      {
+        key: 'best-seller',
+        label: 'Best Seller',
+        count: products.filter((p) => p.isBestSeller).length,
+        value: 'best-seller',
+      },
+      ...categories.map((c) => ({
+        key: `cat-${c.id}`,
+        label: c.name,
+        count: products.filter((p) => p.categoryId === c.id).length,
+        value: c.id,
+      })),
+    ]
+  }, [products, categories])
 
   async function handleToggleSoldOut(product: Product) {
     setTogglingId(product.id)
@@ -141,31 +178,54 @@ export default function MenuPage() {
 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
-          <div>
-            <CardTitle className="font-display text-base">Menu Management</CardTitle>
-            <CardDescription>
-              {loading ? 'Loading products…' : `${products.length} products`}
-            </CardDescription>
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-base font-bold tracking-tight text-slate-900">Menu Management</h2>
+            {loading ? (
+              <span className="text-xs text-slate-400">Loading products…</span>
+            ) : (
+              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-slate-600">
+                {products.length} products
+              </span>
+            )}
           </div>
-          <Button onClick={openCreate} disabled={loading}>
-            <Icon name="add" className="text-[18px]" />
+          <PrimaryAction onClick={openCreate} disabled={loading}>
+            <Icon name="add" className="text-sm" />
             Add Product
-          </Button>
+          </PrimaryAction>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="relative">
-            <Icon
-              name="search"
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[18px] text-slate-400"
-            />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products or categories…"
-              className="pl-10"
-              aria-label="Search products"
-            />
-          </div>
+          <SearchBar value={search} onChange={setSearch} ariaLabel="Search products" />
+
+          {/* Pills kategori gaya POS: All + Popular + Best Seller + tiap kategori. */}
+          {!loading && (
+            <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto">
+              {pills.map((pill) => {
+                const isActive = activeCategory === pill.value
+                return (
+                  <button
+                    key={pill.key}
+                    onClick={() => setActiveCategory(pill.value)}
+                    className={cn(
+                      'flex flex-shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-xs shadow-xs transition',
+                      isActive
+                        ? 'bg-[#447C84] font-semibold text-white'
+                        : 'border border-slate-200 bg-white font-medium text-slate-600 shadow-xs hover:bg-slate-50 hover:text-slate-900',
+                    )}
+                  >
+                    <span>{pill.label}</span>
+                    <span
+                      className={cn(
+                        'rounded px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
+                        isActive ? 'bg-[#2d5258] text-white' : 'bg-slate-100 text-slate-600 font-semibold',
+                      )}
+                    >
+                      {pill.count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           {loading ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -186,7 +246,7 @@ export default function MenuPage() {
               description={
                 products.length === 0
                   ? 'Add your first product using the "Add Product" button.'
-                  : `No products match your search "${search}".`
+                  : 'No products match your search or category filter.'
               }
             />
           ) : (
