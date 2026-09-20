@@ -6,8 +6,8 @@ import { cn } from '@/lib/utils'
  */
 export default function StatusPill({
   active,
-  activeLabel = 'Aktif',
-  inactiveLabel = 'Nonaktif',
+  activeLabel = 'Active',
+  inactiveLabel = 'Inactive',
 }: {
   active: boolean
   activeLabel?: string
