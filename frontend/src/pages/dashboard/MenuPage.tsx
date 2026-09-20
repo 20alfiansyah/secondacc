@@ -205,18 +205,18 @@ export default function MenuPage() {
             <div className="min-w-0 sm:flex-1">
               <SearchBar value={search} onChange={setSearch} ariaLabel="Search products" />
             </div>
-            <div className="flex items-center justify-end gap-2 sm:contents">
+            <div className="flex w-full items-center gap-2 sm:contents">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCatsOpen(true)}
                 disabled={loading}
-                className="h-[30px] rounded-lg px-3 text-xs font-semibold"
+                className="h-[30px] flex-1 rounded-lg px-3 text-xs font-semibold sm:flex-none"
               >
                 <Icon name="category" className="text-sm" />
                 Categories
               </Button>
-              <PrimaryAction onClick={openCreate} disabled={loading}>
+              <PrimaryAction onClick={openCreate} disabled={loading} className="flex-1 sm:flex-none">
                 <Icon name="add" className="text-sm" />
                 Add Product
               </PrimaryAction>
