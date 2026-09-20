@@ -178,15 +178,21 @@ export default function MenuPage() {
 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
-          <div className="flex items-center gap-2">
-            <h2 className="font-display text-base font-bold tracking-tight text-slate-900">Menu Management</h2>
-            {loading ? (
-              <span className="text-xs text-slate-400">Loading products…</span>
-            ) : (
-              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-slate-600">
-                {products.length} products
-              </span>
-            )}
+          <div className="space-y-0.5">
+            {/* Header band gaya POS (band MENU CATALOG): ikon + judul uppercase + separator + badge. */}
+            <div className="flex items-center gap-2">
+              <Icon name="restaurant_menu" className="text-[20px] text-[#447C84]" />
+              <span className="font-display text-xs font-bold uppercase tracking-wider text-slate-900">MENU MANAGEMENT</span>
+              <div className="hidden h-4 w-px bg-slate-200 md:block" />
+              {loading ? (
+                <span className="text-xs text-slate-400">Loading products…</span>
+              ) : (
+                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-slate-600">
+                  {products.length} products
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-400">Manage your cafe menu, prices, categories, and availability.</p>
           </div>
           <PrimaryAction onClick={openCreate} disabled={loading}>
             <Icon name="add" className="text-sm" />
