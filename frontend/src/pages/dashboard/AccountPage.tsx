@@ -9,7 +9,7 @@ import type { Role, StaffUser } from '@/api/client'
 import Icon from '@/components/ui/Icon'
 import StatusPill from '@/components/ui/StatusPill'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Card, CardHeader } from '@/components/ui/card'
 import EmptyState from '@/components/ui/EmptyState'
 import { Input } from '@/components/ui/input'
 import PrimaryAction from '@/components/ui/PrimaryAction'
@@ -509,7 +509,7 @@ export default function AccountPage() {
 
       <Card className="flex flex-col shadow-card">
         {/* Header: judul + search + CTA tambah akun */}
-        <div className="flex flex-col gap-3 border-b border-border/70 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <CardHeader className="flex-row items-center justify-between space-y-0">
           <div className="min-w-0 space-y-0.5">
             {/* Header band gaya POS: ikon + judul uppercase + subtitle di bawah. */}
             <div className="flex items-center gap-2">
@@ -532,7 +532,7 @@ export default function AccountPage() {
               Add Staff
             </PrimaryAction>
           </div>
-        </div>
+        </CardHeader>
 
         {/* Error banner (state error role="alert" — pola referensi Fase 1) */}
         {!loading && loadError && (
