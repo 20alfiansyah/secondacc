@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -25,6 +24,15 @@ export class CategoriesController {
     return { success: true, data };
   }
 
+  /** GET /api/categories/archived — daftar kategori terarsip (khusus ADMIN). */
+  @Get('archived')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async findAllArchived() {
+    const data = await this.categoriesService.findAllArchived();
+    return { success: true, data };
+  }
+
   /** POST /api/categories — buat kategori (khusus ADMIN). */
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -43,12 +51,21 @@ export class CategoriesController {
     return { success: true, data };
   }
 
-  /** DELETE /api/categories/:id — hapus kategori (khusus ADMIN). */
-  @Delete(':id')
+  /** PATCH /api/categories/:id/archive — arsipkan kategori (khusus ADMIN). */
+  @Patch(':id/archive')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    const data = await this.categoriesService.remove(id);
+  async archive(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.categoriesService.archive(id);
+    return { success: true, data };
+  }
+
+  /** PATCH /api/categories/:id/restore — kembalikan kategori terarsip (khusus ADMIN). */
+  @Patch(':id/restore')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async restore(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.categoriesService.restore(id);
     return { success: true, data };
   }
 }

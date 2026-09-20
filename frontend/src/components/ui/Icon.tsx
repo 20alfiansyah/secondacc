@@ -1,5 +1,7 @@
 import type { ComponentType } from 'react'
 import {
+  Archive,
+  ArchiveRestore,
   Banknote,
   Cake,
   Calculator,
@@ -64,6 +66,7 @@ import { cn } from '@/lib/utils'
  */
 const MAP: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
   add: Plus,
+  archive: Archive,
   category: Tags,
   delete: Trash2,
   add_shopping_cart: ShoppingCart,
@@ -117,6 +120,7 @@ const MAP: Record<string, ComponentType<{ className?: string; strokeWidth?: numb
   takeout_dining: ShoppingBag,
   tune: SlidersHorizontal,
   username: User,
+  restore: ArchiveRestore,
 }
 
 export default function Icon({

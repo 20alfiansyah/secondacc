@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
 import type { Category } from '@/api/client'
-import { createCategory, deleteCategory, renameCategory } from '@/api/client'
+import { archiveCategory, createCategory, fetchArchivedCategories, renameCategory, restoreCategory } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Icon from '@/components/ui/Icon'
-import { cn } from '@/lib/utils'
 
 /**
- * Dialog manajemen kategori (Menu Management): daftar kategori + rename +
- * delete + tambah. Server error ditampilkan apa adanya (pola AddChannelDialog).
- * Mutasi sukses memanggil `onSaved` — parent re-fetch categories sehingga
- * pills & dropdown form produk ikut ter-refresh; dialog tetap terbuka.
+ * Dialog manajemen kategori (Menu Management): daftar kategori aktif + rename +
+ * archive + tambah, plus bagian Archived dengan Restore. Server error
+ * ditampilkan apa adanya (pola AddChannelDialog). Mutasi sukses memanggil
+ * `onSaved` — parent re-fetch categories (aktif) sehingga pills & dropdown
+ * form produk ikut ter-refresh; dialog tetap terbuka.
  */
 export default function ManageCategoriesDialog({
   categories,
@@ -27,6 +27,24 @@ export default function ManageCategoriesDialog({
   const [busyId, setBusyId] = useState<number | null>(null)
   const [newName, setNewName] = useState('')
   const [serverError, setServerError] = useState<string | null>(null)
+  // Kategori terarsip (isActive=false) — dimuat sekali saat dialog dibuka,
+  // di-refresh internal setelah archive/restore. Parent tetap re-fetch aktif.
+  const [archived, setArchived] = useState<Category[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchArchivedCategories()
+      .then((rows) => {
+        if (!cancelled) setArchived(rows)
+      })
+      .catch(() => {
+        // Dialog tetap terpakai; bagian Archived disembunyikan saat gagal.
+        if (!cancelled) setArchived([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -76,10 +94,43 @@ export default function ManageCategoriesDialog({
     setRenamingId(null)
   }
 
-  async function handleDelete(category: Category) {
+  /** Re-fetch daftar arsip (dipanggil setelah archive/restore sukses). */
+  async function refreshArchived() {
+    try {
+      setArchived(await fetchArchivedCategories())
+    } catch {
+      setArchived([])
+    }
+  }
+
+  async function handleArchive(category: Category) {
     // KISS: native confirm cukup untuk admin-only flow.
-    if (!window.confirm(`Delete category "${category.name}"?`)) return
-    await runMutation(category.id, () => deleteCategory(category.id), 'Category deleted.')
+    if (
+      !window.confirm(
+        `Archive category "${category.name}"? It will be hidden from POS and product forms.`,
+      )
+    )
+      return
+    await runMutation(
+      category.id,
+      async () => {
+        await archiveCategory(category.id)
+      },
+      'Category archived.',
+    )
+    // Item pindah dari daftar aktif (via onSaved) ke bagian Archived di sini.
+    await refreshArchived()
+  }
+
+  async function handleRestore(category: Category) {
+    await runMutation(
+      category.id,
+      async () => {
+        await restoreCategory(category.id)
+      },
+      'Category restored.',
+    )
+    await refreshArchived()
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -119,7 +170,7 @@ export default function ManageCategoriesDialog({
           </button>
         </div>
 
-        {/* Daftar kategori: count badge + rename inline + delete (disabled saat ada produk). */}
+        {/* Daftar kategori aktif: count badge + rename inline + archive. */}
         <div className="mb-4 max-h-72 space-y-2 overflow-y-auto">
           {categories.length === 0 ? (
             <p className="rounded-xl bg-slate-50 px-3.5 py-3 text-xs text-slate-500">
@@ -187,20 +238,12 @@ export default function ManageCategoriesDialog({
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label={`Delete ${category.name}`}
-                      disabled={busyId === category.id || category.activeProductCount > 0}
-                      title={
-                        category.activeProductCount > 0 ? 'Category still has products' : undefined
-                      }
-                      onClick={() => void handleDelete(category)}
+                      aria-label={`Archive ${category.name}`}
+                      disabled={busyId === category.id}
+                      title="Archive category"
+                      onClick={() => void handleArchive(category)}
                     >
-                      <Icon
-                        name="delete"
-                        className={cn(
-                          'text-sm',
-                          category.activeProductCount > 0 ? 'text-slate-300' : 'text-slate-500',
-                        )}
-                      />
+                      <Icon name="archive" className="text-sm text-slate-500" />
                     </Button>
                   </>
                 )}
@@ -208,6 +251,40 @@ export default function ManageCategoriesDialog({
             ))
           )}
         </div>
+
+        {/* Bagian Archived: hanya tampil bila ada kategori terarsip. */}
+        {archived.length > 0 && (
+          <div className="mb-4">
+            <p className="mb-2 font-display text-xs font-bold uppercase tracking-wider text-slate-400">
+              Archived
+            </p>
+            <div className="max-h-40 space-y-2 overflow-y-auto">
+              {archived.map((category) => (
+                <div
+                  key={category.id}
+                  className="flex items-center gap-2 rounded-xl border border-border/70 bg-slate-50 px-3.5 py-2.5"
+                >
+                  <p className="min-w-0 flex-1 truncate font-display text-sm font-bold text-slate-400">
+                    {category.name}
+                  </p>
+                  <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-slate-400">
+                    {category.activeProductCount}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Restore ${category.name}`}
+                    disabled={busyId === category.id}
+                    title="Restore category"
+                    onClick={() => void handleRestore(category)}
+                  >
+                    <Icon name="restore" className="text-sm text-slate-500" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Form tambah: Enter submit; server error ditampilkan verbatim di bawah input. */}
         <form onSubmit={handleAdd} className="space-y-2">

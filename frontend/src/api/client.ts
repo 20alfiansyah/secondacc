@@ -155,9 +155,22 @@ export async function renameCategory(id: number, name: string): Promise<Category
   return data.data
 }
 
-/** DELETE /api/categories/:id — hapus kategori (admin, ditolak bila masih ada produk). */
-export async function deleteCategory(id: number): Promise<void> {
-  await api.delete(`/categories/${id}`)
+/** GET /api/categories/archived — daftar kategori terarsip (admin). */
+export async function fetchArchivedCategories(): Promise<Category[]> {
+  const { data } = await api.get<ListResponse<Category[]>>('/categories/archived')
+  return data.data ?? []
+}
+
+/** PATCH /api/categories/:id/archive — arsipkan kategori (soft-disable, admin). */
+export async function archiveCategory(id: number): Promise<Category> {
+  const { data } = await api.patch<ListResponse<Category>>(`/categories/${id}/archive`)
+  return data.data
+}
+
+/** PATCH /api/categories/:id/restore — kembalikan kategori terarsip (admin). */
+export async function restoreCategory(id: number): Promise<Category> {
+  const { data } = await api.patch<ListResponse<Category>>(`/categories/${id}/restore`)
+  return data.data
 }
 
 // ===== Orders =====
