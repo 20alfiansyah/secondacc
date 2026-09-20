@@ -36,7 +36,7 @@ export default function ProductCard({
 }: {
   product: Product
   onSelect?: (product: Product) => void
-  /** Slot kanan-bawah pengganti tombol + add (mode manajemen). */
+  /** Slot kanan-bawah pengganti tombol + add (mode manajemen); tetap dirender saat sold out agar produk bisa di-toggle balik. */
   actions?: ReactNode
   /** Override subtitle kartu; default description produk (mode POS). */
   subtitle?: string
@@ -140,17 +140,17 @@ export default function ProductCard({
           >
             {formatRupiah(p.price)}
           </span>
-          {soldOut ? (
+          {actions ? (
+            <div className="ml-auto flex items-center gap-1">{actions}</div>
+          ) : soldOut ? (
             <span className="text-[10px] font-semibold italic text-muted-foreground">Sold out</span>
           ) : (
-            (actions ?? (
-              <span
-                className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-700 shadow-xs transition-all group-hover:bg-[#447C84] group-hover:text-white active:scale-95"
-                aria-hidden="true"
-              >
-                <Icon name="add" className="text-[16px]" />
-              </span>
-            ))
+            <span
+              className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-700 shadow-xs transition-all group-hover:bg-[#447C84] group-hover:text-white active:scale-95"
+              aria-hidden="true"
+            >
+              <Icon name="add" className="text-[16px]" />
+            </span>
           )}
         </div>
       </div>
