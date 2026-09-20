@@ -211,12 +211,12 @@ export default function MenuPage() {
                 size="sm"
                 onClick={() => setCatsOpen(true)}
                 disabled={loading}
-                className="h-[30px] flex-1 rounded-lg px-3 text-xs font-semibold sm:flex-none"
+                className="h-[30px] flex-1 justify-center rounded-lg px-3 text-xs font-semibold sm:flex-none"
               >
                 <Icon name="category" className="text-sm" />
                 Categories
               </Button>
-              <PrimaryAction onClick={openCreate} disabled={loading} className="flex-1 sm:flex-none">
+              <PrimaryAction onClick={openCreate} disabled={loading} className="flex-1 justify-center sm:flex-none">
                 <Icon name="add" className="text-sm" />
                 Add Product
               </PrimaryAction>
