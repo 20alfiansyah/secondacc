@@ -327,9 +327,11 @@ function ProductActions({
         size="sm"
         onClick={() => onToggleSoldOut(product)}
         disabled={toggling}
+        aria-label={product.isAvailable ? 'Tandai sold out' : 'Tandai tersedia'}
+        className="px-2 sm:px-3"
       >
         <Icon name="sync" className={cn('text-[15px]', toggling && 'animate-spin')} />
-        {product.isAvailable ? 'Sold Out' : 'Available'}
+        <span className="hidden sm:inline">{product.isAvailable ? 'Sold Out' : 'Available'}</span>
       </Button>
       <div className="flex items-center gap-1">
         <button

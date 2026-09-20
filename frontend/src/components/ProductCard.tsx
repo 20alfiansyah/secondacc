@@ -131,7 +131,7 @@ export default function ProductCard({
           )}
         </div>
 
-        <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2">
+        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-2 border-t border-slate-100 pt-2">
           <span
             className={cn(
               'text-xs font-bold tabular-nums tracking-tight',
