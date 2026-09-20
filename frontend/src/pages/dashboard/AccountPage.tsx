@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/card'
 import EmptyState from '@/components/ui/EmptyState'
 import { Input } from '@/components/ui/input'
 import PrimaryAction from '@/components/ui/PrimaryAction'
+import SearchBar from '@/components/ui/SearchBar'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/utils'
 
@@ -516,16 +517,12 @@ export default function AccountPage() {
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="relative">
-              <Icon
-                name="search"
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400"
-              />
-              <Input
+            <div className="w-full sm:w-60">
+              <SearchBar
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={setSearch}
                 placeholder="Search name / username..."
-                className="h-9 w-full pl-9 sm:w-60"
+                ariaLabel="Search staff"
               />
             </div>
             <PrimaryAction onClick={() => setAddOpen(true)}>
