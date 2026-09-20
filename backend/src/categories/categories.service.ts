@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** Slug helper kategori — pendekatan sama dengan prisma/seed.ts (kebab-case). */
@@ -13,8 +13,11 @@ function slugify(name: string): string {
 export class CategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
+  /** Shared query daftar kategori — filter isActive; undefined = tanpa filter. */
+  private async listByActive(isActive: boolean | undefined) {
     const categories = await this.prisma.category.findMany({
+      // undefined = tanpa filter (includeArchived); true = aktif saja.
+      where: isActive === undefined ? undefined : { isActive },
       include: {
         products: {
           where: { isAvailable: true },
@@ -31,6 +34,16 @@ export class CategoriesService {
       // Hitung hanya produk dengan isAvailable=true (defensif terhadap hasil query)
       activeProductCount: c.products.filter((p) => p.isAvailable).length,
     }));
+  }
+
+  /** GET /api/categories — default hanya kategori aktif (terarsip disembunyikan). */
+  async findAll({ includeArchived = false }: { includeArchived?: boolean } = {}) {
+    return this.listByActive(includeArchived ? undefined : true);
+  }
+
+  /** GET /api/categories/archived — hanya kategori terarsip (isActive=false). */
+  async findAllArchived() {
+    return this.listByActive(false);
   }
 
   /**
@@ -79,10 +92,11 @@ export class CategoriesService {
   }
 
   /**
-   * DELETE /api/categories/:id — hapus kategori (admin).
-   * Ditolak 400 bila masih ada produk yang memakai kategori ini.
+   * PATCH /api/categories/:id/archive — arsipkan kategori (soft-disable).
+   * Produk tetap menunjuk kategori ini (onDelete: Restrict): riwayat order
+   * tidak tersentuh; isActive hanya memfilter listing (GET, pills, dropdown).
    */
-  async remove(id: number) {
+  async archive(id: number) {
     const category = await this.prisma.category.findUnique({ where: { id } });
     if (!category) {
       throw new NotFoundException({
@@ -91,11 +105,22 @@ export class CategoriesService {
       });
     }
 
-    const productCount = await this.prisma.product.count({ where: { categoryId: id } });
-    if (productCount > 0) {
-      throw new BadRequestException(`Category still has ${productCount} product(s)`);
+    return this.prisma.category.update({ where: { id }, data: { isActive: false } });
+  }
+
+  /**
+   * PATCH /api/categories/:id/restore — kembalikan kategori terarsip.
+   * Slug tidak berubah saat arsip, jadi restore tidak mungkin bentrok slug.
+   */
+  async restore(id: number) {
+    const category = await this.prisma.category.findUnique({ where: { id } });
+    if (!category) {
+      throw new NotFoundException({
+        code: 'CATEGORY_NOT_FOUND',
+        message: `Category with id ${id} not found`,
+      });
     }
 
-    return this.prisma.category.delete({ where: { id } });
+    return this.prisma.category.update({ where: { id }, data: { isActive: true } });
   }
 }

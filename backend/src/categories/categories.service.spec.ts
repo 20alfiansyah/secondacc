@@ -1,9 +1,5 @@
 import { Test } from '@nestjs/testing';
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -15,9 +11,7 @@ describe('CategoriesService', () => {
       findUnique: jest.Mock;
       create: jest.Mock;
       update: jest.Mock;
-      delete: jest.Mock;
     };
-    product: { count: jest.Mock };
   };
 
   beforeEach(async () => {
@@ -27,9 +21,7 @@ describe('CategoriesService', () => {
         findUnique: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
-        delete: jest.fn(),
       },
-      product: { count: jest.fn() },
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -66,15 +58,42 @@ describe('CategoriesService', () => {
       { id: 2, name: 'Mocktails', slug: 'mocktails', activeProductCount: 0 },
     ]);
 
-    // pastikan query meng-include relasi products yang difilter isAvailable=true
+    // Default hanya kategori aktif (isActive=true); produk difilter isAvailable=true.
     expect(prisma.category.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: { isActive: true },
         include: expect.objectContaining({
           products: expect.objectContaining({
             where: { isAvailable: true },
           }),
         }),
       }),
+    );
+  });
+
+  it('findAll dengan includeArchived=true tidak memfilter isActive', async () => {
+    prisma.category.findMany.mockResolvedValue([]);
+
+    await service.findAll({ includeArchived: true });
+
+    // where undefined = tanpa filter isActive (aktif + arsip).
+    expect(prisma.category.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: undefined }),
+    );
+  });
+
+  it('findAllArchived hanya mengembalikan kategori terarsip (isActive=false)', async () => {
+    prisma.category.findMany.mockResolvedValue([
+      { id: 3, name: 'Old Menu', slug: 'old-menu', products: [] },
+    ]);
+
+    const result = await service.findAllArchived();
+
+    expect(result).toEqual([
+      { id: 3, name: 'Old Menu', slug: 'old-menu', activeProductCount: 0 },
+    ]);
+    expect(prisma.category.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { isActive: false } }),
     );
   });
 
@@ -142,37 +161,53 @@ describe('CategoriesService', () => {
     });
   });
 
-  describe('remove', () => {
-    it('menolak hapus dengan BadRequestException saat kategori masih punya produk', async () => {
+  describe('archive', () => {
+    it('mengarsipkan kategori: isActive menjadi false, produk tidak disentuh', async () => {
       prisma.category.findUnique.mockResolvedValue({ id: 1, name: 'Coffee', slug: 'coffee' });
-      prisma.product.count.mockResolvedValue(3);
+      prisma.category.update.mockResolvedValue({ id: 1, name: 'Coffee', slug: 'coffee', isActive: false });
 
-      await expect(service.remove(1)).rejects.toMatchObject({
-        constructor: BadRequestException,
-        message: 'Category still has 3 product(s)',
+      const result = await service.archive(1);
+
+      // Soft-disable saja: tidak ada delete, relasi produk tetap utuh.
+      expect(prisma.category.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { isActive: false },
       });
-      await expect(service.remove(1)).rejects.toBeInstanceOf(BadRequestException);
-      expect(prisma.category.delete).not.toHaveBeenCalled();
-    });
-
-    it('menghapus kategori yang kosong', async () => {
-      prisma.category.findUnique.mockResolvedValue({ id: 2, name: 'Tea', slug: 'tea' });
-      prisma.product.count.mockResolvedValue(0);
-      prisma.category.delete.mockResolvedValue({ id: 2, name: 'Tea', slug: 'tea' });
-
-      const result = await service.remove(2);
-
-      // count produk dulu, baru delete — urutan guard penting
-      expect(prisma.product.count).toHaveBeenCalledWith({ where: { categoryId: 2 } });
-      expect(prisma.category.delete).toHaveBeenCalledWith({ where: { id: 2 } });
-      expect(result).toEqual({ id: 2, name: 'Tea', slug: 'tea' });
+      expect(result).toEqual({ id: 1, name: 'Coffee', slug: 'coffee', isActive: false });
     });
 
     it('melempar NotFoundException saat id tidak ada', async () => {
       prisma.category.findUnique.mockResolvedValue(null);
 
-      await expect(service.remove(99)).rejects.toBeInstanceOf(NotFoundException);
-      expect(prisma.product.count).not.toHaveBeenCalled();
+      await expect(service.archive(99)).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.category.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('restore', () => {
+    it('mengembalikan kategori terarsip: isActive menjadi true', async () => {
+      prisma.category.findUnique.mockResolvedValue({
+        id: 1,
+        name: 'Coffee',
+        slug: 'coffee',
+        isActive: false,
+      });
+      prisma.category.update.mockResolvedValue({ id: 1, name: 'Coffee', slug: 'coffee', isActive: true });
+
+      const result = await service.restore(1);
+
+      expect(prisma.category.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { isActive: true },
+      });
+      expect(result).toEqual({ id: 1, name: 'Coffee', slug: 'coffee', isActive: true });
+    });
+
+    it('melempar NotFoundException saat id tidak ada', async () => {
+      prisma.category.findUnique.mockResolvedValue(null);
+
+      await expect(service.restore(99)).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.category.update).not.toHaveBeenCalled();
     });
   });
 });
