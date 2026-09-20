@@ -15,7 +15,7 @@ const router = createBrowserRouter([
   {
     path: '/pos',
     element: (
-      <ProtectedRoute roles={['CASHIER']}>
+      <ProtectedRoute roles={['CASHIER', 'ADMIN']}>
         <POS />
       </ProtectedRoute>
     ),

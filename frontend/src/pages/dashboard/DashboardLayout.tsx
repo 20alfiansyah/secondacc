@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import MobileNav from '@/components/MobileNav'
 import NavigationRail from '@/components/NavigationRail'
+import OrderHistoryDrawer from '@/components/OrderHistoryDrawer'
 import TopBar from '@/components/TopBar'
 import Icon from '@/components/ui/Icon'
 import { useAuthStore } from '@/store/authStore'
@@ -16,10 +17,13 @@ interface DashboardLayoutProps {
  * Shell layout untuk seluruh halaman /dashboard (Task 2.0): NavigationRail
  * desktop (`hidden lg:flex`) + MobileNav untuk layar <lg + TopBar + main
  * konten scrollable — struktur 1:1 dengan layout POS (pages/POS.tsx).
- * Props POS-only (`onOpenHistory`/`onLockRegister`) diisi notice: Order
- * History dan lock register adalah fitur layar kasir, bukan dashboard.
+ * Props POS-only (`onOpenHistory`/`onLockRegister`): Order History dibuka
+ * lewat OrderHistoryDrawer (admin kini boleh akses /pos), sedangkan lock
+ * register tetap fitur layar kasir sehingga diisi notice.
  */
 export default function DashboardLayout({ page, children }: DashboardLayoutProps) {
+  // Drawer Order History — slide-over kanan, sama seperti di layar kasir.
+  const [historyOpen, setHistoryOpen] = useState(false)
   const { logout } = useAuthStore()
 
   // Notice non-modal ala POS: banner di bawah TopBar, auto-hide 4 detik.
@@ -35,7 +39,7 @@ export default function DashboardLayout({ page, children }: DashboardLayoutProps
       {/* Zone 1: top bar mobile (<lg) / rail desktop (≥lg) */}
       <MobileNav
         page={page}
-        onOpenHistory={() => setNotice('Order History is available on the Register (POS) screen.')}
+        onOpenHistory={() => setHistoryOpen(true)}
         onLockRegister={() => setNotice('Lock register only applies on the Register (POS) screen.')}
         onFeatureNotice={setNotice}
         onSignOut={logout}
@@ -43,7 +47,7 @@ export default function DashboardLayout({ page, children }: DashboardLayoutProps
       <NavigationRail
         className="hidden lg:flex"
         page={page}
-        onOpenHistory={() => setNotice('Order History is available on the Register (POS) screen.')}
+        onOpenHistory={() => setHistoryOpen(true)}
         onLockRegister={() => setNotice('Lock register only applies on the Register (POS) screen.')}
         onFeatureNotice={setNotice}
         onSignOut={logout}
@@ -60,6 +64,8 @@ export default function DashboardLayout({ page, children }: DashboardLayoutProps
         )}
         {children}
       </main>
+      {/* Drawer Order History (Task 1.3.10) — slide-over kanan */}
+      <OrderHistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </div>
   )
 }
