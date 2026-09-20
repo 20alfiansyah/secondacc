@@ -557,7 +557,7 @@ export default function AccountPage() {
         </div>
       )}
 
-      <Card className="flex flex-col shadow-card">
+      <Card className="flex flex-col border-slate-300 shadow-card">
         {/* Header: judul + search + CTA tambah akun */}
         <CardHeader className="flex flex-col items-start gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6">
           <div className="min-w-0 space-y-0.5">
