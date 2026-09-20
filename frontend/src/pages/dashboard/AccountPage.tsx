@@ -557,7 +557,7 @@ export default function AccountPage() {
         </div>
       )}
 
-      <Card className="flex flex-col border-slate-300 shadow-card">
+      <Card className="flex flex-col border-slate-200/80 shadow-card">
         {/* Header: judul + search + CTA tambah akun */}
         <CardHeader className="flex flex-col items-start gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6">
           <div className="min-w-0 space-y-0.5">
@@ -726,7 +726,7 @@ export default function AccountPage() {
       agar kartu putih + shadow-card kontras di atas bg slate-50. */}
       <div className="space-y-3 sm:hidden">
         {filtered.map((u) => (
-          <Card key={u.id} className="space-y-3 border-slate-300 p-4">
+          <Card key={u.id} className="space-y-3 border-slate-200/80 p-4">
             <div>
               <p className="font-medium text-foreground">
                 {u.name}
