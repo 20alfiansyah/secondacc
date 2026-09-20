@@ -635,62 +635,6 @@ export default function AccountPage() {
           </div>
         ) : (
           <>
-            {/* Mobile (<sm): daftar kartu per staf — tabel tidak nyaman di-slide di layar sempit. */}
-            <div className="space-y-3 sm:hidden">
-              {filtered.map((u) => (
-                <Card key={u.id} className="space-y-3 p-4">
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {u.name}
-                      {me?.id === u.id && (
-                        <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          (You)
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-xs text-slate-400">@{u.username}</p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <RoleBadge role={u.role} />
-                    <StatusPill active={u.isActive} />
-                  </div>
-                  <p className="text-xs text-slate-400">
-                    Created {formatCreatedDate(u.createdAt)}
-                  </p>
-                  <div className="flex items-center gap-1.5 border-t border-border/50 pt-3">
-                    <button
-                      type="button"
-                      onClick={() => setPasswordTarget(u)}
-                      aria-label={`Change password for ${u.username}`}
-                      title="Change password"
-                      className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition hover:bg-primary-light hover:text-primary"
-                    >
-                      <Icon name="password" className="text-base" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setToggleTarget(u)}
-                      aria-label={
-                        u.isActive
-                          ? `Deactivate account ${u.username}`
-                          : `Activate account ${u.username}`
-                      }
-                      title={
-                        u.isActive ? "Deactivate account" : "Activate account"
-                      }
-                      className={cn(
-                        "flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition hover:bg-destructive/10 hover:text-destructive",
-                        u.isActive
-                          ? "bg-live-light text-live"
-                          : "bg-slate-100 text-slate-400",
-                      )}
-                    >
-                      <Icon name="power_settings_new" className="text-base" />
-                    </button>
-                  </div>
-                </Card>
-              ))}
-            </div>
             <div className="hidden overflow-x-auto sm:block">
               <table className="w-full text-left text-sm">
                 <thead>
@@ -777,6 +721,64 @@ export default function AccountPage() {
           </>
         )}
       </Card>
+
+      {/* Mobile (<sm): daftar kartu per staf — sibling Card besar (bukan nested)
+      agar kartu putih + shadow-card kontras di atas bg slate-50. */}
+      <div className="space-y-3 sm:hidden">
+        {filtered.map((u) => (
+          <Card key={u.id} className="space-y-3 p-4">
+            <div>
+              <p className="font-medium text-foreground">
+                {u.name}
+                {me?.id === u.id && (
+                  <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    (You)
+                  </span>
+                )}
+              </p>
+              <p className="text-xs text-slate-400">@{u.username}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <RoleBadge role={u.role} />
+              <StatusPill active={u.isActive} />
+            </div>
+            <p className="text-xs text-slate-400">
+              Created {formatCreatedDate(u.createdAt)}
+            </p>
+            <div className="flex items-center gap-1.5 border-t border-border/50 pt-3">
+              <button
+                type="button"
+                onClick={() => setPasswordTarget(u)}
+                aria-label={`Change password for ${u.username}`}
+                title="Change password"
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition hover:bg-primary-light hover:text-primary"
+              >
+                <Icon name="password" className="text-base" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setToggleTarget(u)}
+                aria-label={
+                  u.isActive
+                    ? `Deactivate account ${u.username}`
+                    : `Activate account ${u.username}`
+                }
+                title={
+                  u.isActive ? "Deactivate account" : "Activate account"
+                }
+                className={cn(
+                  "flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition hover:bg-destructive/10 hover:text-destructive",
+                  u.isActive
+                    ? "bg-live-light text-live"
+                    : "bg-slate-100 text-slate-400",
+                )}
+              >
+                <Icon name="power_settings_new" className="text-base" />
+              </button>
+            </div>
+          </Card>
+        ))}
+      </div>
 
       {addOpen && (
         <AddStaffModal
