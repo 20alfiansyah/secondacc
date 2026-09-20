@@ -75,13 +75,13 @@ export class OrdersService {
     if (!customerName) {
       throw new BadRequestException({
         code: 'CUSTOMER_NAME_REQUIRED',
-        message: 'Nama pelanggan wajib diisi',
+        message: 'Customer name is required',
       });
     }
     if (!input.items || input.items.length === 0) {
       throw new BadRequestException({
         code: 'EMPTY_ITEMS',
-        message: 'Pesanan minimal berisi 1 item',
+        message: 'Order must contain at least 1 item',
       });
     }
 
@@ -145,7 +145,7 @@ export class OrdersService {
       if (price === undefined) {
         throw new NotFoundException({
           code: 'PRODUCT_NOT_FOUND',
-          message: `Produk id ${item.productId} tidak ditemukan`,
+          message: `Product id ${item.productId} not found`,
         });
       }
       const subtotal = calculateItemSubtotal(item.quantity, price);
@@ -173,7 +173,7 @@ export class OrdersService {
     if (!input.items || input.items.length === 0) {
       throw new BadRequestException({
         code: 'EMPTY_ITEMS',
-        message: 'Pesanan minimal berisi 1 item',
+        message: 'Order must contain at least 1 item',
       });
     }
 
@@ -182,13 +182,13 @@ export class OrdersService {
       if (!order) {
         throw new NotFoundException({
           code: 'ORDER_NOT_FOUND',
-          message: `Order id ${id} tidak ditemukan`,
+          message: `Order id ${id} not found`,
         });
       }
       if (order.status !== OrderStatus.OPEN_BILL) {
         throw new ConflictException({
           code: 'ORDER_NOT_OPEN_BILL',
-          message: 'Order bukan OPEN_BILL, item tidak bisa diubah',
+          message: 'Order is not OPEN_BILL — item cannot be modified',
         });
       }
 
@@ -215,7 +215,7 @@ export class OrdersService {
       if (claim.count === 0) {
         throw new ConflictException({
           code: 'ORDER_NOT_OPEN_BILL',
-          message: 'Order sudah tidak OPEN_BILL, item tidak bisa diubah',
+          message: 'Order is no longer OPEN_BILL — item cannot be modified',
         });
       }
 
@@ -269,7 +269,7 @@ export class OrdersService {
     if (!order) {
       throw new NotFoundException({
         code: 'ORDER_NOT_FOUND',
-        message: `Order id ${id} tidak ditemukan`,
+        message: `Order id ${id} not found`,
       });
     }
     const { table, cashier, payment, orderItems, ...rest } = order;
@@ -328,13 +328,13 @@ export class OrdersService {
       if (!order) {
         throw new NotFoundException({
           code: 'ORDER_NOT_FOUND',
-          message: `Order id ${id} tidak ditemukan`,
+          message: `Order id ${id} not found`,
         });
       }
       if (order.status !== OrderStatus.OPEN_BILL) {
         throw new ConflictException({
           code: 'ORDER_NOT_OPEN_BILL',
-          message: 'Order bukan OPEN_BILL, tidak bisa di-checkout',
+          message: 'Order is not OPEN_BILL — cannot checkout',
         });
       }
 
@@ -365,7 +365,7 @@ export class OrdersService {
       if (claim.count === 0) {
         throw new ConflictException({
           code: 'ORDER_NOT_OPEN_BILL',
-          message: 'Order sudah dibayar oleh sesi lain',
+          message: 'Order was already paid by another session',
         });
       }
 
@@ -407,13 +407,13 @@ export class OrdersService {
     if ((query.from && !DATE_RE.test(query.from)) || (query.to && !DATE_RE.test(query.to))) {
       throw new BadRequestException({
         code: 'INVALID_DATE_FORMAT',
-        message: 'Format tanggal harus YYYY-MM-DD',
+        message: 'Date must be in YYYY-MM-DD format',
       });
     }
     if (query.from && query.to && query.from > query.to) {
       throw new BadRequestException({
         code: 'INVALID_DATE_RANGE',
-        message: 'Tanggal awal tidak boleh setelah tanggal akhir',
+        message: 'Start date cannot be after end date',
       });
     }
 

@@ -34,7 +34,7 @@ export class PaymentChannelsService {
     if (!Object.values(PaymentCategory).includes(dto.category as PaymentCategory)) {
       throw new BadRequestException({
         code: 'INVALID_CATEGORY',
-        message: `Kategori channel tidak valid: ${dto.category}. Gunakan CASH, THIRD_PARTY, atau EDC`,
+        message: `Invalid channel category: ${dto.category}. Use CASH, THIRD_PARTY, or EDC`,
       });
     }
 
@@ -48,7 +48,7 @@ export class PaymentChannelsService {
     if (!channel) {
       throw new NotFoundException({
         code: 'CHANNEL_NOT_FOUND',
-        message: `Channel pembayaran dengan id ${id} tidak ditemukan`,
+        message: `Payment channel with id ${id} not found`,
       });
     }
 
