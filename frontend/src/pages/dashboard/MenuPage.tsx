@@ -200,25 +200,27 @@ export default function MenuPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4 p-4 pt-0 sm:p-6 sm:pt-0">
-          {/* Baris kontrol: search + CTA sebaris di semua breakpoint — header hanya informasi. */}
-          <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1">
+          {/* Baris kontrol: mobile = search full width di atas, tombol di bawah; >=sm: search + CTA sebaris. */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+            <div className="min-w-0 sm:flex-1">
               <SearchBar value={search} onChange={setSearch} ariaLabel="Search products" />
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCatsOpen(true)}
-              disabled={loading}
-              className="h-[30px] rounded-lg px-3 text-xs font-semibold"
-            >
-              <Icon name="category" className="text-sm" />
-              Categories
-            </Button>
-            <PrimaryAction onClick={openCreate} disabled={loading}>
-              <Icon name="add" className="text-sm" />
-              Add Product
-            </PrimaryAction>
+            <div className="flex items-center justify-end gap-2 sm:contents">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCatsOpen(true)}
+                disabled={loading}
+                className="h-[30px] rounded-lg px-3 text-xs font-semibold"
+              >
+                <Icon name="category" className="text-sm" />
+                Categories
+              </Button>
+              <PrimaryAction onClick={openCreate} disabled={loading}>
+                <Icon name="add" className="text-sm" />
+                Add Product
+              </PrimaryAction>
+            </div>
           </div>
 
           {/* Pills kategori gaya POS: All + Popular + Best Seller + tiap kategori. */}
