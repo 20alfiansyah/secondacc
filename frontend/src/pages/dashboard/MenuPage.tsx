@@ -1,6 +1,7 @@
 import { isAxiosError } from 'axios'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
+import ProductCard from '@/components/ProductCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   createProduct,
@@ -11,7 +12,6 @@ import {
   updateProduct,
 } from '@/api/client'
 import type { Category, Product } from '@/api/client'
-import { formatRupiah } from '@/utils/format'
 import Icon from '@/components/ui/Icon'
 import EmptyState from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -61,7 +61,7 @@ export default function MenuPage() {
       setCategories(categories)
       setPageError(null)
     } catch (err) {
-      setPageError(extractErrorMessage(err, 'Gagal memuat data menu.'))
+      setPageError(extractErrorMessage(err, 'Failed to load menu data.'))
     } finally {
       setLoading(false)
     }
@@ -87,7 +87,7 @@ export default function MenuPage() {
         prev.map((p) => (p.id === product.id ? { ...p, isAvailable: updated.isAvailable } : p)),
       )
     } catch (err) {
-      setPageError(extractErrorMessage(err, `Gagal mengubah status ${product.name}.`))
+      setPageError(extractErrorMessage(err, `Failed to update status of ${product.name}.`))
     } finally {
       setTogglingId(null)
     }
@@ -102,7 +102,7 @@ export default function MenuPage() {
       void loadProducts()
     } catch (err) {
       // 409 PRODUCT_IN_USE dll — tampilkan pesan server bila ada.
-      setPageError(extractErrorMessage(err, `Gagal menghapus ${deleting.name}.`))
+      setPageError(extractErrorMessage(err, `Failed to delete ${deleting.name}.`))
       setDeleting(null)
     } finally {
       setDeletingBusy(false)
@@ -132,7 +132,7 @@ export default function MenuPage() {
             type="button"
             onClick={() => setPageError(null)}
             className="cursor-pointer rounded-full p-0.5 hover:bg-destructive/10"
-            aria-label="Tutup pesan error"
+            aria-label="Dismiss error"
           >
             <Icon name="close" className="text-[16px]" />
           </button>
@@ -142,14 +142,14 @@ export default function MenuPage() {
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <div>
-            <CardTitle className="font-display text-base">Manajemen Menu</CardTitle>
+            <CardTitle className="font-display text-base">Menu Management</CardTitle>
             <CardDescription>
-              {loading ? 'Memuat produk…' : `${products.length} produk terdaftar`}
+              {loading ? 'Loading products…' : `${products.length} products`}
             </CardDescription>
           </div>
           <Button onClick={openCreate} disabled={loading}>
             <Icon name="add" className="text-[18px]" />
-            Tambah Produk
+            Add Product
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -161,9 +161,9 @@ export default function MenuPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari produk atau kategori…"
+              placeholder="Search products or categories…"
               className="pl-10"
-              aria-label="Cari produk"
+              aria-label="Search products"
             />
           </div>
 
@@ -173,7 +173,7 @@ export default function MenuPage() {
                 <EmptyState
                   key={i}
                   icon="restaurant_menu"
-                  title="Memuat…"
+                  title="Loading…"
                   loading
                   compact
                 />
@@ -182,11 +182,11 @@ export default function MenuPage() {
           ) : filteredProducts.length === 0 ? (
             <EmptyState
               icon="inventory_2"
-              title={products.length === 0 ? 'Belum ada produk' : 'Produk tidak ditemukan'}
+              title={products.length === 0 ? 'No products yet' : 'No products found'}
               description={
                 products.length === 0
-                  ? 'Tambahkan produk pertama lewat tombol "Tambah Produk".'
-                  : `Tidak ada produk yang cocok dengan pencarian "${search}".`
+                  ? 'Add your first product using the "Add Product" button.'
+                  : `No products match your search "${search}".`
               }
             />
           ) : (
@@ -195,10 +195,16 @@ export default function MenuPage() {
                 <ProductCard
                   key={product.id}
                   product={product}
-                  toggling={togglingId === product.id}
-                  onToggleSoldOut={handleToggleSoldOut}
-                  onEdit={openEdit}
-                  onDelete={setDeleting}
+                  subtitle={product.categoryName}
+                  actions={
+                    <ProductActions
+                      product={product}
+                      toggling={togglingId === product.id}
+                      onToggleSoldOut={handleToggleSoldOut}
+                      onEdit={openEdit}
+                      onDelete={setDeleting}
+                    />
+                  }
                 />
               ))}
             </div>
@@ -234,8 +240,8 @@ export default function MenuPage() {
   )
 }
 
-/** Satu kartu produk: thumbnail, nama, kategori, harga, badge, dan aksi admin. */
-function ProductCard({
+/** CTA manajemen per kartu: toggle sold out + edit + delete — slot `actions` shared ProductCard. */
+function ProductActions({
   product,
   toggling,
   onToggleSoldOut,
@@ -248,101 +254,38 @@ function ProductCard({
   onEdit: (product: Product) => void
   onDelete: (product: Product) => void
 }) {
-  const soldOut = !product.isAvailable
-
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card transition-all hover:shadow-card-hover">
-      {/* Thumbnail — imageUrl /uploads/... dipakai langsung (proxy Vite ke backend). */}
-      <div className="relative aspect-square overflow-hidden bg-slate-100">
-        <div className="absolute inset-0 flex items-center justify-center text-slate-300">
-          <Icon name="restaurant_menu" className="text-[40px]" />
-        </div>
-        {product.imageUrl && (
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            loading="lazy"
-            onError={(e) => {
-              ;(e.target as HTMLImageElement).style.display = 'none'
-            }}
-            className={cn('absolute inset-0 h-full w-full object-cover', soldOut && 'grayscale')}
-          />
-        )}
-        <div className="absolute left-2 top-2 flex flex-wrap gap-1">
-          {product.isRecommended && (
-            <span className="flex items-center gap-0.5 rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-bold text-primary-dark">
-              <Icon name="star" className="text-[11px]" />
-              Recommended
-            </span>
-          )}
-          {product.isBestSeller && (
-            <span className="flex items-center gap-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 text-[10px] font-bold text-white">
-              <Icon name="local_fire_department" className="text-[11px]" />
-              BestSeller
-            </span>
-          )}
-        </div>
-        {soldOut && (
-          <span className="absolute right-2 top-2 rounded-full bg-slate-900/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-            Sold Out
-          </span>
-        )}
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onToggleSoldOut(product)}
+        disabled={toggling}
+      >
+        <Icon name="sync" className={cn('text-[15px]', toggling && 'animate-spin')} />
+        {product.isAvailable ? 'Sold Out' : 'Available'}
+      </Button>
+      <div className="ml-auto flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => onEdit(product)}
+          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-primary"
+          aria-label={`Edit ${product.name}`}
+          title="Edit"
+        >
+          <Icon name="edit_note" className="text-[18px]" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(product)}
+          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition hover:bg-destructive/10 hover:text-destructive"
+          aria-label={`Delete ${product.name}`}
+          title="Delete"
+        >
+          <Icon name="delete" className="text-[17px]" />
+        </button>
       </div>
-
-      <div className="flex flex-1 flex-col gap-2 p-3.5">
-        <div className="min-w-0">
-          <h3 className="truncate font-display text-sm font-bold text-slate-900">{product.name}</h3>
-          <p className="truncate text-[11px] text-muted-foreground">{product.categoryName}</p>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="font-display text-sm font-bold tabular-nums text-primary">
-            {formatRupiah(product.price)}
-          </span>
-          <span
-            className={cn(
-              'rounded-full px-2 py-0.5 text-[10px] font-bold',
-              product.isAvailable
-                ? 'bg-accent text-[#2d5258]'
-                : 'bg-destructive/10 text-destructive',
-            )}
-          >
-            {product.isAvailable ? 'Tersedia' : 'Sold Out'}
-          </span>
-        </div>
-
-        <div className="mt-auto flex items-center gap-1.5 border-t border-slate-100 pt-2.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onToggleSoldOut(product)}
-            disabled={toggling}
-          >
-            <Icon name="sync" className={cn('text-[15px]', toggling && 'animate-spin')} />
-            {product.isAvailable ? 'Sold Out' : 'Tersedia'}
-          </Button>
-          <div className="ml-auto flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => onEdit(product)}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-primary"
-              aria-label={`Edit ${product.name}`}
-              title="Edit"
-            >
-              <Icon name="edit_note" className="text-[18px]" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onDelete(product)}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition hover:bg-destructive/10 hover:text-destructive"
-              aria-label={`Hapus ${product.name}`}
-              title="Hapus"
-            >
-              <Icon name="delete" className="text-[17px]" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </>
   )
 }
 
@@ -396,20 +339,20 @@ function ProductFormModal({
     const parsedPrice = parsePriceInput(price.trim())
 
     if (!trimmedName) {
-      setFormError('Nama produk wajib diisi.')
+      setFormError('Name is required.')
       return
     }
     if (!categoryId) {
-      setFormError('Kategori wajib dipilih.')
+      setFormError('Category is required.')
       return
     }
     if (parsedPrice === null) {
-      setFormError('Harga harus berupa bilangan bulat positif (rupiah).')
+      setFormError('Price must be a positive integer.')
       return
     }
     // Create: gambar wajib; Edit: opsional (tanpa file = gambar lama dipertahankan).
     if (!editing && !imageFile) {
-      setFormError('Gambar produk wajib diupload (JPEG/PNG/WEBP, maks 2MB).')
+      setFormError('Image is required for new products (JPEG/PNG/WEBP, max 2MB).')
       return
     }
 
@@ -429,10 +372,10 @@ function ProductFormModal({
       : createProduct(formData)
     request
       .then(() => {
-        onSaved(editing ? `Produk "${trimmedName}" berhasil diperbarui.` : `Produk "${trimmedName}" berhasil ditambahkan.`)
+        onSaved(editing ? `Product "${trimmedName}" updated successfully.` : `Product "${trimmedName}" added successfully.`)
       })
       .catch((err: unknown) => {
-        setFormError(extractErrorMessage(err, editing ? 'Gagal memperbarui produk.' : 'Gagal menambahkan produk.'))
+        setFormError(extractErrorMessage(err, editing ? 'Failed to update product.' : 'Failed to add product.'))
         setSaving(false)
       })
   }
@@ -451,7 +394,7 @@ function ProductFormModal({
       >
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 p-4">
           <h3 className="font-display text-base font-bold tracking-tight text-slate-900">
-            {editing ? 'Edit Produk' : 'Tambah Produk'}
+            {editing ? 'Edit Product' : 'Add Product'}
           </h3>
           <button
             type="button"
@@ -474,22 +417,22 @@ function ProductFormModal({
             </div>
           )}
 
-          <Field label="Nama Produk" required>
+          <Field label="Product Name" required>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="cth. Kopi Susu Gula Aren"
+              placeholder="e.g. Iced Latte"
               autoFocus
             />
           </Field>
 
-          <Field label="Kategori" required>
+          <Field label="Category" required>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
               className="flex h-10 w-full cursor-pointer rounded-xl border border-input/80 bg-background px-3.5 py-2 text-sm shadow-subtle transition-all focus:border-primary/80 focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
-              <option value="">Pilih kategori…</option>
+              <option value="">Select a category…</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -498,36 +441,36 @@ function ProductFormModal({
             </select>
           </Field>
 
-          <Field label="Harga (Rp)" required>
+          <Field label="Price (Rp)" required>
             <Input
               type="text"
               inputMode="numeric"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              placeholder="cth. 20000"
+              placeholder="e.g. 20000"
               className="tabular-nums"
             />
           </Field>
 
-          <Field label="Deskripsi">
+          <Field label="Description">
             <textarea
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Deskripsi singkat (opsional)"
+              placeholder="Short description (optional)"
               className="w-full resize-none rounded-xl border border-input/80 bg-background px-3.5 py-2 text-sm shadow-subtle transition-all placeholder:text-muted-foreground/60 focus:border-primary/80 focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </Field>
 
           <Field
-            label="Gambar Produk"
-            hint={editing ? 'Kosongkan jika tidak diganti (maks 2MB)' : 'JPEG/PNG/WEBP, maks 2MB'}
+            label="Product Image"
+            hint={editing ? 'Leave empty to keep current (max 2MB)' : 'JPEG/PNG/WEBP, max 2MB'}
           >
             <div className="flex items-center gap-3">
               {/* Preview: object URL dari file baru, fallback gambar saat edit. */}
               <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                 {previewUrl ? (
-                  <img src={previewUrl} alt="Preview gambar" className="h-full w-full object-cover" />
+                  <img src={previewUrl} alt="Image preview" className="h-full w-full object-cover" />
                 ) : editing?.imageUrl ? (
                   <img
                     src={editing.imageUrl}
@@ -550,7 +493,7 @@ function ProductFormModal({
                   accept="image/jpeg,image/png,image/webp"
                   onChange={handleSelectImage}
                   className="block w-full cursor-pointer text-xs text-slate-500 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary-light file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary-dark hover:file:bg-accent"
-                  aria-label="Pilih file gambar produk"
+                  aria-label="Select product image"
                 />
                 {imageFile && (
                   <button
@@ -562,7 +505,7 @@ function ProductFormModal({
                     }}
                     className="cursor-pointer text-[11px] font-medium text-destructive hover:underline"
                   >
-                    Hapus gambar terpilih
+                    Remove selected image
                   </button>
                 )}
               </div>
@@ -599,11 +542,11 @@ function ProductFormModal({
 
         <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 bg-slate-50/50 p-4">
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            Batal
+            Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={saving}>
             <Icon name={editing ? 'edit_note' : 'add'} className="text-[17px]" />
-            {saving ? 'Menyimpan…' : editing ? 'Simpan Perubahan' : 'Tambah Produk'}
+            {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add Product'}
           </Button>
         </div>
       </div>
@@ -665,19 +608,19 @@ function DeleteConfirmModal({
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
             <Icon name="delete" className="text-[24px]" />
           </div>
-          <h3 className="font-display text-base font-bold text-slate-900">Hapus Produk</h3>
+          <h3 className="font-display text-base font-bold text-slate-900">Delete Product</h3>
           <p className="text-sm leading-relaxed text-slate-600">
-            Yakin ingin menghapus{' '}
-            <span className="font-semibold text-slate-900">"{product.name}"</span>? Tindakan ini
-            tidak dapat dibatalkan.
+            Are you sure you want to delete{' '}
+            <span className="font-semibold text-slate-900">"{product.name}"</span>? This action
+            cannot be undone.
           </p>
         </div>
         <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 bg-slate-50/50 p-4">
           <Button variant="outline" onClick={onClose} disabled={busy}>
-            Batal
+            Cancel
           </Button>
           <Button variant="destructive" onClick={onConfirm} disabled={busy}>
-            {busy ? 'Menghapus…' : 'Ya, Hapus'}
+            {busy ? 'Deleting…' : 'Yes, Delete'}
           </Button>
         </div>
       </div>

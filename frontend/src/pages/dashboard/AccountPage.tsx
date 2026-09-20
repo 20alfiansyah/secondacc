@@ -7,6 +7,7 @@ import {
 } from '@/api/client'
 import type { Role, StaffUser } from '@/api/client'
 import Icon from '@/components/ui/Icon'
+import StatusPill from '@/components/ui/StatusPill'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import EmptyState from '@/components/ui/EmptyState'
@@ -29,7 +30,7 @@ const SELECT_CLASS =
 const TH_CLASS = 'px-5 py-3 font-display text-[11px] font-bold uppercase tracking-wider text-slate-400'
 
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
-  { value: 'CASHIER', label: 'Kasir (CASHIER)' },
+  { value: 'CASHIER', label: 'Cashier (CASHIER)' },
   { value: 'ADMIN', label: 'Admin (ADMIN)' },
 ]
 
@@ -37,7 +38,7 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
 function formatCreatedDate(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return '-'
-  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 /** Ambil pesan Error hasil panggilan client, atau fallback generik. */
@@ -56,24 +57,7 @@ function RoleBadge({ role }: { role: Role }) {
           : 'border-slate-200 bg-slate-100 text-slate-600',
       )}
     >
-      {role}
-    </span>
-  )
-}
-
-/** Badge status akses: Aktif (live) / Nonaktif (abu). */
-function StatusBadge({ isActive }: { isActive: boolean }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold',
-        isActive
-          ? 'border-live-border bg-live-light text-primary-dark'
-          : 'border-slate-200 bg-slate-100 text-slate-500',
-      )}
-    >
-      <span className={cn('h-1.5 w-1.5 rounded-full', isActive ? 'bg-live' : 'bg-slate-400')} />
-      {isActive ? 'Aktif' : 'Nonaktif'}
+      {role === 'ADMIN' ? 'Administrator' : 'Cashier'}
     </span>
   )
 }
@@ -109,15 +93,15 @@ function AddStaffModal({
     e.preventDefault()
     setError(null)
     if (!name.trim()) {
-      setError('Nama wajib diisi.')
+      setError('Name is required.')
       return
     }
     if (!username.trim()) {
-      setError('Username wajib diisi.')
+      setError('Username is required.')
       return
     }
     if (password.length < 6) {
-      setError('Password minimal 6 karakter.')
+      setError('Password must be at least 6 characters.')
       return
     }
     setSubmitting(true)
@@ -125,7 +109,7 @@ function AddStaffModal({
       await onSubmit({ name: name.trim(), username: username.trim(), password, role })
       onClose()
     } catch (err) {
-      setError(toErrorMessage(err, 'Gagal membuat akun staf.'))
+      setError(toErrorMessage(err, 'Failed to create staff account.'))
     } finally {
       setSubmitting(false)
     }
@@ -149,8 +133,8 @@ function AddStaffModal({
               <Icon name="person_add" className="text-xl" />
             </div>
             <div>
-              <h2 className="font-display text-lg font-bold text-slate-900">Tambah Akun Staf</h2>
-              <p className="text-xs text-slate-500">Buat akun kasir atau admin baru.</p>
+              <h2 className="font-display text-lg font-bold text-slate-900">Add Staff Account</h2>
+              <p className="text-xs text-slate-500">Create a new cashier or admin account.</p>
             </div>
           </div>
           <button
@@ -170,13 +154,13 @@ function AddStaffModal({
               htmlFor="staff-name"
               className="mb-1.5 block font-display text-xs font-bold uppercase tracking-wider text-slate-400"
             >
-              Nama Lengkap
+              Full Name
             </label>
             <Input
               id="staff-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="cth. Budi Santoso"
+              placeholder="e.g. Budi Santoso"
               disabled={submitting}
             />
           </div>
@@ -191,7 +175,7 @@ function AddStaffModal({
               id="staff-username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="cth. kasir2"
+              placeholder="e.g. cashier2"
               autoComplete="off"
               disabled={submitting}
             />
@@ -208,7 +192,7 @@ function AddStaffModal({
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimal 6 karakter"
+              placeholder="At least 6 characters"
               autoComplete="new-password"
               disabled={submitting}
             />
@@ -246,7 +230,7 @@ function AddStaffModal({
         {/* Submit */}
         <Button type="submit" disabled={submitting} className="mt-4 h-11 w-full font-display text-sm font-bold">
           <Icon name="person_add" className="text-base" />
-          {submitting ? 'Menyimpan...' : 'Simpan Akun'}
+          {submitting ? 'Saving...' : 'Save Account'}
         </Button>
       </form>
     </div>
@@ -279,7 +263,7 @@ function ChangePasswordModal({
     e.preventDefault()
     setError(null)
     if (newPassword.length < 6) {
-      setError('Password minimal 6 karakter.')
+      setError('Password must be at least 6 characters.')
       return
     }
     setSubmitting(true)
@@ -287,7 +271,7 @@ function ChangePasswordModal({
       await onSubmit(newPassword)
       onClose()
     } catch (err) {
-      setError(toErrorMessage(err, 'Gagal mengganti password.'))
+      setError(toErrorMessage(err, 'Failed to change password.'))
     } finally {
       setSubmitting(false)
     }
@@ -311,7 +295,7 @@ function ChangePasswordModal({
               <Icon name="password" className="text-xl" />
             </div>
             <div>
-              <h2 className="font-display text-lg font-bold text-slate-900">Ganti Password</h2>
+              <h2 className="font-display text-lg font-bold text-slate-900">Change Password</h2>
               <p className="text-xs text-slate-500">
                 @{user.username} • {user.name}
               </p>
@@ -332,14 +316,14 @@ function ChangePasswordModal({
             htmlFor="staff-new-password"
             className="mb-1.5 block font-display text-xs font-bold uppercase tracking-wider text-slate-400"
           >
-            Password Baru
+            New Password
           </label>
           <Input
             id="staff-new-password"
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Minimal 6 karakter"
+            placeholder="At least 6 characters"
             autoComplete="new-password"
             disabled={submitting}
           />
@@ -354,7 +338,7 @@ function ChangePasswordModal({
 
         <Button type="submit" disabled={submitting} className="mt-4 h-11 w-full font-display text-sm font-bold">
           <Icon name="password" className="text-base" />
-          {submitting ? 'Menyimpan...' : 'Simpan Password Baru'}
+          {submitting ? 'Saving...' : 'Save New Password'}
         </Button>
       </form>
     </div>
@@ -390,7 +374,7 @@ function ToggleStatusModal({
       await onConfirm()
       onClose()
     } catch (err) {
-      setError(toErrorMessage(err, 'Gagal mengubah status akun.'))
+      setError(toErrorMessage(err, 'Failed to update account status.'))
     } finally {
       setSubmitting(false)
     }
@@ -415,13 +399,13 @@ function ToggleStatusModal({
           </div>
           <div className="min-w-0">
             <h2 className="font-display text-base font-bold text-slate-900">
-              {disabling ? 'Nonaktifkan akun?' : 'Aktifkan akun?'}
+              {disabling ? 'Deactivate account?' : 'Activate account?'}
             </h2>
             <p className="mt-1 text-xs leading-relaxed text-slate-500">
               @{user.username} ({user.name}){' '}
               {disabling
-                ? 'tidak akan bisa login ke aplikasi sampai akunnya diaktifkan kembali.'
-                : 'akan bisa kembali login ke aplikasi.'}
+                ? 'will not be able to log in until the account is re-activated.'
+                : 'will be able to log in again.'}
             </p>
           </div>
         </div>
@@ -435,10 +419,10 @@ function ToggleStatusModal({
 
         <div className="mt-5 grid grid-cols-2 gap-2">
           <Button variant="outline" onClick={onClose} disabled={submitting}>
-            Batal
+            Cancel
           </Button>
           <Button variant={disabling ? 'destructive' : 'default'} onClick={handleConfirm} disabled={submitting}>
-            {submitting ? 'Memproses...' : disabling ? 'Nonaktifkan' : 'Aktifkan'}
+            {submitting ? 'Processing...' : disabling ? 'Deactivate' : 'Activate'}
           </Button>
         </div>
       </div>
@@ -475,7 +459,7 @@ export default function AccountPage() {
     try {
       setStaff(await fetchUsers())
     } catch (err) {
-      setLoadError(toErrorMessage(err, 'Gagal memuat daftar staf.'))
+      setLoadError(toErrorMessage(err, 'Failed to load staff.'))
     } finally {
       setLoading(false)
     }
@@ -487,19 +471,19 @@ export default function AccountPage() {
 
   async function handleCreate(payload: CreateStaffPayload) {
     const created = await createUserRequest(payload)
-    setFeedback(`Akun ${created.name || created.username} berhasil dibuat.`)
+    setFeedback(`Account ${created.name || created.username} created successfully.`)
     await loadStaff()
   }
 
   async function handleChangePassword(user: StaffUser, newPassword: string) {
     await updateUserPasswordRequest(user.id, newPassword)
-    setFeedback(`Password akun ${user.username} berhasil diganti.`)
+    setFeedback(`Password for ${user.username} changed successfully.`)
     await loadStaff()
   }
 
   async function handleToggle(user: StaffUser) {
     await toggleUserStatusRequest(user.id)
-    setFeedback(`Status akun ${user.username} berhasil diperbarui.`)
+    setFeedback(`Status for ${user.username} updated successfully.`)
     await loadStaff()
   }
 
@@ -525,9 +509,9 @@ export default function AccountPage() {
         {/* Header: judul + search + CTA tambah akun */}
         <div className="flex flex-col gap-3 border-b border-border/70 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <h1 className="font-display text-lg font-bold text-foreground">Manajemen Akun Staf</h1>
+            <h1 className="font-display text-lg font-bold text-foreground">Staff Accounts</h1>
             <p className="text-xs text-muted-foreground">
-              Kelola akun kasir & admin, ganti password, dan atur status akses.
+              Manage cashier and admin accounts, passwords, and access status.
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -539,13 +523,13 @@ export default function AccountPage() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari nama / username..."
+                placeholder="Search name / username..."
                 className="h-9 w-full pl-9 sm:w-60"
               />
             </div>
             <Button onClick={() => setAddOpen(true)} className="h-9 shrink-0 font-display text-xs font-bold">
               <Icon name="person_add" className="text-base" />
-              Tambah Akun
+              Add Staff
             </Button>
           </div>
         </div>
@@ -564,27 +548,27 @@ export default function AccountPage() {
         {/* Body: tabel / state kosong */}
         {loading ? (
           <div className="p-6">
-            <EmptyState icon="manage_accounts" loading title="Memuat daftar staf..." />
+            <EmptyState icon="manage_accounts" loading title="Loading staff..." />
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-6">
             {loadError ? (
               <EmptyState
                 icon="error"
-                title="Gagal memuat daftar staf"
-                description="Periksa koneksi, lalu muat ulang halaman."
+                title="Failed to load staff"
+                description="Check your connection and reload the page."
               />
             ) : staff.length === 0 ? (
               <EmptyState
                 icon="person_add"
-                title="Belum ada akun staf"
-                description="Tambahkan akun kasir atau admin pertama melalui tombol Tambah Akun."
+                title="No staff accounts yet"
+                description="Add the first cashier or admin account using the Add Staff button."
               />
             ) : (
               <EmptyState
                 icon="search"
-                title="Tidak ada staf yang cocok"
-                description={`Tidak ada hasil untuk pencarian "${search}".`}
+                title="No matching staff"
+                description={`No results for search "${search}".`}
               />
             )}
           </div>
@@ -593,13 +577,13 @@ export default function AccountPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-border/70">
-                  <th className={TH_CLASS}>Nama</th>
+                  <th className={TH_CLASS}>Name</th>
                   <th className={TH_CLASS}>Username</th>
                   <th className={TH_CLASS}>Role</th>
                   <th className={TH_CLASS}>Status</th>
-                  <th className={TH_CLASS}>Dibuat</th>
+                  <th className={TH_CLASS}>Created</th>
                   <th className="px-5 py-3 text-right font-display text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    Aksi
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -610,7 +594,7 @@ export default function AccountPage() {
                       {u.name}
                       {me?.id === u.id && (
                         <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          (Anda)
+                          (You)
                         </span>
                       )}
                     </td>
@@ -619,7 +603,7 @@ export default function AccountPage() {
                       <RoleBadge role={u.role} />
                     </td>
                     <td className="px-5 py-3">
-                      <StatusBadge isActive={u.isActive} />
+                      <StatusPill active={u.isActive} />
                     </td>
                     <td className="px-5 py-3 text-slate-500">{formatCreatedDate(u.createdAt)}</td>
                     <td className="px-5 py-3">
@@ -627,8 +611,8 @@ export default function AccountPage() {
                         <button
                           type="button"
                           onClick={() => setPasswordTarget(u)}
-                          aria-label={`Ganti password ${u.username}`}
-                          title="Ganti password"
+                          aria-label={`Change password for ${u.username}`}
+                          title="Change password"
                           className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition hover:bg-primary-light hover:text-primary"
                         >
                           <Icon name="password" className="text-base" />
@@ -636,9 +620,12 @@ export default function AccountPage() {
                         <button
                           type="button"
                           onClick={() => setToggleTarget(u)}
-                          aria-label={u.isActive ? `Nonaktifkan akun ${u.username}` : `Aktifkan akun ${u.username}`}
-                          title={u.isActive ? 'Nonaktifkan akun' : 'Aktifkan akun'}
-                          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition hover:bg-destructive/10 hover:text-destructive"
+                          aria-label={u.isActive ? `Deactivate account ${u.username}` : `Activate account ${u.username}`}
+                          title={u.isActive ? 'Deactivate account' : 'Activate account'}
+                          className={cn(
+                            'flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition hover:bg-destructive/10 hover:text-destructive',
+                            u.isActive ? 'bg-live-light text-live' : 'bg-slate-100 text-slate-400',
+                          )}
                         >
                           <Icon name="power_settings_new" className="text-base" />
                         </button>
