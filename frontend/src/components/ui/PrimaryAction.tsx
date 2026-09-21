@@ -22,7 +22,7 @@ export default function PrimaryAction({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-[#447C84] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all active:scale-95 hover:bg-[#396a71] disabled:pointer-events-none disabled:opacity-50 ${className ?? ''}`}
+      className={`inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-[#447C84] px-3 py-0 text-xs font-semibold text-white shadow-sm transition-all active:scale-95 hover:bg-[#396a71] disabled:pointer-events-none disabled:opacity-50 ${className ?? ''}`}
     >
       {children}
     </button>

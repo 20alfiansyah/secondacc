@@ -211,7 +211,7 @@ export default function OrderDetailsPanel({
             <button
               type="button"
               onClick={onNewOrder}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-[#447C84] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all active:scale-95 hover:bg-[#396a71]"
+              className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-[#447C84] px-3 py-0 text-xs font-semibold text-white shadow-sm transition-all active:scale-95 hover:bg-[#396a71]"
             >
               <Icon name="add" className="text-sm" />
               New Order
