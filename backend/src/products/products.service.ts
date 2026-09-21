@@ -2,7 +2,6 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -33,8 +32,9 @@ function toBool(value: string | boolean | undefined): boolean | undefined {
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** GET /api/products — hanya produk aktif (isActive=false terarsip disembunyikan). */
   findAll(filter: ProductFilter) {
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { isActive: true };
 
     if (filter.categoryId) {
       const categoryId = Number(filter.categoryId);
@@ -164,7 +164,22 @@ export class ProductsService {
     return updated;
   }
 
-  async remove(id: number) {
+  /** GET /api/products/archived — hanya produk terarsip (isActive=false). */
+  async findAllArchived() {
+    return this.prisma.product.findMany({
+      where: { isActive: false },
+      include: { category: { select: { name: true } } },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  /**
+   * PATCH /api/products/:id/archive — arsipkan produk (soft-disable).
+   * Tanpa 409: arsip justru untuk produk yang pernah masuk order. Gambar TIDAK
+   * dihapus agar restore bisa menampilkan ulang produk apa adanya. Riwayat
+   * transaksi immutable (AGENTS.md §3): OrderItem tetap menunjuk produk ini.
+   */
+  async archive(id: number) {
     const product = await this.prisma.product.findUnique({ where: { id } });
     if (!product) {
       throw new NotFoundException({
@@ -173,22 +188,30 @@ export class ProductsService {
       });
     }
 
-    // Riwayat transaksi immutable (AGENTS.md §3): produk yang pernah masuk
-    // OrderItem tidak boleh hard-delete → 409, cukup ditandai sold out.
-    const usedCount = await this.prisma.orderItem.count({
-      where: { productId: id },
+    await this.prisma.product.update({
+      where: { id },
+      data: { isActive: false },
     });
-    if (usedCount > 0) {
-      throw new ConflictException({
-        code: 'PRODUCT_IN_USE',
-        message: `Product "${product.name}" has been used in transactions and cannot be deleted`,
+    return { id: product.id, isActive: false };
+  }
+
+  /**
+   * PATCH /api/products/:id/restore — kembalikan produk terarsip ke katalog.
+   * Nama & kategori tidak berubah saat arsip, jadi restore aman tanpa konflik.
+   */
+  async restore(id: number) {
+    const product = await this.prisma.product.findUnique({ where: { id } });
+    if (!product) {
+      throw new NotFoundException({
+        code: 'PRODUCT_NOT_FOUND',
+        message: `Product with id ${id} not found`,
       });
     }
 
-    await this.prisma.product.delete({ where: { id } });
-    if (product.imageUrl) {
-      await this.deleteImageFile(product.imageUrl);
-    }
-    return { id: product.id };
+    return this.prisma.product.update({
+      where: { id },
+      data: { isActive: true },
+      include: { category: { select: { name: true } } },
+    });
   }
 }
