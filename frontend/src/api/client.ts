@@ -546,9 +546,9 @@ export async function updateProduct(id: number, formData: FormData): Promise<Pro
   return toProduct(data.data)
 }
 
-/** DELETE /api/products/:id — hapus produk (409 PRODUCT_IN_USE jika terpakai di order). */
-export async function deleteProduct(id: number): Promise<void> {
-  await api.delete(`/products/${id}`)
+/** PATCH /api/products/:id/archive — arsipkan produk (isActive=false, riwayat order tetap utuh). */
+export async function archiveProduct(id: number): Promise<void> {
+  await api.patch(`/products/${id}/archive`)
 }
 
 /** PATCH /api/products/:id/toggle-availability — toggle Tersedia/Sold Out (kasir & admin). */

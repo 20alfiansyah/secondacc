@@ -1,7 +1,6 @@
 import { Test } from '@nestjs/testing';
 import {
   BadRequestException,
-  ConflictException,
   NotFoundException,
 } from '@nestjs/common';
 import * as fsPromises from 'fs/promises';
@@ -19,10 +18,10 @@ describe('ProductsService', () => {
       findUnique: jest.Mock;
       create: jest.Mock;
       update: jest.Mock;
-      delete: jest.Mock;
     };
-    category: { findUnique: jest.Mock };
-    orderItem: { count: jest.Mock };
+    category: {
+      findUnique: jest.Mock;
+    };
   };
 
   const product = {
@@ -54,13 +53,9 @@ describe('ProductsService', () => {
         findUnique: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
-        delete: jest.fn(),
       },
       category: {
         findUnique: jest.fn(),
-      },
-      orderItem: {
-        count: jest.fn(),
       },
     };
     (fsPromises.rm as jest.Mock).mockClear();
@@ -76,12 +71,12 @@ describe('ProductsService', () => {
   });
 
   describe('findAll — filter katalog', () => {
-    it('mengembalikan semua produk tanpa filter', async () => {
+    it('hanya mengembalikan produk aktif secara default (isActive=true)', async () => {
       prisma.product.findMany.mockResolvedValue([product]);
       const result = await service.findAll({});
       expect(result).toHaveLength(1);
       expect(prisma.product.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: {} }),
+        expect.objectContaining({ where: { isActive: true } }),
       );
     });
 
@@ -316,53 +311,71 @@ describe('ProductsService', () => {
     });
   });
 
-  describe('remove — DELETE /api/products/:id (2.2B)', () => {
-    it('hard delete produk belum terpakai beserta file gambarnya', async () => {
+
+  describe('archive — PATCH /api/products/:id/archive', () => {
+    it('mengarsipkan produk: update dengan isActive=false tanpa 409 dan tanpa hapus file', async () => {
       prisma.product.findUnique.mockResolvedValue(product);
-      prisma.orderItem.count.mockResolvedValue(0);
-      prisma.product.delete.mockResolvedValue(product);
+      prisma.product.update.mockResolvedValue({ ...product, isActive: false });
 
-      const result = await service.remove(10);
+      const result = await service.archive(10);
 
-      expect(result).toEqual({ id: 10 });
-      expect(prisma.orderItem.count).toHaveBeenCalledWith({
-        where: { productId: 10 },
+      expect(result).toEqual({ id: 10, isActive: false });
+      expect(prisma.product.update).toHaveBeenCalledWith({
+        where: { id: 10 },
+        data: { isActive: false },
       });
-      expect(prisma.product.delete).toHaveBeenCalledWith({ where: { id: 10 } });
-      expect(fsPromises.rm).toHaveBeenCalledWith(
-        path.join(process.cwd(), 'uploads', 'products', 'kopi-aren.webp'),
-      );
-    });
-
-    it('tidak menghapus file saat produk tanpa gambar', async () => {
-      prisma.product.findUnique.mockResolvedValue({ ...product, imageUrl: null });
-      prisma.orderItem.count.mockResolvedValue(0);
-      prisma.product.delete.mockResolvedValue({ ...product, imageUrl: null });
-
-      const result = await service.remove(10);
-
-      expect(result).toEqual({ id: 10 });
       expect(fsPromises.rm).not.toHaveBeenCalled();
     });
 
-    it('melempar 409 PRODUCT_IN_USE saat produk sudah dipakai di OrderItem', async () => {
+    it('tetap bisa mengarsipkan produk yang pernah dipakai di OrderItem (tanpa 409)', async () => {
       prisma.product.findUnique.mockResolvedValue(product);
-      prisma.orderItem.count.mockResolvedValue(3);
+      prisma.product.update.mockResolvedValue({ ...product, isActive: false });
 
-      await expect(service.remove(10)).rejects.toMatchObject({
-        response: { code: 'PRODUCT_IN_USE' },
-      });
-      expect(prisma.product.delete).not.toHaveBeenCalled();
-      expect(fsPromises.rm).not.toHaveBeenCalled();
+      const result = await service.archive(10);
+
+      expect(result.isActive).toBe(false);
+      expect(prisma.product.update).toHaveBeenCalled();
     });
 
     it('melempar 404 PRODUCT_NOT_FOUND saat produk tidak ada', async () => {
       prisma.product.findUnique.mockResolvedValue(null);
 
-      await expect(service.remove(999)).rejects.toMatchObject({
+      await expect(service.archive(999)).rejects.toMatchObject({
         response: { code: 'PRODUCT_NOT_FOUND' },
       });
-      expect(prisma.orderItem.count).not.toHaveBeenCalled();
+      expect(prisma.product.update).not.toHaveBeenCalled();
+      expect(fsPromises.rm).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findAllArchived & restore', () => {
+    it('findAllArchived hanya mengambil isActive=false', async () => {
+      prisma.product.findMany.mockResolvedValue([]);
+      await service.findAllArchived();
+      expect(prisma.product.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { isActive: false } }),
+      );
+    });
+
+    it('restore mengembalikan produk: update dengan isActive=true', async () => {
+      prisma.product.findUnique.mockResolvedValue({ ...product, isActive: false });
+      prisma.product.update.mockResolvedValue({ ...product, isActive: true });
+
+      const result = await service.restore(10);
+
+      expect(result.isActive).toBe(true);
+      expect(prisma.product.update).toHaveBeenCalledWith({
+        where: { id: 10 },
+        data: { isActive: true },
+        include: { category: { select: { name: true } } },
+      });
+    });
+
+    it('restore melempar 404 saat produk tidak ada', async () => {
+      prisma.product.findUnique.mockResolvedValue(null);
+      await expect(service.restore(999)).rejects.toMatchObject({
+        response: { code: 'PRODUCT_NOT_FOUND' },
+      });
     });
   });
 });

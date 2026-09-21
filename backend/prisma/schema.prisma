@@ -80,6 +80,7 @@ model Product {
   isAvailable   Boolean  @default(true) @map("is_available")
   isRecommended Boolean  @default(false) @map("is_recommended")
   isBestSeller  Boolean  @default(false) @map("is_best_seller")
+  isActive      Boolean  @default(true) @map("is_active")
   createdAt     DateTime @default(now()) @map("created_at")
 
   category   Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)

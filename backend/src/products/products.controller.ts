@@ -3,7 +3,6 @@ import { extname, join } from 'path';
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -83,6 +82,15 @@ export class ProductsController {
     return this.productsService.findAll(filter).then((data) => ({ success: true, data }));
   }
 
+  /** GET /api/products/archived — daftar produk terarsip (khusus ADMIN). */
+  @Get('archived')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async findAllArchived() {
+    const data = await this.productsService.findAllArchived();
+    return { success: true, data };
+  }
+
   @Post()
   @Roles('ADMIN')
   @UseGuards(RolesGuard)
@@ -103,11 +111,21 @@ export class ProductsController {
     return this.productsService.update(id, dto, image).then((data) => ({ success: true, data }));
   }
 
-  @Delete(':id')
+  /** PATCH /api/products/:id/archive — arsipkan produk; riwayat order tetap utuh (khusus ADMIN). */
+  @Patch(':id/archive')
   @Roles('ADMIN')
   @UseGuards(RolesGuard)
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    const data = await this.productsService.remove(id);
+  async archive(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.productsService.archive(id);
+    return { success: true, data };
+  }
+
+  /** PATCH /api/products/:id/restore — kembalikan produk terarsip (khusus ADMIN). */
+  @Patch(':id/restore')
+  @Roles('ADMIN')
+  @UseGuards(RolesGuard)
+  async restore(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.productsService.restore(id);
     return { success: true, data };
   }
 
