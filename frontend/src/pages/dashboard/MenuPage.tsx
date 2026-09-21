@@ -243,8 +243,7 @@ function groupByCategory(products: Product[]): { title: string; items: Product[]
                 variant="outline"
                 size="sm"
                 onClick={() => setCatsOpen(true)}
-                disabled={loading}
-                className="h-[30px] flex-1 justify-center rounded-lg px-3 text-xs font-semibold sm:flex-none"
+                className="h-10 flex-1 justify-center rounded-xl px-3 text-xs font-semibold sm:flex-none sm:h-[30px] sm:rounded-lg"
               >
                 <Icon name="category" className="text-sm" />
                 Categories
@@ -254,8 +253,7 @@ function groupByCategory(products: Product[]): { title: string; items: Product[]
                 size="sm"
                 onClick={() => setArchivedOpen(true)}
                 disabled={loading}
-                aria-label="Archived products"
-                className="h-[30px] flex-1 justify-center rounded-lg px-3 text-xs font-semibold sm:flex-none"
+                className="h-10 flex-1 justify-center rounded-xl px-3 text-xs font-semibold sm:flex-none sm:h-[30px] sm:rounded-lg"
               >
                 <Icon name="inventory_2" className="text-sm" />
                 Archived
@@ -264,7 +262,7 @@ function groupByCategory(products: Product[]): { title: string; items: Product[]
             <PrimaryAction
               onClick={openCreate}
               disabled={loading}
-              className="w-full justify-center sm:w-auto sm:flex-none"
+              className="h-10 w-full justify-center rounded-xl text-xs sm:h-[30px] sm:w-auto sm:flex-none sm:rounded-lg sm:py-1.5"
             >
               <Icon name="add" className="text-sm" />
               Add Product
