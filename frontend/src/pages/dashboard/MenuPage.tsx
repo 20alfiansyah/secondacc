@@ -5,7 +5,7 @@ import ProductCard from '@/components/ProductCard'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import {
   createProduct,
-  deleteProduct,
+  archiveProduct,
   fetchCategories,
   fetchProducts,
   toggleProductAvailability,
@@ -56,9 +56,9 @@ export default function MenuPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
 
-  // Modal konfirmasi delete.
-  const [deleting, setDeleting] = useState<Product | null>(null)
-  const [deletingBusy, setDeletingBusy] = useState(false)
+  // Modal konfirmasi arsip produk (soft-delete, riwayat order tetap utuh).
+  const [archiving, setArchiving] = useState<Product | null>(null)
+  const [archivingBusy, setArchivingBusy] = useState(false)
 
   // Dialog manajemen kategori (CRUD kategori oleh admin).
   const [catsOpen, setCatsOpen] = useState(false)
@@ -162,19 +162,19 @@ function groupByCategory(products: Product[]): { title: string; items: Product[]
     }
   }
 
-  async function handleConfirmDelete() {
-    if (!deleting) return
-    setDeletingBusy(true)
+  async function handleConfirmArchive() {
+    if (!archiving) return
+    setArchivingBusy(true)
     try {
-      await deleteProduct(deleting.id)
-      setDeleting(null)
+      await archiveProduct(archiving.id)
+      setArchiving(null)
+      setNotice('Product archived.')
       void loadProducts()
     } catch (err) {
-      // 409 PRODUCT_IN_USE dll — tampilkan pesan server bila ada.
-      setPageError(extractErrorMessage(err, `Failed to delete ${deleting.name}.`))
-      setDeleting(null)
+      setPageError(extractErrorMessage(err, `Failed to archive ${archiving.name}.`))
+      setArchiving(null)
     } finally {
-      setDeletingBusy(false)
+      setArchivingBusy(false)
     }
   }
 
@@ -329,11 +329,11 @@ function groupByCategory(products: Product[]): { title: string; items: Product[]
                           subtitle={product.categoryName}
                           actions={
                             <ProductActions
-                              product={product}
                               toggling={togglingId === product.id}
+                              product={product}
                               onToggleSoldOut={handleToggleSoldOut}
                               onEdit={openEdit}
-                              onDelete={setDeleting}
+                              onDelete={setArchiving}
                             />
                           }
                         />
@@ -355,7 +355,7 @@ function groupByCategory(products: Product[]): { title: string; items: Product[]
                         toggling={togglingId === product.id}
                         onToggleSoldOut={handleToggleSoldOut}
                         onEdit={openEdit}
-                        onDelete={setDeleting}
+                        onDelete={setArchiving}
                       />
                     }
                   />
@@ -392,12 +392,12 @@ function groupByCategory(products: Product[]): { title: string; items: Product[]
         />
       )}
 
-      {deleting && (
-        <DeleteConfirmModal
-          product={deleting}
-          busy={deletingBusy}
-          onClose={() => setDeleting(null)}
-          onConfirm={handleConfirmDelete}
+      {archiving && (
+        <ArchiveConfirmModal
+          product={archiving}
+          busy={archivingBusy}
+          onClose={() => setArchiving(null)}
+          onConfirm={handleConfirmArchive}
         />
       )}
 
@@ -748,8 +748,8 @@ function Field({
   )
 }
 
-/** Modal konfirmasi hapus produk. */
-function DeleteConfirmModal({
+/** Modal konfirmasi arsip produk. */
+function ArchiveConfirmModal({
   product,
   busy,
   onClose,
@@ -776,11 +776,11 @@ function DeleteConfirmModal({
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
             <Icon name="delete" className="text-[24px]" />
           </div>
-          <h3 className="font-display text-base font-bold text-slate-900">Delete Product</h3>
+          <h3 className="font-display text-base font-bold text-slate-900">Archive Product</h3>
           <p className="text-sm leading-relaxed text-slate-600">
-            Are you sure you want to delete{' '}
-            <span className="font-semibold text-slate-900">"{product.name}"</span>? This action
-            cannot be undone.
+            Are you sure you want to archive{' '}
+            <span className="font-semibold text-slate-900">"{product.name}"</span>? It will be
+            hidden from the menu and POS. Order history stays intact.
           </p>
         </div>
         <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 bg-slate-50/50 p-4">
@@ -788,15 +788,13 @@ function DeleteConfirmModal({
             Cancel
           </Button>
           <Button variant="destructive" onClick={onConfirm} disabled={busy}>
-            {busy ? 'Deleting…' : 'Yes, Delete'}
+            {busy ? 'Archiving…' : 'Yes, Archive'}
           </Button>
         </div>
       </div>
     </div>
   )
 }
-
-/** Banner sukses non-modal, auto-hide 4 detik (pola feedback POS). */
 function AutoHideNotice({ message, onDone }: { message: string; onDone: () => void }) {
   useEffect(() => {
     const timer = window.setTimeout(onDone, 4000)
