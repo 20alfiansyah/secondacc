@@ -237,6 +237,7 @@ function groupByCategory(products: Product[]): { title: string; items: Product[]
             <div className="min-w-0 sm:flex-1">
               <SearchBar value={search} onChange={setSearch} ariaLabel="Search products" />
             </div>
+            {/* Mobile: Categories + Archived sebaris full width; Add Product sendiri di baris bawah. >=sm: semua sebaris via contents. */}
             <div className="flex w-full items-center gap-2 sm:contents">
               <Button
                 variant="outline"
@@ -259,11 +260,15 @@ function groupByCategory(products: Product[]): { title: string; items: Product[]
                 <Icon name="inventory_2" className="text-sm" />
                 Archived
               </Button>
-              <PrimaryAction onClick={openCreate} disabled={loading} className="flex-1 justify-center sm:flex-none">
-                <Icon name="add" className="text-sm" />
-                Add Product
-              </PrimaryAction>
             </div>
+            <PrimaryAction
+              onClick={openCreate}
+              disabled={loading}
+              className="w-full justify-center sm:w-auto sm:flex-none"
+            >
+              <Icon name="add" className="text-sm" />
+              Add Product
+            </PrimaryAction>
           </div>
 
           {/* Pills kategori gaya POS: All + Popular + Best Seller + tiap kategori. */}
