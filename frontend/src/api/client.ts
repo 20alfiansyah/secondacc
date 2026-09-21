@@ -105,7 +105,7 @@ export interface Category {
 }
 
 /** Normalisasi produk ke bentuk frontend (category.name -> categoryName, dsb). */
-function toProduct(raw: any): Product {
+export function toProduct(raw: any): Product {
   return {
     id: raw.id,
     name: raw.name,
@@ -549,6 +549,18 @@ export async function updateProduct(id: number, formData: FormData): Promise<Pro
 /** PATCH /api/products/:id/archive — arsipkan produk (isActive=false, riwayat order tetap utuh). */
 export async function archiveProduct(id: number): Promise<void> {
   await api.patch(`/products/${id}/archive`)
+}
+
+/** GET /api/products/archived — daftar produk terarsip (admin; raw rows + relasi category). */
+export async function fetchArchivedProducts(): Promise<Product[]> {
+  const { data } = await api.get<ListResponse<unknown[]>>('/products/archived')
+  return (data.data ?? []).map(toProduct)
+}
+
+/** PATCH /api/products/:id/restore — kembalikan produk terarsip ke menu aktif (admin). */
+export async function restoreProduct(id: number): Promise<Product> {
+  const { data } = await api.patch<ListResponse<unknown>>(`/products/${id}/restore`)
+  return toProduct(data.data)
 }
 
 /** PATCH /api/products/:id/toggle-availability — toggle Tersedia/Sold Out (kasir & admin). */
