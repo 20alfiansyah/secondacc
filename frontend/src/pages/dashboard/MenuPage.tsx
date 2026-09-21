@@ -13,6 +13,7 @@ import {
 } from '@/api/client'
 import type { Category, Product } from '@/api/client'
 import ManageCategoriesDialog from './ManageCategoriesDialog'
+import ArchivedProductsDialog from './ArchivedProductsDialog'
 import Icon from '@/components/ui/Icon'
 import EmptyState from '@/components/ui/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -62,6 +63,9 @@ export default function MenuPage() {
 
   // Dialog manajemen kategori (CRUD kategori oleh admin).
   const [catsOpen, setCatsOpen] = useState(false)
+
+  // Dialog daftar produk terarsip (restore produk oleh admin).
+  const [archivedOpen, setArchivedOpen] = useState(false)
 
   const loadProducts = useCallback(async () => {
     try {
@@ -244,6 +248,17 @@ function groupByCategory(products: Product[]): { title: string; items: Product[]
                 <Icon name="category" className="text-sm" />
                 Categories
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setArchivedOpen(true)}
+                disabled={loading}
+                aria-label="Archived products"
+                className="h-[30px] flex-1 justify-center rounded-lg px-3 text-xs font-semibold sm:flex-none"
+              >
+                <Icon name="inventory_2" className="text-sm" />
+                Archived
+              </Button>
               <PrimaryAction onClick={openCreate} disabled={loading} className="flex-1 justify-center sm:flex-none">
                 <Icon name="add" className="text-sm" />
                 Add Product
@@ -386,6 +401,19 @@ function groupByCategory(products: Product[]): { title: string; items: Product[]
           onClose={() => setCatsOpen(false)}
           onSaved={(message) => {
             // Dialog tetap terbuka; parent re-fetch supaya pills & dropdown refresh.
+            setNotice(message)
+            void loadProducts()
+          }}
+        />
+      )}
+
+      {archivedOpen && (
+        <ArchivedProductsDialog
+          onClose={() => setArchivedOpen(false)}
+          onSaved={(message) => {
+            // Dialog tetap terbuka (pola ManageCategoriesDialog); parent
+            // menampilkan notice + re-fetch menu sehingga produk yang
+            // di-restore langsung muncul kembali di grid.
             setNotice(message)
             void loadProducts()
           }}
