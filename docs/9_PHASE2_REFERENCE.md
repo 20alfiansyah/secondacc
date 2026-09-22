@@ -93,3 +93,76 @@
 - Nav: tambah item `reports` sudah ada di `navItems.ts` sebagai notice — ganti jadi navigate `/dashboard/history` di Task 3.4 (ingat: rail + mobile dua-duanya).
 - Chart: install `recharts` saat Task 3.2 (belum ada). Ikuti pola halaman dashboard lain: fetch via section baru di `client.ts`, envelope `{ success, data }`.
 - RBAC: semua endpoint dashboard aggregasi = ADMIN (pattern `@Roles(Role.ADMIN)` class-level + `RolesGuard`).
+
+## 8. Peta struktur repo (state sekarang — ikuti pola ini)
+
+### 8.1 Backend `backend/src/`
+
+```
+main.ts                 # bootstrap: prefix /api, ValidationPipe global (whitelist+forbidNonWhitelisted), CORS
+app.module.ts           # ConfigModule + ThrottlerModule + Prisma/Auth/<ModulFitur>... — modul baru DAFTAR DI SINI
+env.validation.ts       # fail-fast env
+auth/                   # auth.module|controller|service, jwt-auth.guard.ts, roles.guard.ts (+@Roles), spec
+prisma/                 # PrismaModule (global) — satu-satunya akses DB
+users/ products/ categories/ payment-channels/   # anatomi modul standar (§9)
+orders/                 # + financial.calculator.ts (money engine) & invoice.generator.ts
+uploads/                # ServeStaticModule /uploads
+types/express.d.ts      # augmentasi request.user
+```
+
+### 8.2 Frontend `frontend/src/`
+
+```
+App.tsx                 # createBrowserRouter (data router — useBlocker di POS) + ProtectedRoute per route
+api/client.ts           # SATU file API: tipe interface + section `// ===== <Fitur> =====` (Katalog/Orders/Users/Payment Channels/Menu Admin)
+components/ui/          # PRIMITIF reusable: button, card, input, SearchBar, PrimaryAction, Icon (glyph MAP),
+                        #   StatusPill, EmptyState — tanpa library UI; modal/form native (bukan Radix/rhf)
+components/             # komponen fitur besar: ProductCard, PaymentModal, OrderDetailsPanel,
+                        #   NavigationRail + MobileNav + navItems.ts (data nav shared), TopBar, ProtectedRoute…
+pages/POS.tsx           # halaman kasir; pages/dashboard/* = halaman admin (Layout + Outlet)
+pages/dashboard/        # AccountPage, MenuPage, PaymentPage, ManageCategoriesDialog, ArchivedProductsDialog
+store/                  # zustand: authStore (sesi), cartStore (keranjang POS, punya spec)
+utils/                  # financial.ts (money pure), format.ts (formatOrderLabel/dll), productImage.ts (resolver TUNGGAL), productImages.ts (map foto stok)
+lib/utils.ts            # cn() — class merge
+index.css               # @theme Tailwind v4: SEMUA token warna custom harus ada di sini (--color-*)
+```
+
+**Penempatan logic:** pure/hitungan → `utils/` (+ spec); akses API → section `api/client.ts`; state lintas komponen → zustand `store/`; state lokal UI → `useState` di page; logika server → `*.service.ts`. Halaman TIDAK memanggil axios langsung — lewat `client.ts`.
+
+## 9. Standarisasi komponen & pola (pembanding saat review)
+
+### 9.1 Anatomi modul backend (template: `categories/`)
+
+```
+<fitur>/
+  <fitur>.module.ts     # controllers:[Controller], providers:[Service], exports:[Service]
+  <fitur>.controller.ts # @Controller('<fitur>') + @UseGuards(JwtAuthGuard); endpoint admin +
+                        #   @UseGuards(JwtAuthGuard, RolesGuard) @Roles('ADMIN'); handler tipis:
+                        #   const data = await svc.x(); return { success: true, data }
+  <fitur>.service.ts    # semua business rule; error lempar NestJS exception dgn { code, message };
+                        #   cek duplikat via findUnique dulu (bukan catch P2002); JSDoc = route endpoint
+  dto/<fitur>.dto.ts    # class-validator (@IsString/@Length/…); whitelist global aktif — field asing → 400
+  <fitur>.service.spec.ts  # WAJIB: skenario sukses + gagal (duplikat, not-found, proteksi diri, dst.)
+```
+- Respons sukses dirakit di controller `{ success: true, data }`; service lempar exception murni. Tidak ada try-catch penelan error.
+
+### 9.2 Anatomi halaman dashboard (pola `PaymentPage.tsx` — salin polanya)
+
+```
+state list: [items, listLoading, error] → useEffect load + cancelled flag
+dialog:     [addOpen, serverError, saving]      // dialog terpisah, native div.fixed
+konfirmasi: [confirmTarget, busyId] → eksekusi → map-replace state
+error tampil: <p role="alert" class="…bg-destructive/10…"> di atas list; EmptyState saat kosong
+UI: Card > CardHeader (band: Icon + judul uppercase + subtitle, PrimaryAction kanan) + CardContent p-4 pt-0 sm:p-6 sm:pt-0 (header memakai p-4 sm:p-6)
+```
+- API function: section baru di `client.ts` — `// ===== <Fitur> =====`, interface tipe + fungsi `fetch*/create*/toggle*` yang menormalkan bentuk mentah → tipe UI (`PaymentChannel`, `Product`).
+- Modal dialog fitur: `ManageCategoriesDialog.tsx` / `ArchivedProductsDialog.tsx` = pola (dialog tetap terbuka, `onSaved` memicu parent refetch + notice).
+- Semua halaman dashboard: control height `h-10 rounded-xl`, pembeda outline (bukan shadow), `EmptyState` saat list kosong, `role="alert"` untuk error band.
+
+### 9.3 Checklist registrasi fitur baru (frontend)
+
+1. Route di `App.tsx` (`ProtectedRoute roles={['ADMIN']}` + `DashboardLayout page="<Nama>"`).
+2. Item nav di `components/navItems.ts` → mapping onClick di `NavigationRail.tsx` **dan** `MobileNav.tsx`.
+3. Glyph icon baru → `components/ui/Icon.tsx` MAP.
+4. API client → section baru `api/client.ts`.
+5. Token warna custom (kalau pakai class warna non-palette) → `index.css` `@theme`.
