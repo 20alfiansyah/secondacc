@@ -1,7 +1,8 @@
 import type { ComponentType } from 'react'
 import {
+  Archive,
+  ArchiveRestore,
   Banknote,
-  Calendar,
   Cake,
   Calculator,
   ChartColumn,
@@ -11,21 +12,25 @@ import {
   ChevronUp,
   CircleAlert,
   CircleCheck,
-  Clock,
   CloudCheck,
-  Coffee,
+  Clock,
   Cookie,
+  Coffee,
   CreditCard,
   Croissant,
   CupSoda,
   Flame,
+  Info,
+  KeyRound,
   LayoutDashboard,
   Lock,
   LogOut,
   Menu,
   Package,
   PenLine,
+  Pencil,
   Plus,
+  Power,
   Printer,
   QrCode,
   Receipt,
@@ -37,10 +42,13 @@ import {
   SlidersHorizontal,
   Star,
   Store,
+  Tags,
   Trash2,
   Utensils,
   UtensilsCrossed,
   User,
+  UserCog,
+  UserPlus,
   X,
   Zap,
 } from 'lucide-react'
@@ -53,35 +61,46 @@ import { cn } from '@/lib/utils'
  * Ukuran ikon mengikuti font-size lewat `.icon-inline` (width/height: 1em),
  * warna mengikuti `currentColor` — jadi call site lama (text-lg, text-[20px],
  * text-[#447C84], dst.) tidak perlu diubah.
+ *
+ * `filled` dipertahankan demi kompatibilitas API (stroke-width lebih tebal).
  */
 const MAP: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
   add: Plus,
+  archive: Archive,
+  category: Tags,
+  delete: Trash2,
   add_shopping_cart: ShoppingCart,
   analytics: ChartColumn,
   bolt: Zap,
-  calendar: Calendar,
   check_circle: CircleCheck,
+  chevron_down: ChevronDown,
   chevron_left: ChevronLeft,
   chevron_right: ChevronRight,
-  clock: Clock,
+  chevron_up: ChevronUp,
   close: X,
   cloud_done: CloudCheck,
   coffee: Coffee,
   credit_card: CreditCard,
   dashboard: LayoutDashboard,
+  edit: Pencil,
   edit_note: PenLine,
   error: CircleAlert,
   expand_less: ChevronUp,
   expand_more: ChevronDown,
   inventory_2: Package,
+  info: Info,
   local_cafe: Coffee,
   local_fire_department: Flame,
   lock: Lock,
   logout: LogOut,
+  manage_accounts: UserCog,
   menu: Menu,
+  password: KeyRound,
   payments: Banknote,
   person: User,
+  person_add: UserPlus,
   point_of_sale: Calculator,
+  power_settings_new: Power,
   print: Printer,
   qr_code_2: QrCode,
   receipt: Receipt,
@@ -97,26 +116,28 @@ const MAP: Record<string, ComponentType<{ className?: string; strokeWidth?: numb
   shopping_bag: ShoppingBag,
   star: Star,
   storefront: Store,
-  restore: RefreshCw,
   sync: RefreshCw,
   takeout_dining: ShoppingBag,
-  trash: Trash2,
   tune: SlidersHorizontal,
+  username: User,
+  restore: ArchiveRestore,
 }
 
 export default function Icon({
   name,
   className,
+  filled = false,
 }: {
   name: string
   className?: string
+  filled?: boolean
 }) {
   const Cmp = MAP[name] ?? CircleAlert
   return (
     <Cmp
       aria-hidden="true"
       className={cn('icon-inline shrink-0', className)}
-      strokeWidth={2}
+      strokeWidth={filled ? 2.5 : 2}
     />
   )
 }

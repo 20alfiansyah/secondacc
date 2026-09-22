@@ -31,6 +31,9 @@ export const navGroups: NavGroupData[] = [
     label: 'Management & Ops',
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { id: 'account', label: 'Account', icon: 'manage_accounts' },
+      { id: 'menu', label: 'Menu', icon: 'restaurant_menu' },
+      { id: 'payment', label: 'Payment', icon: 'payments' },
       {
         id: 'inventory',
         label: 'Inventory',
