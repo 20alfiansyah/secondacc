@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import type { CheckoutInput, CustomerGender, PaymentCategory } from '@/api/client'
+import { useEffect, useState } from 'react'
+import type { CheckoutInput, CustomerGender, PaymentCategory, PaymentChannel } from '@/api/client'
+import { fetchPaymentChannels } from '@/api/client'
 import { formatRupiah } from '@/utils/format'
 import { calculateChange } from '@/utils/financial'
 import { Input } from '@/components/ui/input'
@@ -8,9 +9,24 @@ import Icon from '@/components/ui/Icon'
 
 const QUICK_CASH = [20000, 50000, 100000]
 
+/** Fallback bila fetch channel gagal/ kosong — kasir tetap bisa menerima pembayaran. */
+const FALLBACK_CHANNELS: PaymentChannel[] = [
+  { id: -1, name: 'Cash', category: 'CASH', isActive: true },
+  { id: -2, name: 'QRIS', category: 'THIRD_PARTY', isActive: true },
+  { id: -3, name: 'EDC', category: 'EDC', isActive: true },
+]
+
+const CATEGORY_ICON: Record<PaymentCategory, string> = {
+  CASH: 'payments',
+  THIRD_PARTY: 'qr_code_2',
+  EDC: 'credit_card',
+}
+
 interface PaymentModalProps {
   grandTotal: number
   itemCount: number
+  /** Nomor meja utk header (POS tanpa tabel → undefined → "Order"). */
+  tableNumber?: string | null
   /** Gender pelanggan sudah dipilih di panel ORDER DETAIL, bukan di modal. */
   gender: CustomerGender | null
   submitting: boolean
@@ -18,31 +34,53 @@ interface PaymentModalProps {
   onClose: () => void
 }
 
-const METHOD_META: { key: PaymentCategory; label: string; icon: string }[] = [
-  { key: 'CASH', label: 'Cash', icon: 'payments' },
-  { key: 'THIRD_PARTY', label: 'QRIS / E-Wallet', icon: 'qr_code_2' },
-  { key: 'EDC', label: 'EDC / Card', icon: 'credit_card' },
-]
-
 export default function PaymentModal({
   grandTotal,
   itemCount,
+  tableNumber,
   gender,
   submitting,
   onSubmit,
   onClose,
 }: PaymentModalProps) {
-  const [method, setMethod] = useState<PaymentCategory>('CASH')
-  // Label metode non-tunai yang dikirim ke backend ('QRIS / E-Wallet' / 'EDC / Card').
-  const [methodName, setMethodName] = useState('QRIS / E-Wallet')
+  // null = sedang memuat daftar channel aktif (skeleton). Gagal/ kosong → fallback.
+  const [channels, setChannels] = useState<PaymentChannel[] | null>(null)
+  const [selectedId, setSelectedId] = useState<number | null>(null)
   const [cash, setCash] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchPaymentChannels({ isActive: true })
+      .then((fetched) => {
+        if (cancelled) return
+        // Daftar kosong berefek sama dengan gagal: jangan biarkan kasir tanpa
+        // metode bayar → pakai fallback hardcoded.
+        const final = fetched.length > 0 ? fetched : FALLBACK_CHANNELS
+        setChannels(final)
+        // Default CASH agar alur tunai langsung siap (perilaku lama).
+        const cashChannel = final.find((c) => c.category === 'CASH') ?? final[0]
+        setSelectedId(cashChannel.id)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setChannels(FALLBACK_CHANNELS)
+        setSelectedId(FALLBACK_CHANNELS[0].id)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const list = channels ?? []
+  const selected = list.find((c) => c.id === selectedId) ?? null
+  const isCash = selected?.category === 'CASH'
 
   const parsedCash = cash === '' ? 0 : Number(cash)
   let changeDue: number | null = null
   // Jumlah kekurangan bayar (tunai < total). null saat tidak relevan.
   let shortfall: number | null = null
-  if (method === 'CASH' && !Number.isNaN(parsedCash) && parsedCash > 0) {
+  if (isCash && !Number.isNaN(parsedCash) && parsedCash > 0) {
     const isValid = Number.isInteger(parsedCash) && parsedCash >= grandTotal
     if (isValid) {
       try {
@@ -57,8 +95,7 @@ export default function PaymentModal({
   // Mode non-tunai: tombol Selesaikan tetap aktif (bayar penuh). Mode tunai
   // tanpa nominal, nominal pecahan, atau kurang dari total → tombol dimatikan.
   const isUnderpaid =
-    method === 'CASH' &&
-    (cash === '' || !Number.isInteger(parsedCash) || parsedCash < grandTotal)
+    isCash && (cash === '' || !Number.isInteger(parsedCash) || parsedCash < grandTotal)
 
   function handleSubmit() {
     setError(null)
@@ -66,8 +103,12 @@ export default function PaymentModal({
       setError('Select the customer gender in the Order Details panel first.')
       return
     }
+    if (!selected) {
+      setError('Select a payment method.')
+      return
+    }
 
-    if (method === 'CASH') {
+    if (selected.category === 'CASH') {
       const amountPaid = Number.isNaN(parsedCash) ? 0 : parsedCash
       try {
         calculateChange(grandTotal, amountPaid)
@@ -78,7 +119,7 @@ export default function PaymentModal({
       onSubmit({
         customerGender: gender,
         paymentCategory: 'CASH',
-        methodName: 'Cash',
+        methodName: selected.name,
         amountPaid,
       })
       return
@@ -87,12 +128,11 @@ export default function PaymentModal({
     // Non-tunai: bayar penuh.
     onSubmit({
       customerGender: gender,
-      paymentCategory: method,
-      methodName,
+      paymentCategory: selected.category,
+      methodName: selected.name,
       amountPaid: grandTotal,
     })
   }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-modal animate-in zoom-in-95 duration-150">
@@ -100,7 +140,9 @@ export default function PaymentModal({
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="font-display text-lg font-bold text-slate-900">Checkout</h2>
-            <p className="text-xs text-slate-500">Order • {itemCount} items</p>
+            <p className="text-xs text-slate-500">
+              {tableNumber ? `Table ${tableNumber}` : 'Order'} • {itemCount} items
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -121,40 +163,47 @@ export default function PaymentModal({
           </div>
         </div>
 
-        {/* Metode Pembayaran */}
+        {/* Metode Pembayaran — channel aktif dari backend (fallback hardcoded) */}
         <div className="mb-4">
           <label className="mb-1.5 block font-display text-xs font-bold uppercase tracking-wider text-slate-400">
             Payment Method
           </label>
-          <div className="grid grid-cols-3 gap-2">
-            {METHOD_META.map((m) => {
-              const isSelected = method === m.key
-              return (
-                <button
-                  key={m.key}
-                  type="button"
-                  onClick={() => {
-                    setMethod(m.key)
-                    // Rekam label UTUH ('QRIS / E-Wallet'), bukan kata pertama.
-                    setMethodName(m.label)
-                  }}
-                  className={cn(
-                    'flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-semibold transition-all duration-150 active:scale-95',
-                    isSelected
-                      ? 'border-primary bg-primary/10 text-primary shadow-xs'
-                      : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800',
-                  )}
-                >
-                  <Icon name={m.icon} className="text-xl" />
-                  <span className="text-center leading-tight">{m.label.split(' ')[0]}</span>
-                </button>
-              )
-            })}
-          </div>
+          {channels === null ? (
+            <div className="grid grid-cols-3 gap-2">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-[68px] animate-pulse rounded-xl border border-slate-200 bg-slate-100"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {list.map((channel) => {
+                const isSelected = selected?.id === channel.id
+                return (
+                  <button
+                    key={channel.id}
+                    type="button"
+                    onClick={() => setSelectedId(channel.id)}
+                    className={cn(
+                      'flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-semibold transition-all duration-150 active:scale-95',
+                      isSelected
+                        ? 'border-primary bg-primary/10 text-primary shadow-xs'
+                        : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800',
+                    )}
+                  >
+                    <Icon name={CATEGORY_ICON[channel.category]} className="text-xl" />
+                    <span className="text-center leading-tight">{channel.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Cash Calculation Section */}
-        {method === 'CASH' && (
+        {isCash && (
           <div className="mb-5 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-3.5">
             <div className="flex items-center justify-between">
               <span className="font-display text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -168,7 +217,7 @@ export default function PaymentModal({
                 type="button"
                 onClick={() => setCash(String(grandTotal))}
                 className={cn(
-                  'flex h-11 items-center justify-center rounded-lg border px-2 text-xs font-bold transition-all active:scale-95',
+                  'flex h-11 cursor-pointer items-center justify-center rounded-lg border px-2 text-xs font-bold transition-all active:scale-95',
                   parsedCash === grandTotal
                     ? 'border-primary bg-primary text-white'
                     : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
@@ -182,7 +231,7 @@ export default function PaymentModal({
                   type="button"
                   onClick={() => setCash(String(v))}
                   className={cn(
-                    'flex h-11 items-center justify-center rounded-lg border px-2 text-xs font-bold transition-all active:scale-95',
+                    'flex h-11 cursor-pointer items-center justify-center rounded-lg border px-2 text-xs font-bold transition-all active:scale-95',
                     parsedCash === v
                       ? 'border-primary bg-primary text-white'
                       : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
@@ -242,7 +291,7 @@ export default function PaymentModal({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={submitting || isUnderpaid}
+          disabled={submitting || selected === null || isUnderpaid}
           className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-primary-dark font-display text-sm font-bold text-white shadow-btn-bismark transition active:scale-[0.98] hover:brightness-105 disabled:pointer-events-none disabled:opacity-50"
           style={{ background: 'linear-gradient(135deg, #447C84 0%, #53949e 100%)' }}
         >
