@@ -1,6 +1,11 @@
+<<<<<<< HEAD
 import { useEffect, useState } from 'react'
 import type { CustomerGender, PaymentCategory, PaymentChannel } from '@/api/client'
 import { fetchPaymentChannels } from '@/api/client'
+=======
+import { useState } from 'react'
+import type { CheckoutInput, CustomerGender, PaymentCategory } from '@/api/client'
+>>>>>>> main
 import { formatRupiah } from '@/utils/format'
 import { calculateChange } from '@/utils/financial'
 import { Input } from '@/components/ui/input'
@@ -9,6 +14,7 @@ import Icon from '@/components/ui/Icon'
 
 const QUICK_CASH = [20000, 50000, 100000]
 
+<<<<<<< HEAD
 /** Fallback bila fetch channel gagal/ kosong — kasir tetap bisa menerima pembayaran. */
 const FALLBACK_CHANNELS: PaymentChannel[] = [
   { id: -1, name: 'Cash', category: 'CASH', isActive: true },
@@ -22,32 +28,44 @@ const CATEGORY_ICON: Record<PaymentCategory, string> = {
   EDC: 'credit_card',
 }
 
+=======
+>>>>>>> main
 interface PaymentModalProps {
   grandTotal: number
   itemCount: number
-  tableNumber: string | null
   /** Gender pelanggan sudah dipilih di panel ORDER DETAIL, bukan di modal. */
   gender: CustomerGender | null
   submitting: boolean
-  onSubmit: (payload: {
-    customerGender: CustomerGender
-    payment: { category: PaymentCategory; methodName: string; amountPaid: number }
-  }) => void
+  onSubmit: (payload: CheckoutInput) => void
   onClose: () => void
 }
 
+<<<<<<< HEAD
+=======
+const METHOD_META: { key: PaymentCategory; label: string; icon: string }[] = [
+  { key: 'CASH', label: 'Cash', icon: 'payments' },
+  { key: 'THIRD_PARTY', label: 'QRIS / E-Wallet', icon: 'qr_code_2' },
+  { key: 'EDC', label: 'EDC / Card', icon: 'credit_card' },
+]
+
+>>>>>>> main
 export default function PaymentModal({
   grandTotal,
   itemCount,
-  tableNumber,
   gender,
   submitting,
   onSubmit,
   onClose,
 }: PaymentModalProps) {
+<<<<<<< HEAD
   // null = sedang memuat daftar channel aktif (skeleton). Gagal/ kosong → fallback.
   const [channels, setChannels] = useState<PaymentChannel[] | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
+=======
+  const [method, setMethod] = useState<PaymentCategory>('CASH')
+  // Label metode non-tunai yang dikirim ke backend ('QRIS / E-Wallet' / 'EDC / Card').
+  const [methodName, setMethodName] = useState('QRIS / E-Wallet')
+>>>>>>> main
   const [cash, setCash] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
 
@@ -120,7 +138,13 @@ export default function PaymentModal({
       }
       onSubmit({
         customerGender: gender,
+<<<<<<< HEAD
         payment: { category: 'CASH', methodName: selected.name, amountPaid },
+=======
+        paymentCategory: 'CASH',
+        methodName: 'Cash',
+        amountPaid,
+>>>>>>> main
       })
       return
     }
@@ -128,7 +152,13 @@ export default function PaymentModal({
     // Non-tunai: bayar penuh.
     onSubmit({
       customerGender: gender,
+<<<<<<< HEAD
       payment: { category: selected.category, methodName: selected.name, amountPaid: grandTotal },
+=======
+      paymentCategory: method,
+      methodName,
+      amountPaid: grandTotal,
+>>>>>>> main
     })
   }
 
@@ -139,9 +169,7 @@ export default function PaymentModal({
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="font-display text-lg font-bold text-slate-900">Checkout</h2>
-            <p className="text-xs text-slate-500">
-              {tableNumber ? `Table ${tableNumber}` : 'Order'} • {itemCount} items
-            </p>
+            <p className="text-xs text-slate-500">Order • {itemCount} items</p>
           </div>
           <button
             onClick={onClose}
@@ -167,6 +195,7 @@ export default function PaymentModal({
           <label className="mb-1.5 block font-display text-xs font-bold uppercase tracking-wider text-slate-400">
             Payment Method
           </label>
+<<<<<<< HEAD
           {channels === null ? (
             <div className="grid grid-cols-3 gap-2">
               {[0, 1, 2].map((i) => (
@@ -199,6 +228,33 @@ export default function PaymentModal({
               })}
             </div>
           )}
+=======
+          <div className="grid grid-cols-3 gap-2">
+            {METHOD_META.map((m) => {
+              const isSelected = method === m.key
+              return (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => {
+                    setMethod(m.key)
+                    // Rekam label UTUH ('QRIS / E-Wallet'), bukan kata pertama.
+                    setMethodName(m.label)
+                  }}
+                  className={cn(
+                    'flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2.5 text-xs font-semibold transition-all duration-150 active:scale-95',
+                    isSelected
+                      ? 'border-primary bg-primary/10 text-primary shadow-xs'
+                      : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800',
+                  )}
+                >
+                  <Icon name={m.icon} className="text-xl" />
+                  <span className="text-center leading-tight">{m.label.split(' ')[0]}</span>
+                </button>
+              )
+            })}
+          </div>
+>>>>>>> main
         </div>
 
         {/* Cash Calculation Section */}

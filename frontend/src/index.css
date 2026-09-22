@@ -16,20 +16,15 @@
   --color-foreground: #0F172A;
   --color-card: hsl(0 0% 100%);
   --color-card-foreground: #0F172A;
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: #0F172A;
   --color-primary: #447C84;
   --color-primary-foreground: hsl(0 0% 100%);
-  --color-primary-hover: #396a71;
   --color-primary-dark: #2d5258;
-  --color-primary-light: #eef6f7;
   --color-secondary: hsl(210 20% 96%);
   --color-secondary-foreground: hsl(215 25% 26%);
   --color-muted: hsl(210 20% 96%);
   --color-muted-foreground: #64748B;
   --color-accent: #edf7f3;
   --color-accent-foreground: #2d5258;
-  --color-live: #65AF92;
   --color-live-light: #edf7f3;
   --color-live-border: #b9e2d3;
   --color-destructive: hsl(0 75% 55%);
@@ -37,8 +32,6 @@
   --color-border: #E2E8F0;
   --color-input: #E2E8F0;
   --color-ring: #447C84;
-  --color-sidebar: hsl(0 0% 100%);
-  --color-sidebar-foreground: #0F172A;
 
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;

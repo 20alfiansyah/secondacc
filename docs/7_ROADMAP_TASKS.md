@@ -24,11 +24,11 @@
     - `PaymentChannel` & `Table`.
   - Eksekusi `npx prisma generate` dan push database (`npx prisma db push`).
 - [x] **Task 1.1.2: Database Seeder Realistis (`backend/prisma/seed.ts`)**
-  - Akun Awal: 1 Admin (`admin` / `admin123`) dan 1 Kasir (`siti` / `kasir123`) dengan bcrypt hashing.
-  - 5 Kategori Kafe: `Coffee`, `Mocktails`, `Non-Coffee`, `Main Course`, `Pastry & Snacks`.
-  - 16 Produk Realistis dengan foto, harga Rupiah, serta flag `isRecommended` dan `isBestSeller`.
-  - Channel Pembayaran: Tunai (Cash), QRIS BCA, EDC Mandiri.
-  - Verifikasi seeder dengan `npx prisma db seed`.
+  - Akun Awal: 1 Admin dan 1 Kasir dengan bcrypt hashing — username via `SEED_ADMIN_USERNAME` (default `admin`) & `SEED_CASHIER_USERNAME` (default `kasir1`), password **wajib** via `SEED_ADMIN_PASSWORD` & `SEED_CASHIER_PASSWORD` (tanpa default hardcode; seeder fail-fast bila kosong).
+  - 4 Kategori Kafe: `Kopi`, `Non-Kopi`, `Makanan Berat`, `Snack & Pastry`.
+  - 15 Produk Realistis dengan harga Rupiah serta flag `isRecommended` dan `isBestSeller` (foto via mapping statis frontend, bukan upload).
+  - Channel Pembayaran: Tunai (Cash), Midtrans QRIS, EDC.
+  - Verifikasi seeder dengan `npx prisma db seed` (idempoten: re-seed hanya menyegarkan flag kurasi, tidak me-reset status Sold Out).
 - [x] **Task 1.1.3: Superpowers TDD - Financial & Checkout Engine (`backend/src/orders/financial.calculator.*`)**
   - Tulis Unit Test `financial.calculator.spec.ts` sebelum kode:
     - Test kalkulasi subtotal item ($qty \times price$) dengan integer precision.

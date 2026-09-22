@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
+import { initials, navGroups, roleLabel } from '@/components/navItems'
+import type { NavItemData } from '@/components/navItems'
 import Icon from '@/components/ui/Icon'
 
 interface NavigationRailProps {
@@ -20,23 +22,7 @@ interface NavigationRailProps {
   className?: string
 }
 
-/** Get name initials (e.g. "Nahid Zaman" -> "NZ", "Siti" -> "S") for the avatar. */
-function initialsOf(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]!.toUpperCase())
-    .join('')
-}
-
-interface NavItem {
-  id: string
-  label: string
-  icon: string
-  active?: boolean
-  onClick: () => void
-}
+type NavItem = NavItemData & { active?: boolean; onClick: () => void }
 
 interface NavGroup {
   id: string
@@ -72,13 +58,6 @@ export default function NavigationRail({
     }
   })
 
-  // Live clock for the rail footer (expanded only)
-  const [now, setNow] = useState(() => new Date())
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000)
-    return () => window.clearInterval(timer)
-  }, [])
-
   // Alt+S dari POS men-trigger event ini untuk collapse/expand sidebar.
   useEffect(() => {
     function onToggle() {
@@ -113,8 +92,9 @@ export default function NavigationRail({
   }
 
   const role = user?.role ?? 'CASHIER'
-  const roleLabelText = role === 'ADMIN' ? 'Administrator' : 'Active Cashier'
+  const roleLabelText = roleLabel(role)
 
+<<<<<<< HEAD
   // Menu structure 1:1 dengan Stitch screen1. Fase 2.5: grup Management & Ops
   // hanya tampil untuk ADMIN — kasir tidak melihatnya sama sekali (route level
   // tetap melakukan gating sendiri).
@@ -191,6 +171,28 @@ export default function NavigationRail({
       ],
     },
   ]
+=======
+  // Menu structure 1:1 dengan Stitch screen1 (role gating di route level,
+  // bukan di nav — sesuai desain).
+  const groups: NavGroup[] = navGroups.map((group) => ({
+    ...group,
+    items: group.items.map((item) => ({
+      ...item,
+      active: item.id === 'register',
+      onClick: () => {
+        if (item.notice) {
+          handleNotice(item.notice)
+        } else if (item.id === 'register') {
+          navigate('/pos')
+        } else if (item.id === 'history') {
+          onOpenHistory()
+        } else if (item.id === 'dashboard') {
+          navigate('/dashboard')
+        }
+      },
+    })),
+  }))
+>>>>>>> main
 
   // Fase 2.5: kasir hanya melihat grup cashier-ops; ADMIN melihat semuanya.
   const visibleGroups = role === 'ADMIN' ? groups : groups.filter((g) => g.id === 'cashier-ops')
@@ -263,9 +265,7 @@ export default function NavigationRail({
           <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
             <div className="flex items-center gap-1.5">
               <Icon name="schedule" className="text-[14px] text-slate-400" />
-              <span className="font-semibold tabular-nums">
-                {now.toLocaleTimeString('en-US', { hour12: true })}
-              </span>
+              <LiveClock />
             </div>
             <span
               className="rounded-md border border-[#b9e2d3] bg-[#edf7f3] px-2 py-0.5 font-display text-[10px] font-semibold text-[#2d5258]"
@@ -284,7 +284,7 @@ export default function NavigationRail({
           title={collapsed ? `${user?.name || 'Cashier'} • ${roleLabelText}` : undefined}
         >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#447C84] font-display text-xs font-bold text-white shadow-xs">
-            {user?.name ? initialsOf(user.name) : <Icon name="person" className="text-base" />}
+            {user?.name ? initials(user.name) : <Icon name="person" className="text-base" />}
           </div>
           {!collapsed && (
             <>
@@ -392,6 +392,23 @@ function NavButton({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
         <span className="h-2 w-2 shrink-0 rounded-full bg-[#65AF92] shadow-xs" aria-hidden="true" />
       )}
     </button>
+  )
+}
+
+/**
+ * Jam live footer rail (expanded only) — interval 1 dtk hidup di subkomponen
+ * ini, jadi tick per detik hanya me-render ulang jam, bukan seluruh rail.
+ */
+function LiveClock() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+  return (
+    <span className="font-semibold tabular-nums">
+      {now.toLocaleTimeString('en-US', { hour12: true })}
+    </span>
   )
 }
 

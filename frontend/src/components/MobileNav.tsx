@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import Icon from '@/components/ui/Icon'
+import { initials, navGroups, roleLabel } from '@/components/navItems'
+import type { NavItemData } from '@/components/navItems'
 
 interface MobileNavProps {
   /** Halaman aktif utk breadcrumb (mis. "Register"). */
@@ -17,13 +19,7 @@ interface MobileNavProps {
   onSignOut?: () => void
 }
 
-interface NavItem {
-  id: string
-  label: string
-  icon: string
-  active?: boolean
-  onClick: () => void
-}
+type NavItem = NavItemData & { active?: boolean; onClick: () => void }
 
 interface NavGroup {
   id: string
@@ -43,13 +39,8 @@ export default function MobileNav({
   const [menuOpen, setMenuOpen] = useState(false)
 
   const role = user?.role ?? 'CASHIER'
-  const roleLabelText = role === 'ADMIN' ? 'Administrator' : 'Active Cashier'
-  const initials = (user?.name ?? '')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]!.toUpperCase())
-    .join('')
+  const roleLabelText = roleLabel(role)
+  const userInitials = initials(user?.name ?? '')
 
   // Kunci scroll body saat drawer terbuka agar halaman di belakang tidak ikut
   // bergulir dari sentuhan (POS memakai h-svh, tapi konten drawer bisa panjang).
@@ -61,6 +52,7 @@ export default function MobileNav({
     }
   }, [menuOpen])
 
+<<<<<<< HEAD
   const groups: NavGroup[] = [
     {
       id: 'cashier-ops',
@@ -152,6 +144,25 @@ export default function MobileNav({
       ],
     },
   ]
+=======
+  const groups: NavGroup[] = navGroups.map((group) => ({
+    ...group,
+    items: group.items.map((item) => ({
+      ...item,
+      active: item.id === 'register' && page === 'Register',
+      onClick: () => {
+        setMenuOpen(false)
+        if (item.id === 'history') {
+          onOpenHistory()
+        } else if (item.id === 'dashboard') {
+          onFeatureNotice?.('Dashboard is available for Admin accounts.')
+        } else if (item.notice) {
+          onFeatureNotice?.(item.notice)
+        }
+      },
+    })),
+  }))
+>>>>>>> main
 
   // Fase 2.5: kasir hanya melihat grup cashier-ops; ADMIN melihat semuanya.
   const visibleGroups = role === 'ADMIN' ? groups : groups.filter((g) => g.id === 'cashier-ops')
@@ -194,7 +205,7 @@ export default function MobileNav({
         className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#447C84] font-display text-xs font-bold text-white shadow-xs"
         title={user?.name || 'Cashier'}
       >
-        {initials || <Icon name="person" className="text-base" />}
+        {userInitials || <Icon name="person" className="text-base" />}
       </div>
 
       {/* Drawer navigasi (slide dari kiri) */}
@@ -266,7 +277,7 @@ export default function MobileNav({
             <div className="shrink-0 space-y-2 border-t border-slate-100 bg-slate-50/70 p-3">
               <div className="flex items-center gap-2.5 rounded-xl border border-slate-200/80 bg-white p-2 shadow-xs">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#447C84] font-display text-xs font-bold text-white shadow-xs">
-                  {user?.name ? initials : <Icon name="person" className="text-base" />}
+                  {user?.name ? userInitials : <Icon name="person" className="text-base" />}
                 </div>
                 <div className="min-w-0 flex-1 leading-tight">
                   <p className="truncate text-xs font-semibold tracking-tight text-slate-900">

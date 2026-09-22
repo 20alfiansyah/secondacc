@@ -1,4 +1,10 @@
 import type { Product } from '@/api/client'
+<<<<<<< HEAD
+=======
+import { cn } from '@/lib/utils'
+import { formatRupiah } from '@/utils/format'
+import { resolveProductImage } from '@/utils/productImage'
+>>>>>>> main
 import Icon from '@/components/ui/Icon'
 import ProductCard from '@/components/ProductCard'
 
@@ -27,9 +33,29 @@ function categoryGlyph(name: string): string {
   return 'restaurant'
 }
 
+<<<<<<< HEAD
 /**
  * Zone 2 — Menu Catalog Grid: kartu via komponen bersama ProductCard
  * (markup Stitch screen1) + header grup kategori dgn "N Items".
+=======
+
+/** Grup section untuk tab "All": tiap kategori (urutan kategori) tanpa grup featured. */
+function groupByCategory(products: Product[]): { title: string; items: Product[] }[] {
+  const byCategory = new Map<string, Product[]>()
+  for (const p of products) {
+    const list = byCategory.get(p.categoryName) ?? []
+    list.push(p)
+    byCategory.set(p.categoryName, list)
+  }
+  return Array.from(byCategory, ([title, items]) => ({ title, items }))
+}
+
+/**
+ * Zone 2 — Menu Catalog Grid (Stitch screen1 markup 1:1): kartu 4:3 dengan
+ * badge Popular (gelap) / Best Seller (gradien SilverTree→Bismark), body
+ * nama + deskripsi line-clamp-1, footer harga + tombol tambah hover teal,
+ * dan header grup kategori dgn "N Items".
+>>>>>>> main
  */
 export default function ProductCatalogGrid({
   products,

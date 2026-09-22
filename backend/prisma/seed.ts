@@ -1,277 +1,132 @@
-import { PrismaClient, Role, PaymentCategory } from '@prisma/client';
+import { Logger } from '@nestjs/common';
+import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
-
-// Slug helper untuk kategori (kebab-case)
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
-async function seedUsers() {
-  const users = [
-    {
-      username: 'admin',
-      password: 'admin123',
-      name: 'Administrator',
-      role: Role.ADMIN,
-    },
-    {
-      username: 'siti',
-      password: 'kasir123',
-      name: 'Siti',
-      role: Role.CASHIER,
-    },
-  ];
-
-  for (const u of users) {
-    const passwordHash = await bcrypt.hash(u.password, 10);
-    await prisma.user.upsert({
-      where: { username: u.username },
-      update: {
-        passwordHash,
-        name: u.name,
-        role: u.role,
-        isActive: true,
-      },
-      create: {
-        username: u.username,
-        passwordHash,
-        name: u.name,
-        role: u.role,
-      },
-    });
-    console.log(`✔ User: ${u.username} (${u.role})`);
-  }
-}
-
-async function seedCategories() {
-  const categories = [
-    'Coffee',
-    'Mocktails',
-    'Non-Coffee',
-    'Main Course',
-    'Pastry & Snacks',
-  ];
-
-  const created: Record<string, number> = {};
-  for (const name of categories) {
-    const slug = slugify(name);
-    const cat = await prisma.category.upsert({
-      where: { slug },
-      update: { name },
-      create: { name, slug },
-    });
-    created[name] = cat.id;
-    console.log(`✔ Category: ${name} (${slug})`);
-  }
-  return created;
-}
-
-interface SeedProduct {
-  name: string;
-  category: string;
-  price: number;
-  description: string;
-  isRecommended?: boolean;
-  isBestSeller?: boolean;
-}
-
-// Harga dalam Rupiah bulat (satuan sen = 0; Integer Rupiah).
-// Foto dummy: karena belum ada endpoint upload, gunakan path placeholder future
-// di bawah /uploads/products (Task 2.2 menambahkan storage lokal). SVG data URI
-// kosong agar kolom image_url tidak null dan tampil case jika di-render.
-const products: SeedProduct[] = [
-  // ☕ Coffee
-  {
-    name: 'Espresso',
-    category: 'Coffee',
-    price: 18000,
-    description: 'Single shot espresso pekat, robusta & arabika blend.',
-    isRecommended: true,
-  },
-  {
-    name: 'Cappuccino',
-    category: 'Coffee',
-    price: 28000,
-    description: 'Espresso dengan steamed milk dan foam tebal.',
-    isBestSeller: true,
-  },
-  {
-    name: 'Kopi Susu Gula Aren',
-    category: 'Coffee',
-    price: 25000,
-    description: 'Kopi susu kekinian dengan gula aren cair.',
-    isRecommended: true,
-    isBestSeller: true,
-  },
-  {
-    name: 'Cold Brew',
-    category: 'Coffee',
-    price: 32000,
-    description: 'Kopi seduh dingin 12 jam, smooth dan rendah asam.',
-    isRecommended: true,
-  },
-  // 🍹 Mocktails
-  {
-    name: 'Lychee Splash',
-    category: 'Mocktails',
-    price: 30000,
-    description: 'Lychee, soda, dan perasan lemon segar.',
-    isBestSeller: true,
-  },
-  {
-    name: 'Mojito Mint',
-    category: 'Mocktails',
-    price: 28000,
-    description: 'Mint segar, jeruk nipis, dan soda.',
-    isRecommended: true,
-  },
-  {
-    name: 'Strawberry Smash',
-    category: 'Mocktails',
-    price: 32000,
-    description: 'Strawberry segar, sirup, dan sparkling water.',
-  },
-  // 🍵 Non-Coffee
-  {
-    name: 'Matcha Latte',
-    category: 'Non-Coffee',
-    price: 30000,
-    description: 'Matcha premium dengan steamed milk.',
-    isRecommended: true,
-  },
-  {
-    name: 'Chocolate Hazelnut',
-    category: 'Non-Coffee',
-    price: 28000,
-    description: 'Cokelat kental dengan sentuhan hazelnut.',
-    isBestSeller: true,
-  },
-  {
-    name: 'Thai Tea',
-    category: 'Non-Coffee',
-    price: 26000,
-    description: 'Teh Thailand klasik dengan susu kental manis.',
-  },
-  // 🍽️ Main Course
-  {
-    name: 'Nasi Goreng Spesial',
-    category: 'Main Course',
-    price: 38000,
-    description: 'Nasi goreng dengan telur, ayam suwir, dan kerupuk.',
-    isRecommended: true,
-    isBestSeller: true,
-  },
-  {
-    name: 'Mie Goreng Jawa',
-    category: 'Main Course',
-    price: 35000,
-    description: 'Mie goreng jawa manis gurih dengan topping bakso.',
-  },
-  {
-    name: 'Chicken Katsu Rice',
-    category: 'Main Course',
-    price: 42000,
-    description: 'Ayam katsu renyah dengan nasi dan saus khas.',
-    isRecommended: true,
-  },
-  // 🥐 Pastry & Snacks
-  {
-    name: 'Croissant Butter',
-    category: 'Pastry & Snacks',
-    price: 20000,
-    description: 'Croissant bermentega, luar renyah dalam lembut.',
-    isRecommended: true,
-  },
-  {
-    name: 'Cheese Cake Slice',
-    category: 'Pastry & Snacks',
-    price: 30000,
-    description: 'Cheesecake creamy dengan base biskuit.',
-    isBestSeller: true,
-  },
-  {
-    name: 'Kentang Goreng Crispy',
-    category: 'Pastry & Snacks',
-    price: 22000,
-    description: 'French fries gurih renyah, cocok untuk teman minum.',
-  },
-];
-
-async function seedProducts(categoryIds: Record<string, number>) {
-  for (const p of products) {
-    const categoryId = categoryIds[p.category];
-    if (!categoryId) throw new Error(`Kategori tidak ditemukan: ${p.category}`);
-
-    const exists = await prisma.product.findFirst({
-      where: { name: p.name },
-    });
-
-    const data = {
-      categoryId,
-      name: p.name,
-      price: p.price,
-      description: p.description,
-      // Placeholder SVG data URI (kosong) agar imageUrl bukan null
-      imageUrl:
-        'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"/>',
-      isAvailable: true,
-      isRecommended: p.isRecommended ?? false,
-      isBestSeller: p.isBestSeller ?? false,
-    };
-
-    if (exists) {
-      await prisma.product.update({ where: { id: exists.id }, data });
-    } else {
-      await prisma.product.create({ data });
-    }
-  }
-  console.log(`✔ Product: ${products.length} item`);
-}
-
-async function seedPaymentChannels() {
-  const channels = [
-    { name: 'Tunai', category: PaymentCategory.CASH },
-    { name: 'QRIS BCA', category: PaymentCategory.THIRD_PARTY },
-    { name: 'EDC Mandiri', category: PaymentCategory.EDC },
-  ];
-
-  for (const c of channels) {
-    // PaymentChannel tidak punya field unique natural selain id (PK).
-    // Idempotency pakai findFirst by name, lalu update atau create.
-    const existing = await prisma.paymentChannel.findFirst({
-      where: { name: c.name },
-    });
-    if (existing) {
-      await prisma.paymentChannel.update({
-        where: { id: existing.id },
-        data: { name: c.name, category: c.category, isActive: true },
-      });
-    } else {
-      await prisma.paymentChannel.create({
-        data: { name: c.name, category: c.category },
-      });
-    }
-    console.log(`✔ PaymentChannel: ${c.name} (${c.category})`);
-  }
-}
+const logger = new Logger('Seed');
 
 async function main() {
-  console.log('🌱 Mulai seeding...');
-  await seedUsers();
-  const categoryIds = await seedCategories();
-  await seedProducts(categoryIds);
-  await seedPaymentChannels();
-  console.log('✅ Seeding selesai.');
+  logger.log('🌱 Memulai proses seeding database Kafe POS...');
+
+  // 1. SEED USERS (Admin & Kasir) — kredensial dari environment, TIDAK ada
+  //    password default hardcode. Username boleh di-override, password wajib.
+  const adminUsername = process.env.SEED_ADMIN_USERNAME ?? 'admin';
+  const cashierUsername = process.env.SEED_CASHIER_USERNAME ?? 'kasir1';
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  const cashierPassword = process.env.SEED_CASHIER_PASSWORD;
+
+  if (!adminPassword || !cashierPassword) {
+    throw new Error(
+      'Seed butuh SEED_ADMIN_PASSWORD dan SEED_CASHIER_PASSWORD di environment (lihat .env.example).',
+    );
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  const adminPasswordHash = await bcrypt.hash(adminPassword, salt);
+  const cashierPasswordHash = await bcrypt.hash(cashierPassword, salt);
+
+  const admin = await prisma.user.upsert({
+    where: { username: adminUsername },
+    update: {},
+    create: {
+      username: adminUsername,
+      passwordHash: adminPasswordHash,
+      name: 'Owner / Manager Kafe',
+      role: Role.ADMIN,
+      isActive: true,
+    },
+  });
+
+  const cashier = await prisma.user.upsert({
+    where: { username: cashierUsername },
+    update: {},
+    create: {
+      username: cashierUsername,
+      passwordHash: cashierPasswordHash,
+      name: 'Siti Kasir',
+      role: Role.CASHIER,
+      isActive: true,
+    },
+  });
+
+  logger.log(`✅ Users seeded: ${admin.username} (Admin), ${cashier.username} (Cashier)`);
+
+  // 2. SEED CATEGORIES
+  const categoriesData = [
+    { name: 'Kopi', slug: 'kopi' },
+    { name: 'Non-Kopi', slug: 'non-kopi' },
+    { name: 'Makanan Berat', slug: 'makanan-berat' },
+    { name: 'Snack & Pastry', slug: 'snack-pastry' },
+  ];
+
+  const categories: Record<string, { id: number }> = {};
+  for (const cat of categoriesData) {
+    const created = await prisma.category.upsert({
+      where: { slug: cat.slug },
+      update: {},
+      create: cat,
+    });
+    categories[cat.slug] = created;
+  }
+  logger.log(`✅ ${categoriesData.length} Kategori berhasil di-seed`);
+
+  // 3. SEED PRODUCTS (15 Menu Kafe)
+  const productsData = [
+    // Kopi
+    { name: 'Espresso Single', price: 18000, slug: 'kopi', description: 'Ekstraksi kopi murni 30ml', isAvailable: true, isRecommended: false, isBestSeller: false },
+    { name: 'Americano (Hot/Ice)', price: 22000, slug: 'kopi', description: 'Espresso dengan air mineral segar', isAvailable: true, isRecommended: false, isBestSeller: true },
+    { name: 'Kopi Susu Gula Aren', price: 25000, slug: 'kopi', description: 'Signature espresso, fresh milk, & gula aren murni', isAvailable: true, isRecommended: true, isBestSeller: false },
+    { name: 'Cafe Latte', price: 28000, slug: 'kopi', description: 'Espresso dengan steamed milk lembut', isAvailable: true, isRecommended: false, isBestSeller: false },
+    { name: 'Cappuccino', price: 28000, slug: 'kopi', description: 'Espresso dengan foam susu tebal & taburan cokelat', isAvailable: true, isRecommended: false, isBestSeller: false },
+
+    // Non-Kopi
+    { name: 'Matcha Green Tea Latte', price: 30000, slug: 'non-kopi', description: 'Matcha Uji autentik dengan susu segar', isAvailable: true, isRecommended: true, isBestSeller: false },
+    { name: 'Chocolate Signature', price: 28000, slug: 'non-kopi', description: 'Cokelat Belgia pekat manis pas', isAvailable: true, isRecommended: false, isBestSeller: false },
+    { name: 'Lemon Tea (Fresh Brew)', price: 20000, slug: 'non-kopi', description: 'Teh hitam segar dengan perasan lemon asli', isAvailable: true, isRecommended: false, isBestSeller: false },
+
+    // Makanan Berat
+    { name: 'Nasi Goreng Spesial Kafe', price: 35000, slug: 'makanan-berat', description: 'Nasi goreng dengan ayam suwir, telur mata sapi, & kerupuk', isAvailable: true, isRecommended: false, isBestSeller: true },
+    { name: 'Mie Goreng Seafood', price: 32000, slug: 'makanan-berat', description: 'Mie telur dengan udang & cumi segar', isAvailable: true, isRecommended: false, isBestSeller: false },
+    { name: 'Chicken Katsu Rice Bowl', price: 38000, slug: 'makanan-berat', description: 'Ayam katsu krispi dengan saus teriyaki & telur', isAvailable: true, isRecommended: false, isBestSeller: false },
+    { name: 'Spaghetti Carbonara', price: 42000, slug: 'makanan-berat', description: 'Pasta creamy dengan smoked beef & parmesan', isAvailable: true, isRecommended: false, isBestSeller: false },
+
+    // Snack & Pastry
+    { name: 'French Fries (Kentang Goreng)', price: 22000, slug: 'snack-pastry', description: 'Kentang goreng gurih renyah dengan saus cocolan', isAvailable: true, isRecommended: false, isBestSeller: false },
+    { name: 'Butter Croissant', price: 25000, slug: 'snack-pastry', description: 'Pastry Prancis renyah berlapis mentega', isAvailable: false, isRecommended: false, isBestSeller: true }, // Sample SOLD OUT + Best Seller
+    { name: 'Roti Bakar Cokelat Keju', price: 26000, slug: 'snack-pastry', description: 'Roti tebal dengan limpahan cokelat meses & parutan keju', isAvailable: true, isRecommended: false, isBestSeller: false },
+  ];
+
+  for (const prod of productsData) {
+    const existing = await prisma.product.findFirst({ where: { name: prod.name } });
+    if (!existing) {
+      await prisma.product.create({
+        data: {
+          name: prod.name,
+          price: prod.price,
+          description: prod.description,
+          categoryId: categories[prod.slug].id,
+          isAvailable: prod.isAvailable,
+          isRecommended: prod.isRecommended,
+          isBestSeller: prod.isBestSeller,
+        },
+      });
+    } else {
+      // Re-seed idempoten: update HANYA flag kurasi, jangan sentuh isAvailable
+      // (status Sold Out live hasil toggle kasir tidak boleh di-reset seeder).
+      await prisma.product.update({
+        where: { id: existing.id },
+        data: { isRecommended: prod.isRecommended, isBestSeller: prod.isBestSeller },
+      });
+    }
+  }
+  logger.log(`✅ ${productsData.length} Menu kafe berhasil di-seed (Termasuk sample Sold Out)`);
+
+  logger.log('🎉 Seeding database selesai 100%!');
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    logger.error('❌ Terjadi kesalahan saat seeding:', e);
     process.exit(1);
   })
   .finally(async () => {

@@ -29,7 +29,7 @@ export default function UnsavedChangesModal({
       <div className="w-full max-w-sm rounded-2xl border border-slate-100 bg-white p-6 shadow-modal animate-in zoom-in-95 duration-150">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
-            <Icon name="warning" className="text-xl" />
+            <Icon name="error" className="text-xl" />
           </div>
           <div>
             <h3 className="text-base font-bold text-slate-900">Unsaved changes</h3>

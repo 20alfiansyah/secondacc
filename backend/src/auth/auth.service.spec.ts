@@ -46,9 +46,12 @@ describe('AuthService', () => {
     it('mengembalikan token + user saat kredensial valid', async () => {
       prisma.user.findUnique.mockResolvedValue(activeUser);
       // bcrypt compare: simulasi via mock spy di bawah pada service.
-      jest
-        .spyOn(service as any, 'verifyPassword')
-        .mockResolvedValue(true);
+      // Akses private `verifyPassword` untuk mock — pola terkontrol via
+      // index signature, bukan `as any`.
+      const serviceWithSpy = service as unknown as {
+        verifyPassword: (plain: string, hash: string) => Promise<boolean>;
+      };
+      jest.spyOn(serviceWithSpy, 'verifyPassword').mockResolvedValue(true);
 
       const result = await service.login('siti', 'kasir123');
 
@@ -84,7 +87,10 @@ describe('AuthService', () => {
 
     it('melempar UnauthorizedException (INVALID_CREDENTIALS) saat password salah', async () => {
       prisma.user.findUnique.mockResolvedValue(activeUser);
-      jest.spyOn(service as any, 'verifyPassword').mockResolvedValue(false);
+      const serviceWithSpy = service as unknown as {
+        verifyPassword: (plain: string, hash: string) => Promise<boolean>;
+      };
+      jest.spyOn(serviceWithSpy, 'verifyPassword').mockResolvedValue(false);
       await expect(service.login('siti', 'salah')).rejects.toMatchObject({
         response: expect.objectContaining({ code: 'INVALID_CREDENTIALS' }),
       });

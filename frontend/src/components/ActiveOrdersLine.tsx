@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { OrderSummary, OrderType } from '@/api/client'
 import { cn } from '@/lib/utils'
-import { formatRupiah } from '@/utils/format'
+import { formatOrderLabel, formatRupiah } from '@/utils/format'
 import Icon from '@/components/ui/Icon'
 import EmptyState from '@/components/ui/EmptyState'
 
@@ -17,11 +17,6 @@ const FILTERS: { value: OrderFilter; label: string }[] = [
   { value: 'DINE_IN', label: 'Dine-In' },
   { value: 'TAKE_AWAY', label: 'Takeaway' },
 ]
-
-/** Nomor Order dengan padding nol minimal 3 digit: 42 -> "#042". */
-function orderLabel(id: number): string {
-  return `#${String(id).padStart(3, '0')}`
-}
 
 /** Relative time dari createdAt: "Just now", "15m ago", "3h ago". */
 function relativeTime(createdAt: string, nowMs: number): string {
@@ -158,7 +153,7 @@ export default function ActiveOrdersLine({
                                   : 'border border-slate-200 bg-slate-100 text-slate-800',
                               )}
                             >
-                              {orderLabel(order.id)}
+                              {formatOrderLabel(order.id)}
                             </span>
                             <span className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-700">
                               {TYPE_LABEL[order.orderType]}

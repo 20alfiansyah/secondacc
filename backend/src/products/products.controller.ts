@@ -7,7 +7,6 @@ import {
   Param,
   ParseIntPipe,
   Patch,
-  Post,
   Put,
   Query,
   UploadedFile,
@@ -16,6 +15,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Role } from '@prisma/client';
 import type { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
 import { diskStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -66,7 +66,7 @@ const imageUpload: MulterOptions = {
 };
 
 @Controller('products')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
@@ -84,24 +84,20 @@ export class ProductsController {
 
   /** GET /api/products/archived — daftar produk terarsip (khusus ADMIN). */
   @Get('archived')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles(Role.ADMIN)
   async findAllArchived() {
     const data = await this.productsService.findAllArchived();
     return { success: true, data };
   }
 
-  @Post()
-  @Roles('ADMIN')
-  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @UseInterceptors(FileInterceptor('image', imageUpload))
   create(@Body() dto: CreateProductDto, @UploadedFile() image?: Express.Multer.File) {
     return this.productsService.create(dto, image).then((data) => ({ success: true, data }));
   }
 
   @Put(':id')
-  @Roles('ADMIN')
-  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   @UseInterceptors(FileInterceptor('image', imageUpload))
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -113,8 +109,7 @@ export class ProductsController {
 
   /** PATCH /api/products/:id/archive — arsipkan produk; riwayat order tetap utuh (khusus ADMIN). */
   @Patch(':id/archive')
-  @Roles('ADMIN')
-  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   async archive(@Param('id', ParseIntPipe) id: number) {
     const data = await this.productsService.archive(id);
     return { success: true, data };
@@ -122,16 +117,18 @@ export class ProductsController {
 
   /** PATCH /api/products/:id/restore — kembalikan produk terarsip (khusus ADMIN). */
   @Patch(':id/restore')
-  @Roles('ADMIN')
-  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
   async restore(@Param('id', ParseIntPipe) id: number) {
     const data = await this.productsService.restore(id);
     return { success: true, data };
   }
 
+  // Sold out / tersedia = urusan menu & stok: ADMIN saja.
+  @Roles(Role.ADMIN)
   @Patch(':id/toggle-availability')
   async toggleAvailability(@Param('id', ParseIntPipe) id: number) {
     const data = await this.productsService.toggleAvailability(id);
     return { success: true, data };
   }
 }
+

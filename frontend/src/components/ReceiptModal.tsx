@@ -1,6 +1,6 @@
 import Icon from '@/components/ui/Icon'
 import type { CheckoutResult, OrderDetail } from '@/api/client'
-import { formatRupiah } from '@/utils/format'
+import { formatDate, formatRupiah } from '@/utils/format'
 
 const CAFE_NAME = 'CAFE POS'
 
@@ -8,18 +8,6 @@ interface ReceiptModalProps {
   /** CheckoutResult (alur bayar) atau OrderDetail (re-print dari riwayat). */
   order: CheckoutResult | OrderDetail
   onClose: () => void
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return d.toLocaleString('en-US', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {

@@ -1,23 +1,30 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
-
-// Support BigInt serialization in JSON responses
-(BigInt.prototype as any).toJSON = function () {
-  return Number(this);
-};
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Security headers standar (X-Frame-Options, CSP ringan, dsb).
+  app.use(helmet());
+
   // Global prefix /api
   app.setGlobalPrefix('api');
 
-  // CORS: API memakai Bearer token (bukan cookie), jadi credentials TIDAK
-  // diperlukan — kombinasi wildcard + credentials ditolak browser.
+  // CORS: origin dipatok lewat env CORS_ORIGIN (bisa dipisah koma untuk
+  // beberapa origin). Jangan pakai '*' di produksi.
+  const corsOrigin = app
+    .get(ConfigService)
+    .get<string>('CORS_ORIGIN', 'http://localhost:5173')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
   app.enableCors({
-    origin: '*',
+    origin: corsOrigin,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
   });
 
   // Global DTO Validation
@@ -29,8 +36,10 @@ async function bootstrap() {
     }),
   );
 
-  const port = process.env.PORT || 3000;
+  const port = app.get(ConfigService).get<number>('PORT', 3000);
   await app.listen(port);
-  console.log(`🚀 Cafe POS Backend running on: http://localhost:${port}/api`);
+  const logger = new Logger('Bootstrap');
+  logger.log(`🚀 Cafe POS Backend running on: http://localhost:${port}/api`);
+  logger.log(`CORS origin diizinkan: ${corsOrigin.join(', ')}`);
 }
 bootstrap();

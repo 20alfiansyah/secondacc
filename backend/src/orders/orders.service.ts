@@ -4,49 +4,26 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus, OrderType, PaymentCategory } from '@prisma/client';
+import { OrderStatus, PaymentCategory } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma as PrismaNS } from '@prisma/client';
 import {
   calculateItemSubtotal,
   calculateGrandTotal,
-  calculateCashChange,
-  assertValidAmount,
+  assertPaymentCoversTotal,
   InsufficientPaymentError,
   InvalidMoneyInputError,
 } from './financial.calculator';
+import {
+  CheckoutDto,
+  OpenBillDto,
+  OpenBillItemDto,
+  UpdateOpenBillItemsDto,
+} from './dto/orders.dto';
 import { buildInvoice, dailyPrefix, extractSequence, toDateKey } from './invoice.generator';
 
 /** Format tanggal yang diterima filter history (YYYY-MM-DD). */
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-export interface OpenBillItemInput {
-  productId: number;
-  quantity: number;
-  notes?: string;
-}
-
-export interface OpenBillInput {
-  orderType: OrderType;
-  tableId?: number;
-  customerName: string;
-  customerGender?: 'L' | 'P';
-  items: OpenBillItemInput[];
-}
-
-/** Body untuk PUT /orders/:id/items — full replace items order OPEN_BILL. */
-export interface UpdateOpenBillInput {
-  customerName?: string;
-  customerGender?: 'L' | 'P';
-  items: OpenBillItemInput[];
-}
-
-export interface CheckoutInput {
-  customerGender?: 'L' | 'P';
-  paymentCategory: PaymentCategory;
-  methodName: string;
-  amountPaid: number;
-}
 
 type Tx = PrismaNS.TransactionClient;
 
@@ -70,21 +47,14 @@ export class OrdersService {
    * POST /api/orders/open-bill — ACID: buat Order + OrderItems dalam satu
    * transaksi. Harga `unitPrice` di-snapshot dari DB (BUKAN dari client).
    */
-  async openBill(input: OpenBillInput, cashierId: number) {
+  async openBill(input: OpenBillDto, cashierId: number) {
     const customerName = input.customerName?.trim();
     if (!customerName) {
       throw new BadRequestException({
         code: 'CUSTOMER_NAME_REQUIRED',
-        message: 'Customer name is required',
+        message: 'Nama pelanggan wajib diisi',
       });
     }
-    if (!input.items || input.items.length === 0) {
-      throw new BadRequestException({
-        code: 'EMPTY_ITEMS',
-        message: 'Order must contain at least 1 item',
-      });
-    }
-
     // Unique constraint pada invoiceNumber bisa bentrok saat 2 kasir open
     // bill bersamaan (sequence read-then-write). Retry: transaksi baru
     // membaca ulang sequence terbaru, sehingga percobaan ke-2 pasti unik.
@@ -98,7 +68,6 @@ export class OrdersService {
             data: {
               invoiceNumber,
               orderType: input.orderType,
-              tableId: input.tableId ?? null,
               cashierId,
               customerName,
               customerGender: input.customerGender ?? null,
@@ -107,7 +76,6 @@ export class OrdersService {
               grandTotal,
               orderItems: { create: orderItems },
             },
-            include: { table: true },
           });
 
           return {
@@ -116,7 +84,7 @@ export class OrdersService {
             orderNumber,
             orderType: order.orderType,
             status: order.status,
-            tableNumber: order.table?.tableNumber ?? null,
+            tableNumber: null,
             customerName: order.customerName,
             subtotal: order.subtotal,
             grandTotal: order.grandTotal,
@@ -135,19 +103,27 @@ export class OrdersService {
    * Snapshot harga SEMUA item dari DB (BUKAN dari client) + hitung grandTotal
    * server-side. Dipakai openBill (create) dan updateItems (full replace).
    */
-  private async resolveOrderItems(tx: Tx, items: OpenBillItemInput[]) {
+  private async resolveOrderItems(tx: Tx, items: OpenBillItemDto[]) {
     const productIds = items.map((i) => i.productId);
     const products = await tx.product.findMany({ where: { id: { in: productIds } } });
-    const priceById = new Map(products.map((p) => [p.id, p.price]));
+    const productById = new Map(products.map((p) => [p.id, p]));
 
     const orderItems = items.map((item) => {
-      const price = priceById.get(item.productId);
-      if (price === undefined) {
+      const product = productById.get(item.productId);
+      if (!product) {
         throw new NotFoundException({
           code: 'PRODUCT_NOT_FOUND',
-          message: `Product id ${item.productId} not found`,
+          message: `Produk id ${item.productId} tidak ditemukan`,
         });
       }
+      if (!product.isAvailable) {
+        // Align dengan frontend: produk sold out tidak boleh masuk keranjang.
+        throw new BadRequestException({
+          code: 'PRODUCT_SOLD_OUT',
+          message: `${product.name} sedang sold out`,
+        });
+      }
+      const price = product.price;
       const subtotal = calculateItemSubtotal(item.quantity, price);
       return {
         productId: item.productId,
@@ -169,26 +145,19 @@ export class OrdersService {
    * tiket kasir). ACID: hapus + buat ulang OrderItems, snapshot harga ulang
    * dari DB, hitung ulang total server-side. Menolak order bukan OPEN_BILL.
    */
-  async updateItems(id: number, input: UpdateOpenBillInput) {
-    if (!input.items || input.items.length === 0) {
-      throw new BadRequestException({
-        code: 'EMPTY_ITEMS',
-        message: 'Order must contain at least 1 item',
-      });
-    }
-
+  async updateItems(id: number, input: UpdateOpenBillItemsDto) {
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({ where: { id } });
       if (!order) {
         throw new NotFoundException({
           code: 'ORDER_NOT_FOUND',
-          message: `Order id ${id} not found`,
+          message: `Order id ${id} tidak ditemukan`,
         });
       }
       if (order.status !== OrderStatus.OPEN_BILL) {
         throw new ConflictException({
           code: 'ORDER_NOT_OPEN_BILL',
-          message: 'Order is not OPEN_BILL — item cannot be modified',
+          message: 'Order bukan OPEN_BILL, item tidak bisa diubah',
         });
       }
 
@@ -215,11 +184,17 @@ export class OrdersService {
       if (claim.count === 0) {
         throw new ConflictException({
           code: 'ORDER_NOT_OPEN_BILL',
-          message: 'Order is no longer OPEN_BILL — item cannot be modified',
+          message: 'Order sudah tidak OPEN_BILL, item tidak bisa diubah',
         });
       }
 
       const updated = await tx.order.findUnique({ where: { id } });
+      if (!updated) {
+        throw new NotFoundException({
+          code: 'ORDER_NOT_FOUND',
+          message: `Order id ${id} tidak ditemukan`,
+        });
+      }
 
       return {
         orderId: updated.id,
@@ -241,7 +216,6 @@ export class OrdersService {
       where: { status: OrderStatus.OPEN_BILL },
       include: {
         orderItems: { select: { quantity: true } },
-        table: true,
         cashier: { select: { id: true, name: true } },
       },
       orderBy: { id: 'desc' },
@@ -253,12 +227,11 @@ export class OrdersService {
   }
 
   /** GET /api/orders/:id — rincian lengkap order utk pratinjau struk & reprint
-   *  (items + product name, payment, kasir, meja). Per kontrak 6_API_CONTRACTS. */
+   *  (items + product name, payment, kasir). Per kontrak 6_API_CONTRACTS. */
   async getById(id: number) {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
-        table: true,
         cashier: { select: { id: true, name: true } },
         payment: true,
         orderItems: {
@@ -269,19 +242,21 @@ export class OrdersService {
     if (!order) {
       throw new NotFoundException({
         code: 'ORDER_NOT_FOUND',
-        message: `Order id ${id} not found`,
+        message: `Order id ${id} tidak ditemukan`,
       });
     }
-    const { table, cashier, payment, orderItems, ...rest } = order;
+    const { cashier, payment, orderItems, ...rest } = order;
     return {
       ...rest,
-      tableId: table?.id ?? null,
-      tableNumber: table?.tableNumber ?? null,
-      cashierName: cashier?.name ?? null,
+      // Kolom table_id sudah dihapus dari DB; field tetap dikirim null agar
+      // kontrak OrderDetail frontend tidak berubah.
+      tableId: null,
+      tableNumber: null,
+      cashierName: cashier.name,
       payment: payment ?? null,
       items: orderItems.map((i) => ({
         productId: i.productId,
-        productName: i.product?.name ?? 'Item',
+        productName: i.product.name,
         quantity: i.quantity,
         unitPrice: i.unitPrice,
         subtotal: i.subtotal,
@@ -294,7 +269,7 @@ export class OrdersService {
    * POST /api/orders/:id/checkout — ACID: validasi status, hitung ulang
    * finansial server-side, simpan Payment, set PAID. Rollback jika gagal.
    */
-  async checkout(id: number, input: CheckoutInput) {
+  async checkout(id: number, input: CheckoutDto) {
     try {
       return await this.checkoutInTx(id, input);
     } catch (err) {
@@ -319,7 +294,7 @@ export class OrdersService {
     return err;
   }
 
-  private async checkoutInTx(id: number, input: CheckoutInput) {
+  private async checkoutInTx(id: number, input: CheckoutDto) {
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id },
@@ -328,13 +303,13 @@ export class OrdersService {
       if (!order) {
         throw new NotFoundException({
           code: 'ORDER_NOT_FOUND',
-          message: `Order id ${id} not found`,
+          message: `Order id ${id} tidak ditemukan`,
         });
       }
       if (order.status !== OrderStatus.OPEN_BILL) {
         throw new ConflictException({
           code: 'ORDER_NOT_OPEN_BILL',
-          message: 'Order is not OPEN_BILL — cannot checkout',
+          message: 'Order bukan OPEN_BILL, tidak bisa di-checkout',
         });
       }
 
@@ -343,17 +318,10 @@ export class OrdersService {
         order.orderItems.map((o) => ({ quantity: o.quantity, unitPrice: o.unitPrice })),
       );
 
-      let changeDue = 0;
-      if (input.paymentCategory === PaymentCategory.CASH) {
-        changeDue = calculateCashChange(input.amountPaid, grandTotal); // throw jika kurang
-      } else {
-        // Non-tunai tidak punya kembalian, tapi tetap wajib menutup bill:
-        // tolak amountPaid tidak valid atau kurang dari grandTotal.
-        assertValidAmount(input.amountPaid, 'amountPaid', { positive: true });
-        if (input.amountPaid < grandTotal) {
-          throw new InsufficientPaymentError(grandTotal, input.amountPaid);
-        }
-      }
+      // CASH & non-CASH sama-sama wajib menutup bill; hanya CASH yang
+      // menghasilkan kembalian.
+      const overpaid = assertPaymentCoversTotal(grandTotal, input.amountPaid);
+      const changeDue = input.paymentCategory === PaymentCategory.CASH ? overpaid : 0;
 
       // Klaim atomik status OPEN_BILL -> PAID. Kasir kedua yang kehilangan
       // balapan mendapat 409, bukan double-payment (update tanpa guard bisa
@@ -365,7 +333,7 @@ export class OrdersService {
       if (claim.count === 0) {
         throw new ConflictException({
           code: 'ORDER_NOT_OPEN_BILL',
-          message: 'Order was already paid by another session',
+          message: 'Order sudah dibayar oleh sesi lain',
         });
       }
 
@@ -383,7 +351,7 @@ export class OrdersService {
             },
           },
         },
-        include: { cashier: { select: { name: true } }, table: true, payment: true },
+        include: { cashier: { select: { name: true } }, payment: true },
       });
 
       return {
@@ -395,9 +363,9 @@ export class OrdersService {
         grandTotal: updated.grandTotal,
         amountPaid: input.amountPaid,
         changeDue,
-        paidAt: updated.payment?.paidAt ?? new Date(),
-        cashierName: updated.cashier?.name ?? null,
-        tableNumber: updated.table?.tableNumber ?? null,
+        paidAt: updated.payment!.paidAt,
+        cashierName: updated.cashier.name,
+        tableNumber: null,
       };
     });
   }
@@ -407,13 +375,13 @@ export class OrdersService {
     if ((query.from && !DATE_RE.test(query.from)) || (query.to && !DATE_RE.test(query.to))) {
       throw new BadRequestException({
         code: 'INVALID_DATE_FORMAT',
-        message: 'Date must be in YYYY-MM-DD format',
+        message: 'Format tanggal harus YYYY-MM-DD',
       });
     }
     if (query.from && query.to && query.from > query.to) {
       throw new BadRequestException({
         code: 'INVALID_DATE_RANGE',
-        message: 'Start date cannot be after end date',
+        message: 'Tanggal awal tidak boleh setelah tanggal akhir',
       });
     }
 
@@ -438,6 +406,39 @@ export class OrdersService {
         payment: true,
       },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * PATCH /api/orders/:id/cancel — void order OPEN_BILL (ADMIN saja via
+   * RolesGuard). Klaim atomik OPEN_BILL -> CANCELLED mencegah cancel vs
+   * checkout balapan.
+   */
+  async cancel(id: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({ where: { id } });
+      if (!order) {
+        throw new NotFoundException({
+          code: 'ORDER_NOT_FOUND',
+          message: `Order id ${id} tidak ditemukan`,
+        });
+      }
+
+      // Klaim atomik OPEN_BILL -> CANCELLED: kasir lain yang checkout
+      // bersamaan kalah race dan mendapat 409.
+      const claim = await tx.order.updateMany({
+        where: { id, status: OrderStatus.OPEN_BILL },
+        data: { status: OrderStatus.CANCELLED },
+      });
+      if (claim.count === 0) {
+        throw new ConflictException({
+          code: 'ORDER_NOT_OPEN_BILL',
+          message: 'Order bukan OPEN_BILL, tidak bisa dibatalkan',
+        });
+      }
+
+
+      return { id: order.id, invoiceNumber: order.invoiceNumber, status: OrderStatus.CANCELLED };
     });
   }
 }

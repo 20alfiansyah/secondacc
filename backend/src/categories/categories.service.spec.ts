@@ -40,7 +40,7 @@ describe('CategoriesService', () => {
         id: 1,
         name: 'Coffee',
         slug: 'coffee',
-        products: [{ isAvailable: true }, { isAvailable: true }, { isAvailable: false }],
+        products: [{ id: 101 }, { id: 102 }],
       },
       {
         id: 2,

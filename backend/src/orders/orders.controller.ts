@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Put,
   Query,
@@ -11,7 +12,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
+import { Role } from '@prisma/client';
 import { JwtAuthGuard, JwtPayload } from '../auth/jwt-auth.guard';
+import { RolesGuard, Roles } from '../auth/roles.guard';
 import { OrdersService } from './orders.service';
 import {
   CheckoutDto,
@@ -20,7 +23,7 @@ import {
 } from './dto/orders.dto';
 
 @Controller('orders')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
@@ -68,6 +71,14 @@ export class OrdersController {
   @Get(':id')
   async getById(@Param('id', ParseIntPipe) id: number) {
     const data = await this.ordersService.getById(id);
+    return { success: true, data };
+  }
+
+  // Void order = keputusan finansial: ADMIN saja.
+  @Roles(Role.ADMIN)
+  @Patch(':id/cancel')
+  async cancel(@Param('id', ParseIntPipe) id: number) {
+    const data = await this.ordersService.cancel(id);
     return { success: true, data };
   }
 }

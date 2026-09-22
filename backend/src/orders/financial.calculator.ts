@@ -64,12 +64,12 @@ export function calculateGrandTotal(
 }
 
 /**
- * Kembalian tunai = amountPaid - grandTotal.
- * Melempar InsufficientPaymentError jika amountPaid < grandTotal.
+ * Validasi pembayaran menutup bill — dipakai CASH & non-CASH. amountPaid
+ * wajib integer positif dan >= grandTotal. Return = kelebihan bayar
+ * (kembalian tunai; 0 saat pembayaran pas — non-CASH mengabaikan nilainya).
  */
-export function calculateCashChange(amountPaid: number, grandTotal: number): number {
+export function assertPaymentCoversTotal(grandTotal: number, amountPaid: number): number {
   assertValidAmount(amountPaid, 'amountPaid', { positive: true });
-  assertValidAmount(grandTotal, 'grandTotal', { positive: true });
   if (amountPaid < grandTotal) {
     throw new InsufficientPaymentError(grandTotal, amountPaid);
   }

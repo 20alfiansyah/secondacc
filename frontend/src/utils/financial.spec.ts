@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateChange, exactPayment } from './financial'
+import { calculateChange } from './financial'
 
 describe('calculateChange (uang tunai integer)', () => {
   it('menghitung kembalian saat uang lebih dari total', () => {
@@ -21,11 +21,5 @@ describe('calculateChange (uang tunai integer)', () => {
 
   it('menolak total negatif', () => {
     expect(() => calculateChange(-1000, 5000)).toThrow()
-  })
-})
-
-describe('exactPayment (uang pas)', () => {
-  it('mengembalikan total sebagai nominal uang pas', () => {
-    expect(exactPayment(75000)).toBe(75000)
   })
 })

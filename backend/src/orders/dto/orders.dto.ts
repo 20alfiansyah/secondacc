@@ -17,7 +17,7 @@ import { OrderType, PaymentCategory } from '@prisma/client';
 /**
  * DTO endpoint /api/orders — dipakai ValidationPipe global (whitelist +
  * forbidNonWhitelisted) supaya payload liar jadi 400, bukan 500.
- * Bentuk field SAMA dengan interface input di orders.service.ts.
+ * Kelas ini juga tipe input langsung OrdersService.
  */
 export class OpenBillItemDto {
   /** Produk wajib ada di DB (divalidasi ulang di service). */
@@ -40,12 +40,6 @@ export class OpenBillItemDto {
 export class OpenBillDto {
   @IsEnum(OrderType)
   orderType!: OrderType;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  tableId?: number;
 
   @IsString()
   @Length(1, 60)
