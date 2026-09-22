@@ -165,6 +165,12 @@
   - [x] **2.3F Frontend**: `PaymentPage.tsx` (switch + dialog tambah + konfirmasi) + `PaymentModal` POS wired ke channel aktif (fallback hardcoded bila fetch gagal). Commit `0b9fd10`; E2E checkout via channel QRIS BCA → INV-20260919-0009 PAID.
 - [x] **Task 2.4: Integrasi & Verifikasi (integrator, Wave 2)**
   - Register 3 modul di `app.module.ts` (`60b7e2f`); backend 77/77 test + tsc bersih; frontend build + lint lulus; smoke test E2E penuh (3 halaman dashboard + POS payment via channel aktif) lulus.
+- [x] **Iterasi lanjutan Fase 2 (user-driven, 2.5–2.8) — sudah ter-merge ke `main`:**
+  - [x] **2.5**: nav gating per role (kasir hanya Cashier Ops), lokalisasi UI EN, shared `ProductCard`/`StatusPill`.
+  - [x] **2.6–2.8**: harmonisasi UI dengan POS (header/search/pill/CTA parity), mobile sweep, grid grouped per kategori, staff card outline.
+  - [x] **Category Management**: CRUD + arsip (`PATCH :id/archive|:id/restore` ADMIN, DELETE dihapus 404; migration `category_is_active`) + dialog Manage Categories.
+  - **Produk: archive menggantikan delete** (evolusi dari desain awal 2.2B): kolom `is_active`, `GET /products/archived` + `PATCH :id/restore` + dialog Archived dengan Restore; `DELETE /api/products/:id` tidak lagi ada. Riwayat order tetap utuh.
+  - **Merge `feat/phase-2` → `main`** (`c6afcbd`): backend 94/94, sweep semantik pasca-merge, deploy Docker live, E2E penuh (login/gating/nav/checkout via channel backend).
 
 ---
 
