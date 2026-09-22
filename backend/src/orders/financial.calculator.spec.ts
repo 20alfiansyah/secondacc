@@ -70,7 +70,7 @@ describe('FinancialCalculator (uang integer Rupiah, tanpa float)', () => {
       } catch (err) {
         expect(err).toBeInstanceOf(InsufficientPaymentError);
         expect((err as Error).message).toBe(
-          'Pembayaran kurang: amountPaid 10000 < grandTotal 50000',
+          'Insufficient payment: amountPaid 10000 < grandTotal 50000',
         );
       }
     });

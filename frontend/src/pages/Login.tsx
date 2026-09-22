@@ -39,7 +39,7 @@ export default function Login() {
       const authenticated = await login(username, password)
       navigate(homePathForRole(authenticated.role), { replace: true })
     } catch {
-      setError('Username atau password salah. Silakan coba lagi.')
+      setError('Invalid username or password. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -76,7 +76,7 @@ export default function Login() {
                 id="username"
                 name="username"
                 autoComplete="username"
-                placeholder="Masukkan username kasir..."
+                placeholder="Enter cashier username..."
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -107,7 +107,7 @@ export default function Login() {
             )}
 
             <Button type="submit" className="w-full h-11 text-sm font-bold shadow-sm" disabled={loading}>
-              {loading ? 'Memverifikasi...' : 'Masuk ke Kasir'}
+              {loading ? 'Verifying...' : 'Sign in to POS'}
             </Button>
           </form>
         </CardContent>

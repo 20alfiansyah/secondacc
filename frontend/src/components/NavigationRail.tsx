@@ -15,6 +15,8 @@ interface NavigationRailProps {
   onFeatureNotice?: (featureName: string) => void
   /** Optional sign-out override — POS wraps it with the unsaved-changes guard. */
   onSignOut?: () => void
+  /** Halaman aktif — item nav yang cocok ikut menyala (POS memakai default 'Register'). */
+  page?: string
   /** Kelas tambahan di root <aside> (mis. `hidden lg:flex` agar rail
    *  desktop-only; mobile memakai MobileNav). */
   className?: string
@@ -41,6 +43,7 @@ export default function NavigationRail({
   onLockRegister,
   onFeatureNotice,
   onSignOut,
+  page = 'Register',
   className,
 }: NavigationRailProps) {
   const { user, logout } = useAuthStore()
@@ -91,6 +94,84 @@ export default function NavigationRail({
   const role = user?.role ?? 'CASHIER'
   const roleLabelText = roleLabel(role)
 
+<<<<<<< HEAD
+  // Menu structure 1:1 dengan Stitch screen1. Fase 2.5: grup Management & Ops
+  // hanya tampil untuk ADMIN — kasir tidak melihatnya sama sekali (route level
+  // tetap melakukan gating sendiri).
+  const groups: NavGroup[] = [
+    {
+      id: 'cashier-ops',
+      label: 'Cashier Ops',
+      items: [
+        {
+          id: 'register',
+          label: 'Register',
+          icon: 'point_of_sale',
+          active: page === 'Register',
+          onClick: () => navigate('/pos'),
+        },
+        {
+          id: 'history',
+          label: 'Order History',
+          icon: 'receipt_long',
+          onClick: onOpenHistory,
+        },
+      ],
+    },
+    {
+      id: 'management-ops',
+      label: 'Management & Ops',
+      items: [
+        {
+          id: 'dashboard',
+          label: 'Dashboard',
+          icon: 'dashboard',
+          active: page === 'Dashboard',
+          onClick: () => navigate('/dashboard'),
+        },
+        {
+          id: 'account',
+          label: 'Account',
+          icon: 'manage_accounts',
+          active: page === 'Account',
+          onClick: () => navigate('/dashboard/account'),
+        },
+        {
+          id: 'menu',
+          label: 'Menu',
+          icon: 'restaurant_menu',
+          active: page === 'Menu',
+          onClick: () => navigate('/dashboard/menu'),
+        },
+        {
+          id: 'payment',
+          label: 'Payment',
+          icon: 'payments',
+          active: page === 'Payment',
+          onClick: () => navigate('/dashboard/payment'),
+        },
+        {
+          id: 'inventory',
+          label: 'Inventory',
+          icon: 'inventory_2',
+          onClick: () => handleNotice('Inventory arrives in the stock management phase.'),
+        },
+        {
+          id: 'reports',
+          label: 'Reports',
+          icon: 'analytics',
+          onClick: () => handleNotice('Daily sales reports are available in the Admin Dashboard.'),
+        },
+        {
+          id: 'setting',
+          label: 'Settings',
+          icon: 'tune',
+          onClick: () => handleNotice('System settings can be configured by an Admin.'),
+        },
+      ],
+    },
+  ]
+=======
   // Menu structure 1:1 dengan Stitch screen1 (role gating di route level,
   // bukan di nav — sesuai desain).
   const groups: NavGroup[] = navGroups.map((group) => ({
@@ -111,6 +192,10 @@ export default function NavigationRail({
       },
     })),
   }))
+>>>>>>> main
+
+  // Fase 2.5: kasir hanya melihat grup cashier-ops; ADMIN melihat semuanya.
+  const visibleGroups = role === 'ADMIN' ? groups : groups.filter((g) => g.id === 'cashier-ops')
 
   return (
     <aside
@@ -148,7 +233,7 @@ export default function NavigationRail({
 
       {/* ===== Navigation groups (spec screen1) ===== */}
       <nav className="space-y-1 p-3">
-        {groups.map((group, index) => (
+        {visibleGroups.map((group, index) => (
           <div key={group.id} className={cn('space-y-1', index > 0 && 'pt-3')}>
             {collapsed ? (
               index > 0 && <div className="mx-auto my-2 h-px w-6 bg-slate-200/80" />

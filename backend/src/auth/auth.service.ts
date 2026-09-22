@@ -36,7 +36,7 @@ export class AuthService {
     if (!user.isActive) {
       throw new UnauthorizedException({
         code: 'ACCOUNT_DISABLED',
-        message: 'Akun telah dinonaktifkan',
+        message: 'Account has been deactivated',
       });
     }
 
@@ -64,7 +64,7 @@ export class AuthService {
   private throwInvalidCredentials(): never {
     throw new UnauthorizedException({
       code: 'INVALID_CREDENTIALS',
-      message: 'Username atau password salah',
+      message: 'Invalid username or password',
     });
   }
 }

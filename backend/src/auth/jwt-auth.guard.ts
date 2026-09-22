@@ -34,7 +34,7 @@ export class JwtAuthGuard implements CanActivate {
     if (!token) {
       throw new UnauthorizedException({
         code: 'UNAUTHORIZED',
-        message: 'Token tidak ditemukan',
+        message: 'Token not found',
       });
     }
 
@@ -47,7 +47,7 @@ export class JwtAuthGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException({
         code: 'UNAUTHORIZED',
-        message: 'Token tidak valid atau kadaluarsa',
+        message: 'Token is invalid or expired',
       });
     }
   }

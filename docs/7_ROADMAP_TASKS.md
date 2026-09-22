@@ -146,15 +146,25 @@
 
 ## 🟡 FASE 2: Manajemen Akun & Pengaturan Sistem
 
-- [ ] **Task 2.1: Manajemen Akun Staf (`/dashboard/account`)**
-  - Backend API CRUD user (Role: CASHIER & ADMIN, hash password bcrypt, toggle status aktif).
-  - Frontend UI tabel staf: Tambah akun, ganti password, toggle aktif/disable.
-- [ ] **Task 2.2: Manajemen Menu & Upload Gambar Lokal (`/dashboard/menu`)**
-  - Backend: Konfigurasi Multer untuk penyimpanan disk gambar ke `./uploads/products` dan sajikan static assets di `app.module.ts`.
-  - Backend: Buat endpoint `POST /api/products` (dengan file upload), `PUT /api/products/:id`, dan `DELETE /api/products/:id`.
-  - Frontend UI Admin: Tambah menu baru, ubah harga, upload foto, toggle status Tersedia/Sold Out.
-- [ ] **Task 2.3: Pengaturan Channel Pembayaran (`/dashboard/payment`)**
-  - Pengaturan daftar channel aktif (Cash, QRIS BCA/GoPay, EDC Mandiri/BCA).
+> **Strategi paralel (kontrak-first + Orca worktrees):** kontrak final di `docs/6_API_CONTRACTS.md` §6.2/6.4/6.5; pola & konvensi Fase 1 terdokumentasi di `docs/8_PHASE1_REFERENCE.md`. Backend & frontend dibangun saling lepas sesuai kontrak.
+> **Wave 0 (paralel):** 2.0 ∥ 2.1B ∥ 2.2B ∥ 2.3B → **Wave 1 (paralel, butuh 2.0):** 2.1F ∥ 2.2F ∥ 2.3F → **Wave 2:** integrasi `app.module.ts`, smoke test E2E, commit.
+> **Kepemilikan file:** `frontend/src/App.tsx` + `NavigationRail` + layout = Task 2.0 saja; `backend/src/app.module.ts` = Wave 2 saja; `client.ts` = tiap task menambah section-nya sendiri di area berbeda.
+
+- [x] **Task 2.0: Dashboard Shell, Routing & Nav (frontend)** — `1b00ec6` (build lulus, smoke E2E)
+  - `pages/dashboard/DashboardLayout.tsx` (NavigationRail + TopBar + `<Outlet/>`); props POS-only (`onOpenHistory`, `onLockRegister`) dibuat opsional tanpa merusak POS.
+  - Route `/dashboard`, `/dashboard/account`, `/dashboard/menu`, `/dashboard/payment` di `App.tsx` (semua `ProtectedRoute roles={['ADMIN']}`) + 3 stub page.
+  - Nav item Dashboard/Account/Menu/Payment di grup "Management & Ops" `NavigationRail` (role ADMIN).
+- [x] **Task 2.1: Manajemen Akun Staf (`/dashboard/account`)**
+  - [x] **2.1B Backend (TDD)**: modul `backend/src/users/` — `GET /api/users`, `POST /api/users` (bcryptjs, min 6 char), `PATCH /api/users/:id/password`, `PATCH /api/users/:id/toggle-status`; semua JwtAuthGuard + RolesGuard ADMIN. Error: `409 USERNAME_TAKEN`, `400 CANNOT_DISABLE_SELF`, `404 USER_NOT_FOUND`. Unit test `users.service.spec.ts` (hash on create, duplikat username, toggle, proteksi diri sendiri, re-hash password). Commit `28c07c9`; spec lulus.
+  - [x] **2.1F Frontend**: `pages/dashboard/AccountPage.tsx` + section `Users` di `client.ts`. UI tabel staf, tambah/ganti password/toggle aktif + confirm + search. Commit `dc6ee2f`; smoke E2E lulus (create, ganti password, disable → login ACCOUNT_DISABLED).
+- [x] **Task 2.2: Manajemen Menu & Upload Gambar Lokal (`/dashboard/menu`)**
+  - [x] **2.2B Backend (TDD)**: Multer `./uploads/products` UUID v4, MIME filter, 2MB; ServeStatic `/uploads`; `POST/PUT/DELETE /api/products` dgn `409 PRODUCT_IN_USE`. Commit `a343918`; 22 test lulus; upload E2E + static serving terverifikasi.
+  - [x] **2.2F Frontend**: `MenuPage.tsx` grid produk + form modal upload/preview + toggle Sold Out + delete confirm; proxy `/uploads` di `vite.config.ts`. Commit `3a3875a`; smoke E2E lulus (create, toggle sold out, delete).
+- [x] **Task 2.3: Pengaturan Channel Pembayaran (`/dashboard/payment`)**
+  - [x] **2.3B Backend (TDD)**: modul `backend/src/payment-channels/` — `GET?isActive=`, `POST`, `PATCH /:id/toggle`. Commit `56c8ef8`; E2E: toggle off → `?isActive=true` kosong, toggle on kembali.
+  - [x] **2.3F Frontend**: `PaymentPage.tsx` (switch + dialog tambah + konfirmasi) + `PaymentModal` POS wired ke channel aktif (fallback hardcoded bila fetch gagal). Commit `0b9fd10`; E2E checkout via channel QRIS BCA → INV-20260919-0009 PAID.
+- [x] **Task 2.4: Integrasi & Verifikasi (integrator, Wave 2)**
+  - Register 3 modul di `app.module.ts` (`60b7e2f`); backend 77/77 test + tsc bersih; frontend build + lint lulus; smoke test E2E penuh (3 halaman dashboard + POS payment via channel aktif) lulus.
 
 ---
 

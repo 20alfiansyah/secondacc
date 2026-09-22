@@ -11,7 +11,7 @@
 export class InsufficientPaymentError extends Error {
   constructor(grandTotal: number, amountPaid: number) {
     super(
-      `Pembayaran kurang: amountPaid ${amountPaid} < grandTotal ${grandTotal}`,
+      `Insufficient payment: amountPaid ${amountPaid} < grandTotal ${grandTotal}`,
     );
     this.name = 'InsufficientPaymentError';
   }
@@ -32,14 +32,14 @@ export class InvalidMoneyInputError extends Error {
 export function assertValidAmount(value: number, label: string, opts?: { positive?: boolean }): void {
   if (!Number.isSafeInteger(value)) {
     throw new InvalidMoneyInputError(
-      `${label} harus integer (bukan float): ${value}. Uang memakai Rupiah bulat.`,
+      `${label} must be an integer (no floats): ${value}. Money uses whole Rupiah.`,
     );
   }
   if (value < 0) {
-    throw new InvalidMoneyInputError(`${label} tidak boleh negatif: ${value}`);
+    throw new InvalidMoneyInputError(`${label} must not be negative: ${value}`);
   }
   if (opts?.positive && value === 0) {
-    throw new InvalidMoneyInputError(`${label} harus lebih besar dari 0: ${value}`);
+    throw new InvalidMoneyInputError(`${label} must be greater than 0: ${value}`);
   }
 }
 

@@ -28,7 +28,9 @@ export interface LoginResponse {
  */
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '/api',
-  headers: { 'Content-Type': 'application/json' },
+  // Tanpa Content-Type default — axios set otomatis: multipart dgn boundary utk FormData,
+  // application/json utk object (cookie-crumb: instance-level JSON header mem-blokir multipart upload).
+  headers: {},
 })
 
 /** Request interceptor — auto-attach JWT token dari localStorage ke Authorization. */
@@ -115,7 +117,11 @@ interface RawProduct {
 }
 
 /** Normalisasi produk ke bentuk frontend (category.name -> categoryName, dsb). */
+<<<<<<< HEAD
+export function toProduct(raw: any): Product {
+=======
 function toProduct(raw: RawProduct): Product {
+>>>>>>> main
   return {
     id: raw.id,
     name: raw.name,
@@ -145,6 +151,36 @@ export async function fetchProducts(): Promise<Product[]> {
 export async function fetchCategories(): Promise<Category[]> {
   const { data } = await api.get<ListResponse<Category[]>>('/categories')
   return data.data ?? []
+}
+
+/** POST /api/categories — buat kategori baru (admin). */
+export async function createCategory(name: string): Promise<Category> {
+  const { data } = await api.post<ListResponse<Category>>('/categories', { name })
+  return data.data
+}
+
+/** PATCH /api/categories/:id — rename kategori (admin). */
+export async function renameCategory(id: number, name: string): Promise<Category> {
+  const { data } = await api.patch<ListResponse<Category>>(`/categories/${id}`, { name })
+  return data.data
+}
+
+/** GET /api/categories/archived — daftar kategori terarsip (admin). */
+export async function fetchArchivedCategories(): Promise<Category[]> {
+  const { data } = await api.get<ListResponse<Category[]>>('/categories/archived')
+  return data.data ?? []
+}
+
+/** PATCH /api/categories/:id/archive — arsipkan kategori (soft-disable, admin). */
+export async function archiveCategory(id: number): Promise<Category> {
+  const { data } = await api.patch<ListResponse<Category>>(`/categories/${id}/archive`)
+  return data.data
+}
+
+/** PATCH /api/categories/:id/restore — kembalikan kategori terarsip (admin). */
+export async function restoreCategory(id: number): Promise<Category> {
+  const { data } = await api.patch<ListResponse<Category>>(`/categories/${id}/restore`)
+  return data.data
 }
 
 // ===== Orders =====
@@ -375,4 +411,155 @@ export interface OrderDetail {
     changeDue: number
     paidAt: string | null
   } | null
+}
+
+// ===== Users (Fase 2.1) =====
+
+/** User staf (ADMIN/CASHIER) hasil GET /api/users — hash password TIDAK pernah dikirim backend. */
+export interface StaffUser {
+  id: number
+  username: string
+  name: string
+  role: Role
+  isActive: boolean
+  /** ISO date string dari backend. */
+  createdAt: string
+}
+
+/** Normalisasi user backend ke bentuk frontend (field opsional -> default). */
+function toStaffUser(raw: Partial<StaffUser> | null | undefined): StaffUser {
+  return {
+    id: Number(raw?.id ?? 0),
+    username: raw?.username ?? '',
+    name: raw?.name ?? '',
+    role: raw?.role === 'ADMIN' ? 'ADMIN' : 'CASHIER',
+    isActive: raw?.isActive ?? false,
+    createdAt: raw?.createdAt ?? '',
+  }
+}
+
+/** Ambil pesan error backend (error.response.data.message) atau fallback generik. */
+function staffApiMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) {
+    const message = err.response?.data?.message
+    if (typeof message === 'string' && message) return message
+  }
+  return fallback
+}
+
+/** GET /api/users — daftar seluruh user staf (admin). */
+export async function fetchUsers(): Promise<StaffUser[]> {
+  try {
+    const { data } = await api.get<ListResponse<Partial<StaffUser>[]>>('/users')
+    return (data.data ?? []).map(toStaffUser)
+  } catch (err) {
+    throw new Error(staffApiMessage(err, 'Gagal memuat daftar staf.'))
+  }
+}
+
+/** POST /api/users — buat akun staf baru (password min 6 char, di-hash bcryptjs backend). */
+export async function createUserRequest(payload: {
+  name: string
+  username: string
+  password: string
+  role: Role
+}): Promise<StaffUser> {
+  try {
+    const { data } = await api.post<ListResponse<StaffUser>>('/users', payload)
+    return toStaffUser(data.data)
+  } catch (err) {
+    throw new Error(staffApiMessage(err, 'Gagal membuat akun staf.'))
+  }
+}
+
+/** PATCH /api/users/:id/password — ganti password staf (newPassword min 6 char). */
+export async function updateUserPasswordRequest(userId: number, newPassword: string): Promise<void> {
+  try {
+    await api.patch(`/users/${userId}/password`, { newPassword })
+  } catch (err) {
+    throw new Error(staffApiMessage(err, 'Gagal mengganti password.'))
+  }
+}
+
+/** PATCH /api/users/:id/toggle-status — aktif/nonaktifkan akun staf (400 CANNOT_DISABLE_SELF utk diri sendiri). */
+export async function toggleUserStatusRequest(userId: number): Promise<void> {
+  try {
+    await api.patch(`/users/${userId}/toggle-status`)
+  } catch (err) {
+    throw new Error(staffApiMessage(err, 'Gagal mengubah status akun.'))
+  }
+}
+
+// ===== Payment Channels (Fase 2.3) =====
+
+export interface PaymentChannel {
+  id: number
+  name: string
+  category: PaymentCategory
+  isActive: boolean
+}
+
+/** GET /api/payment-channels — daftar channel (opsional filter isActive). */
+export async function fetchPaymentChannels(params?: {
+  isActive?: boolean
+}): Promise<PaymentChannel[]> {
+  const { data } = await api.get<ListResponse<PaymentChannel[]>>('/payment-channels', { params })
+  return (data.data ?? []).map((raw): PaymentChannel => ({
+    id: raw.id,
+    name: raw.name,
+    category: raw.category,
+    isActive: raw.isActive ?? true,
+  }))
+}
+
+/** POST /api/payment-channels — buat channel baru (admin). */
+export async function createPaymentChannel(payload: {
+  name: string
+  category: PaymentCategory
+}): Promise<PaymentChannel> {
+  const { data } = await api.post<ListResponse<PaymentChannel>>('/payment-channels', payload)
+  return data.data
+}
+
+/** PATCH /api/payment-channels/:id/toggle — aktif/nonaktifkan channel (admin). */
+export async function togglePaymentChannel(id: number): Promise<PaymentChannel> {
+  const { data } = await api.patch<ListResponse<PaymentChannel>>(`/payment-channels/${id}/toggle`)
+  return data.data
+}
+
+// ===== Menu Admin (Fase 2.2) =====
+
+/** POST /api/products — create produk baru (multipart/form-data, admin). */
+export async function createProduct(formData: FormData): Promise<Product> {
+  const { data } = await api.post<ListResponse<any>>('/products', formData)
+  return toProduct(data.data)
+}
+
+/** PUT /api/products/:id — update produk (multipart, image opsional). */
+export async function updateProduct(id: number, formData: FormData): Promise<Product> {
+  const { data } = await api.put<ListResponse<any>>(`/products/${id}`, formData)
+  return toProduct(data.data)
+}
+
+/** PATCH /api/products/:id/archive — arsipkan produk (isActive=false, riwayat order tetap utuh). */
+export async function archiveProduct(id: number): Promise<void> {
+  await api.patch(`/products/${id}/archive`)
+}
+
+/** GET /api/products/archived — daftar produk terarsip (admin; raw rows + relasi category). */
+export async function fetchArchivedProducts(): Promise<Product[]> {
+  const { data } = await api.get<ListResponse<unknown[]>>('/products/archived')
+  return (data.data ?? []).map(toProduct)
+}
+
+/** PATCH /api/products/:id/restore — kembalikan produk terarsip ke menu aktif (admin). */
+export async function restoreProduct(id: number): Promise<Product> {
+  const { data } = await api.patch<ListResponse<unknown>>(`/products/${id}/restore`)
+  return toProduct(data.data)
+}
+
+/** PATCH /api/products/:id/toggle-availability — toggle Tersedia/Sold Out (kasir & admin). */
+export async function toggleProductAvailability(id: number): Promise<Product> {
+  const { data } = await api.patch<ListResponse<any>>(`/products/${id}/toggle-availability`)
+  return toProduct(data.data)
 }
