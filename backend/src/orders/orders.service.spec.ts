@@ -159,7 +159,7 @@ describe('OrdersService (ACID & finansial server-side)', () => {
           },
           1,
         ),
-      ).rejects.toThrow('Kopi Susu Gula Aren sedang sold out');
+      ).rejects.toThrow('Kopi Susu Gula Aren is sold out');
     });
   });
 
@@ -229,7 +229,7 @@ describe('OrdersService (ACID & finansial server-side)', () => {
       });
       await expect(
         service.updateItems(45, { items: [{ productId: 15, quantity: 1 }] }),
-      ).rejects.toThrow('Lychee Splash sedang sold out');
+      ).rejects.toThrow('Lychee Splash is sold out');
     });
   });
 
