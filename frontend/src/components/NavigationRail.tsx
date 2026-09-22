@@ -13,10 +13,10 @@ interface NavigationRailProps {
   onLockRegister: () => void
   /** Optional callback when a menu that is not available yet is clicked. */
   onFeatureNotice?: (featureName: string) => void
+  /** Halaman aktif utk penandaan rail (opsional). */
+  page?: string
   /** Optional sign-out override — POS wraps it with the unsaved-changes guard. */
   onSignOut?: () => void
-  /** Halaman aktif — item nav yang cocok ikut menyala (POS memakai default 'Register'). */
-  page?: string
   /** Kelas tambahan di root <aside> (mis. `hidden lg:flex` agar rail
    *  desktop-only; mobile memakai MobileNav). */
   className?: string
@@ -24,11 +24,6 @@ interface NavigationRailProps {
 
 type NavItem = NavItemData & { active?: boolean; onClick: () => void }
 
-interface NavGroup {
-  id: string
-  label: string
-  items: NavItem[]
-}
 
 const COLLAPSE_KEY = 'cafe_pos_sidebar_collapsed'
 export const SIDEBAR_TOGGLE_EVENT = 'cafe_pos:toggle-sidebar'
@@ -42,8 +37,8 @@ export default function NavigationRail({
   onOpenHistory,
   onLockRegister,
   onFeatureNotice,
+  page,
   onSignOut,
-  page = 'Register',
   className,
 }: NavigationRailProps) {
   const { user, logout } = useAuthStore()
@@ -90,95 +85,13 @@ export default function NavigationRail({
   function handleNotice(name: string) {
     onFeatureNotice?.(name)
   }
-
-  const role = user?.role ?? 'CASHIER'
-  const roleLabelText = roleLabel(role)
-
-<<<<<<< HEAD
-  // Menu structure 1:1 dengan Stitch screen1. Fase 2.5: grup Management & Ops
-  // hanya tampil untuk ADMIN — kasir tidak melihatnya sama sekali (route level
-  // tetap melakukan gating sendiri).
-  const groups: NavGroup[] = [
-    {
-      id: 'cashier-ops',
-      label: 'Cashier Ops',
-      items: [
-        {
-          id: 'register',
-          label: 'Register',
-          icon: 'point_of_sale',
-          active: page === 'Register',
-          onClick: () => navigate('/pos'),
-        },
-        {
-          id: 'history',
-          label: 'Order History',
-          icon: 'receipt_long',
-          onClick: onOpenHistory,
-        },
-      ],
-    },
-    {
-      id: 'management-ops',
-      label: 'Management & Ops',
-      items: [
-        {
-          id: 'dashboard',
-          label: 'Dashboard',
-          icon: 'dashboard',
-          active: page === 'Dashboard',
-          onClick: () => navigate('/dashboard'),
-        },
-        {
-          id: 'account',
-          label: 'Account',
-          icon: 'manage_accounts',
-          active: page === 'Account',
-          onClick: () => navigate('/dashboard/account'),
-        },
-        {
-          id: 'menu',
-          label: 'Menu',
-          icon: 'restaurant_menu',
-          active: page === 'Menu',
-          onClick: () => navigate('/dashboard/menu'),
-        },
-        {
-          id: 'payment',
-          label: 'Payment',
-          icon: 'payments',
-          active: page === 'Payment',
-          onClick: () => navigate('/dashboard/payment'),
-        },
-        {
-          id: 'inventory',
-          label: 'Inventory',
-          icon: 'inventory_2',
-          onClick: () => handleNotice('Inventory arrives in the stock management phase.'),
-        },
-        {
-          id: 'reports',
-          label: 'Reports',
-          icon: 'analytics',
-          onClick: () => handleNotice('Daily sales reports are available in the Admin Dashboard.'),
-        },
-        {
-          id: 'setting',
-          label: 'Settings',
-          icon: 'tune',
-          onClick: () => handleNotice('System settings can be configured by an Admin.'),
-        },
-      ],
-    },
-  ]
-=======
   // Menu structure 1:1 dengan Stitch screen1 (role gating di route level,
   // bukan di nav — sesuai desain).
-  const groups: NavGroup[] = navGroups.map((group) => ({
+  const groups = navGroups.map((group) => ({
     ...group,
     items: group.items.map((item) => ({
       ...item,
-      active: item.id === 'register',
+      active: item.id === 'register' && page === 'Register',
       onClick: () => {
         if (item.notice) {
           handleNotice(item.notice)
@@ -192,9 +105,9 @@ export default function NavigationRail({
       },
     })),
   }))
->>>>>>> main
-
   // Fase 2.5: kasir hanya melihat grup cashier-ops; ADMIN melihat semuanya.
+  const role = user?.role ?? 'CASHIER'
+  const roleLabelText = roleLabel(role)
   const visibleGroups = role === 'ADMIN' ? groups : groups.filter((g) => g.id === 'cashier-ops')
 
   return (
@@ -231,7 +144,6 @@ export default function NavigationRail({
         </div>
       </div>
 
-      {/* ===== Navigation groups (spec screen1) ===== */}
       <nav className="space-y-1 p-3">
         {visibleGroups.map((group, index) => (
           <div key={group.id} className={cn('space-y-1', index > 0 && 'pt-3')}>

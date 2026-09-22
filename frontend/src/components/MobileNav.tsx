@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import Icon from '@/components/ui/Icon'
@@ -35,7 +34,6 @@ export default function MobileNav({
   onSignOut,
 }: MobileNavProps) {
   const { user } = useAuthStore()
-  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
   const role = user?.role ?? 'CASHIER'
@@ -52,99 +50,6 @@ export default function MobileNav({
     }
   }, [menuOpen])
 
-<<<<<<< HEAD
-  const groups: NavGroup[] = [
-    {
-      id: 'cashier-ops',
-      label: 'Cashier Ops',
-      items: [
-        { id: 'register', label: 'Register', icon: 'point_of_sale', active: page === 'Register', onClick: () => setMenuOpen(false) },
-        {
-          id: 'history',
-          label: 'Order History',
-          icon: 'receipt_long',
-          onClick: () => {
-            setMenuOpen(false)
-            onOpenHistory()
-          },
-        },
-      ],
-    },
-    {
-      id: 'management-ops',
-      label: 'Management & Ops',
-      items: [
-        {
-          id: 'dashboard',
-          label: 'Dashboard',
-          icon: 'dashboard',
-          active: page === 'Dashboard',
-          onClick: () => {
-            setMenuOpen(false)
-            navigate('/dashboard')
-          },
-        },
-        {
-          id: 'account',
-          label: 'Account',
-          icon: 'manage_accounts',
-          active: page === 'Account',
-          onClick: () => {
-            setMenuOpen(false)
-            navigate('/dashboard/account')
-          },
-        },
-        {
-          id: 'menu',
-          label: 'Menu',
-          icon: 'restaurant_menu',
-          active: page === 'Menu',
-          onClick: () => {
-            setMenuOpen(false)
-            navigate('/dashboard/menu')
-          },
-        },
-        {
-          id: 'payment',
-          label: 'Payment',
-          icon: 'payments',
-          active: page === 'Payment',
-          onClick: () => {
-            setMenuOpen(false)
-            navigate('/dashboard/payment')
-          },
-        },
-        {
-          id: 'inventory',
-          label: 'Inventory',
-          icon: 'inventory_2',
-          onClick: () => {
-            setMenuOpen(false)
-            onFeatureNotice?.('Inventory arrives in the stock management phase.')
-          },
-        },
-        {
-          id: 'reports',
-          label: 'Reports',
-          icon: 'analytics',
-          onClick: () => {
-            setMenuOpen(false)
-            onFeatureNotice?.('Daily sales reports are available in the Admin Dashboard.')
-          },
-        },
-        {
-          id: 'setting',
-          label: 'Settings',
-          icon: 'tune',
-          onClick: () => {
-            setMenuOpen(false)
-            onFeatureNotice?.('System settings can be configured by an Admin.')
-          },
-        },
-      ],
-    },
-  ]
-=======
   const groups: NavGroup[] = navGroups.map((group) => ({
     ...group,
     items: group.items.map((item) => ({
@@ -162,7 +67,6 @@ export default function MobileNav({
       },
     })),
   }))
->>>>>>> main
 
   // Fase 2.5: kasir hanya melihat grup cashier-ops; ADMIN melihat semuanya.
   const visibleGroups = role === 'ADMIN' ? groups : groups.filter((g) => g.id === 'cashier-ops')
@@ -239,7 +143,6 @@ export default function MobileNav({
               </div>
             </div>
 
-            {/* Grup menu 1:1 dengan rail desktop */}
             <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
               {visibleGroups.map((group, index) => (
                 <div key={group.id} className={cn('space-y-1', index > 0 && 'pt-3')}>

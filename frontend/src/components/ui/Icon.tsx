@@ -1,7 +1,5 @@
 import type { ComponentType } from 'react'
 import {
-  Archive,
-  ArchiveRestore,
   Banknote,
   Calendar,
   Cake,
@@ -13,28 +11,21 @@ import {
   ChevronUp,
   CircleAlert,
   CircleCheck,
-  CloudCheck,
   Clock,
-  Cookie,
+  CloudCheck,
   Coffee,
+  Cookie,
   CreditCard,
   Croissant,
   CupSoda,
   Flame,
-<<<<<<< HEAD
-  Info,
-  KeyRound,
-=======
->>>>>>> main
   LayoutDashboard,
   Lock,
   LogOut,
   Menu,
   Package,
   PenLine,
-  Pencil,
   Plus,
-  Power,
   Printer,
   QrCode,
   Receipt,
@@ -46,16 +37,10 @@ import {
   SlidersHorizontal,
   Star,
   Store,
-<<<<<<< HEAD
-  Tags,
-=======
->>>>>>> main
   Trash2,
   Utensils,
   UtensilsCrossed,
   User,
-  UserCog,
-  UserPlus,
   X,
   Zap,
 } from 'lucide-react'
@@ -71,9 +56,6 @@ import { cn } from '@/lib/utils'
  */
 const MAP: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
   add: Plus,
-  archive: Archive,
-  category: Tags,
-  delete: Trash2,
   add_shopping_cart: ShoppingCart,
   analytics: ChartColumn,
   bolt: Zap,
@@ -87,24 +69,19 @@ const MAP: Record<string, ComponentType<{ className?: string; strokeWidth?: numb
   coffee: Coffee,
   credit_card: CreditCard,
   dashboard: LayoutDashboard,
-  edit: Pencil,
   edit_note: PenLine,
   error: CircleAlert,
   expand_less: ChevronUp,
   expand_more: ChevronDown,
   inventory_2: Package,
-  info: Info,
   local_cafe: Coffee,
   local_fire_department: Flame,
   lock: Lock,
   logout: LogOut,
-  manage_accounts: UserCog,
   menu: Menu,
   payments: Banknote,
   person: User,
-  person_add: UserPlus,
   point_of_sale: Calculator,
-  power_settings_new: Power,
   print: Printer,
   qr_code_2: QrCode,
   receipt: Receipt,
@@ -120,15 +97,11 @@ const MAP: Record<string, ComponentType<{ className?: string; strokeWidth?: numb
   shopping_bag: ShoppingBag,
   star: Star,
   storefront: Store,
+  restore: RefreshCw,
   sync: RefreshCw,
   takeout_dining: ShoppingBag,
   trash: Trash2,
   tune: SlidersHorizontal,
-<<<<<<< HEAD
-  username: User,
-  restore: ArchiveRestore,
-=======
->>>>>>> main
 }
 
 export default function Icon({
