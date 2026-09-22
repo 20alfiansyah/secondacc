@@ -4,19 +4,8 @@ import { cn } from '@/lib/utils'
 import { formatDateTime, formatOrderLabel, formatRupiah } from '@/utils/format'
 import Icon from '@/components/ui/Icon'
 import EmptyState from '@/components/ui/EmptyState'
-<<<<<<< HEAD
-import { resolveProductImage } from '@/components/ProductCard'
-
-export interface OrderLine {
-  id: string
-  product: Product
-  quantity: number
-  notes?: string
-}
-=======
 import { resolveProductImage } from '@/utils/productImage'
 import type { CartItem } from '@/store/cartStore'
->>>>>>> main
 
 interface OrderDetailsPanelProps {
   mode: 'new' | 'open'
@@ -151,7 +140,7 @@ export default function OrderDetailsPanel({
             <button
               type="button"
               onClick={onNewOrder}
-              className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-[#447C84] px-3 py-0 text-xs font-semibold text-white shadow-sm transition-all active:scale-95 hover:bg-[#396a71]"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-[#447C84] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all active:scale-95 hover:bg-[#396a71]"
             >
               <Icon name="add" className="text-sm" />
               New Order

@@ -117,11 +117,7 @@ interface RawProduct {
 }
 
 /** Normalisasi produk ke bentuk frontend (category.name -> categoryName, dsb). */
-<<<<<<< HEAD
 export function toProduct(raw: any): Product {
-=======
-function toProduct(raw: RawProduct): Product {
->>>>>>> main
   return {
     id: raw.id,
     name: raw.name,
