@@ -20,11 +20,12 @@
   --color-primary-foreground: hsl(0 0% 100%);
   --color-primary-dark: #2d5258;
   --color-secondary: hsl(210 20% 96%);
-  --color-secondary-foreground: hsl(215 25% 26%);
+  --color-primary-light: #eef6f7;
   --color-muted: hsl(210 20% 96%);
   --color-muted-foreground: #64748B;
   --color-accent: #edf7f3;
   --color-accent-foreground: #2d5258;
+  --color-live: #65AF92;
   --color-live-light: #edf7f3;
   --color-live-border: #b9e2d3;
   --color-destructive: hsl(0 75% 55%);
