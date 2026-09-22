@@ -7,9 +7,7 @@
 > 2. Jalankan test otomatis (Superpowers TDD) sebelum mencentang `[x]`.
 > 3. Lakukan git commit setelah setiap task selesai.
 
----
-
-## 🟢 FASE 1: Core POS & Kasir (Fokus Utama / MVP)
+> **Referensi implementasi per fase:** Fase 1 → `docs/8_PHASE1_REFERENCE.md` • Fase 2 → `docs/9_PHASE2_REFERENCE.md` (WAJIB dibaca sebelum koding Fase 3).
 
 ### Milestone 1.1: Database Schema, Seeder & Financial Engine (Prisma + PostgreSQL + TDD)
 - [x] **Task 1.1.1: Setup NestJS Architecture & Prisma ORM (`backend/`)**
