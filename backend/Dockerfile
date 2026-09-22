@@ -39,6 +39,10 @@ COPY --from=build --chown=app:app /app/dist ./dist
 COPY --from=build --chown=app:app /app/dist-seed ./dist-seed
 COPY --from=build --chown=app:app /app/prisma ./prisma
 
+# Folder upload dibuat SEBELUM drop privilege, owned app:app —
+# multer (mkdirp) & ServeStaticModule tidak butuh mkdir runtime (EACCES non-root).
+RUN mkdir -p /app/uploads/products && chown -R app:app /app/uploads
+
 # Entrypoint: jalankan migrasi + seed (opsional) lalu start server
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 # Sanitasi CRLF (checkout Windows) agar shebang valid di Alpine, lalu executable.

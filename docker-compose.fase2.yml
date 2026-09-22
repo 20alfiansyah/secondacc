@@ -1,0 +1,18 @@
+# Override utk deploy Fase 2:
+# 1. build konteks backend+frontend dari worktree feat/phase-2 (bukan F:/Project/secondacc yang masih main)
+# 2. volume named utk /app/uploads (container non-root user 'app' tidak boleh mkdir di /app root)
+# Jalankan: docker compose -f docker-compose.yml -f docker-compose.fase2.yml --project-directory F:/Project/secondacc up -d
+services:
+  backend:
+    build:
+      context: C:/Users/FAHREZI/orca/workspaces/secondacc/feat-phase-2/backend
+      dockerfile: Dockerfile
+    volumes:
+      - uploads_data:/app/uploads
+  frontend:
+    build:
+      context: C:/Users/FAHREZI/orca/workspaces/secondacc/feat-phase-2/frontend
+      dockerfile: Dockerfile
+
+volumes:
+  uploads_data:
