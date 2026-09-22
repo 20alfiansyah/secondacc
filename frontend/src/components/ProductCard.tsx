@@ -2,23 +2,11 @@ import type { ReactNode } from 'react'
 import type { Product } from '@/api/client'
 import { cn } from '@/lib/utils'
 import { formatRupiah } from '@/utils/format'
-import { getProductImage } from '@/utils/productImages'
+import { resolveProductImage } from '@/utils/productImage'
 import Icon from '@/components/ui/Icon'
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=500&auto=format&fit=crop&q=80'
-
-/**
- * Resolve gambar produk: URL eksternal (http/s) maupun file upload lokal
- * (path "/uploads/..." yang dilayani nginx) dipakai apa adanya. Kalau blank
- * atau placeholder data: URI (SVG dari seed), pakai mapping getProductImage
- * agar tampil foto real (hindari image broken/blank).
- */
-export function resolveProductImage(p: Product): string {
-  const url = p.imageUrl
-  if (!url || url.startsWith('data:')) return getProductImage(p.name, p.categoryName)
-  return url
-}
 
 /**
  * Kartu produk (markup 1:1 dari renderCard ProductCatalogGrid — Stitch
