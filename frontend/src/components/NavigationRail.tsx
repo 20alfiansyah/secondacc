@@ -91,7 +91,12 @@ export default function NavigationRail({
     ...group,
     items: group.items.map((item) => ({
       ...item,
-      active: item.id === 'register' && page === 'Register',
+      active:
+        (item.id === 'register' && page === 'Register') ||
+        (item.id === 'dashboard' && page === 'Dashboard') ||
+        (item.id === 'account' && page === 'Account') ||
+        (item.id === 'menu' && page === 'Menu') ||
+        (item.id === 'payment' && page === 'Payment'),
       onClick: () => {
         if (item.notice) {
           handleNotice(item.notice)
@@ -101,6 +106,12 @@ export default function NavigationRail({
           onOpenHistory()
         } else if (item.id === 'dashboard') {
           navigate('/dashboard')
+        } else if (item.id === 'account') {
+          navigate('/dashboard/account')
+        } else if (item.id === 'menu') {
+          navigate('/dashboard/menu')
+        } else if (item.id === 'payment') {
+          navigate('/dashboard/payment')
         }
       },
     })),

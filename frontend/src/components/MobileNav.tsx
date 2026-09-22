@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import Icon from '@/components/ui/Icon'
@@ -34,6 +35,7 @@ export default function MobileNav({
   onSignOut,
 }: MobileNavProps) {
   const { user } = useAuthStore()
+  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
   const role = user?.role ?? 'CASHIER'
@@ -54,15 +56,28 @@ export default function MobileNav({
     ...group,
     items: group.items.map((item) => ({
       ...item,
-      active: item.id === 'register' && page === 'Register',
+      active:
+        (item.id === 'register' && page === 'Register') ||
+        (item.id === 'dashboard' && page === 'Dashboard') ||
+        (item.id === 'account' && page === 'Account') ||
+        (item.id === 'menu' && page === 'Menu') ||
+        (item.id === 'payment' && page === 'Payment'),
       onClick: () => {
         setMenuOpen(false)
-        if (item.id === 'history') {
+        if (item.notice) {
+          onFeatureNotice?.(item.notice)
+        } else if (item.id === 'register') {
+          navigate('/pos')
+        } else if (item.id === 'history') {
           onOpenHistory()
         } else if (item.id === 'dashboard') {
-          onFeatureNotice?.('Dashboard is available for Admin accounts.')
-        } else if (item.notice) {
-          onFeatureNotice?.(item.notice)
+          navigate('/dashboard')
+        } else if (item.id === 'account') {
+          navigate('/dashboard/account')
+        } else if (item.id === 'menu') {
+          navigate('/dashboard/menu')
+        } else if (item.id === 'payment') {
+          navigate('/dashboard/payment')
         }
       },
     })),
