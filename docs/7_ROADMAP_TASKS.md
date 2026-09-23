@@ -173,6 +173,7 @@
 ---
 
 ## 🔵 FASE 3: Dashboard Analitik & Target Omset
+> **Strategi paralel (kontrak-first, sama seperti Fase 2):** kontrak API beku, peta wave FE/BE, dan kepemilikan file untuk Fase 3 ada di `docs/10_PHASE3_IMPLEMENTATION.md` — WAJIB dibaca sebelum koding task 3.x.
 
 - [ ] **Task 3.1: Backend Dashboard Aggregation Service**
   - Endpoint `GET /api/dashboard/overview` menghitung: Pie gender P/L, Bar omset 7 hari, Best seller menu, dan progress bar target (Merah/Kuning/Hijau).
