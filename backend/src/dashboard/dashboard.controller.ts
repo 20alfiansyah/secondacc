@@ -15,7 +15,7 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   /** GET /api/dashboard/overview — pie gender, bar omset 7 hari, best seller, progres target. */
-  @Get()
+  @Get('overview')
   async overview(
     @Query('month') month?: string,
     @Query('year') year?: string,
