@@ -220,9 +220,18 @@ export async function fetchActiveOrders(): Promise<OrderSummary[]> {
   return (data.data ?? []).map(toOrderSummary)
 }
 
-/** GET /api/orders/history — order PAID. */
-export async function fetchOrderHistory(): Promise<OrderSummary[]> {
-  const { data } = await api.get<ListResponse<RawOrder[]>>('/orders/history')
+/** Filter opsional history — semua undefined = perilaku lama (drawer POS aman). */
+export interface OrderHistoryParams {
+  from?: string
+  to?: string
+  search?: string
+  gender?: CustomerGender
+  product?: string
+}
+
+/** GET /api/orders/history — order PAID, filter opsional (from/to/search/gender/product). */
+export async function fetchOrderHistory(params?: OrderHistoryParams): Promise<OrderSummary[]> {
+  const { data } = await api.get<ListResponse<RawOrder[]>>('/orders/history', { params })
   return (data.data ?? []).map(toOrderSummary)
 }
 
