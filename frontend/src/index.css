@@ -29,7 +29,7 @@
   --color-live-light: #edf7f3;
   --color-live-border: #b9e2d3;
   --color-destructive: hsl(0 75% 55%);
-  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-warning: #EAB308;
   --color-border: #E2E8F0;
   --color-input: #E2E8F0;
   --color-ring: #447C84;
