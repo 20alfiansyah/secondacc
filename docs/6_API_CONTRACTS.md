@@ -291,51 +291,33 @@ Format Respons Standar:
 
 ---
 
-## 6.6 Modul Dashboard Analitik & Target Omset (`/dashboard`)
+## 6.6 Modul Dashboard Analitik & Target Omset (Fase 3 — realisasi)
+
+> Kontrak beku lengkap + semantik agregasi ada di `docs/10_PHASE3_IMPLEMENTATION.md` §4 (sumber resmi). Ringkasan realisasi:
 
 ### `GET /api/dashboard/overview` (Admin Only)
-- **Query Params:** `?month=9&year=2026`
+- **Query Params (opsional):** `?month=9&year=2026&tzOffset=-420` (batas hari/bulan dihitung di zona `tzOffset`, default UTC).
 - **Response 200 OK:**
   ```json
   {
     "success": true,
     "data": {
-      "monthlyRevenue": 38500000,
-      "targetAmount": 50000000,
-      "targetPercentage": 77,
-      "targetStatus": "YELLOW",
-      "genderDemographics": {
-        "L": 142,
-        "P": 198,
-        "total": 340,
-        "ratioFemale": 58.2
-      },
-      "revenue7Days": [
-        { "date": "2026-09-01", "total": 1250000 },
-        { "date": "2026-09-02", "total": 1800000 }
-      ],
-      "bestSellers": [
-        {
-          "productId": 10,
-          "productName": "Kopi Susu Gula Aren",
-          "quantitySold": 240,
-          "revenue": 4800000
-        }
-      ]
+      "period": { "month": 9, "year": 2026 },
+      "gender": { "male": 12, "female": 9, "unknown": 3 },
+      "dailyRevenue": [ { "date": "2026-09-17", "revenue": 1250000 } ],
+      "bestSellers": [ { "productId": 3, "name": "Kopi Susu Gula Aren", "quantity": 42, "revenue": 294000 } ],
+      "target": { "month": 9, "year": 2026, "targetAmount": 50000000, "achievedAmount": 21500000, "percent": 43 }
     }
   }
   ```
+- Semantik terkunci: agregasi **PAID-only**; gender null → `unknown`; `dailyRevenue` tepat 7 entri zero-fill (`YYYY-MM-DD`, sum `grandTotal`); `bestSellers` maks 5 (sum quantity, urut desc, tie-break productId asc); `target` = objek atau `null` bila belum diset (`percent` = Math.round, target 0 → `percent: null`); semua nominal Number integer rupiah (BigInt dikonversi di service).
 
-### `POST /api/dashboard/targets` (Admin Only)
-- **Request Body:**
-  ```json
-  {
-    "month": 9,
-    "year": 2026,
-    "targetAmount": 50000000
-  }
-  ```
+### `GET /api/targets` & `PUT /api/targets` (Admin Only)
+- `GET /api/targets?month=&year=` (default bulan berjalan) → `{ success, data: { month, year, targetAmount: number | null } }`; belum diset = `null`, bukan 404.
+- `PUT /api/targets` body `{ month, year, targetAmount }` — **upsert** unique `[month, year]`; validasi month 1–12, year 2000–2100, targetAmount 0–1e12; error `INVALID_MONTH`/`INVALID_YEAR`/`INVALID_TARGET_AMOUNT` (400). Tanpa DELETE (setting di-upsert).
 
-### `GET /api/dashboard/reports/export` (Admin Only)
-- **Query Params:** `?startDate=2026-09-01&endDate=2026-09-07&format=csv`
-- **Response 200 OK:** Stream file `.csv` rekapitulasi penjualan transaksi.
+### `GET /api/orders/history` — param baru (auth, semua role)
+- `&gender=L|P` (nilai lain → `INVALID_GENDER` 400; null gender ter-Exclude saat filter aktif) dan `&product=<nama parsial, insensitive>`.
+- Bentuk baris respons tidak berubah; tanpa param baru perilaku identik (drawer Order History kasir).
+
+**Deviasi dari desain awal §6.6 lama (disadari, terdokumentasi di dok 10):** `POST /api/dashboard/targets` → `PUT /api/targets`; field `targetStatus` enum tidak ada (warna progress = keputusan presentasi FE dari `percent`); `genderDemographics` → `gender{male,female,unknown}`; export CSV dilakukan **client-side** di `/dashboard/history` (tanpa endpoint server).
