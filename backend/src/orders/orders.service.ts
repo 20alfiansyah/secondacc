@@ -25,6 +25,9 @@ import { buildInvoice, dailyPrefix, extractSequence, toDateKey } from './invoice
 /** Format tanggal yang diterima filter history (YYYY-MM-DD). */
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Gender filter history hanya menerima L atau P (kontrak 10_PHASE3 §4.3). */
+const GENDER_RE = /^[LP]$/;
+
 type Tx = PrismaNS.TransactionClient;
 
 @Injectable()
@@ -370,8 +373,14 @@ export class OrdersService {
     });
   }
 
-  /** GET /api/orders/history — transaksi PAID dgn filter tanggal & search. */
-  async history(query: { from?: string; to?: string; search?: string }) {
+  /** GET /api/orders/history — transaksi PAID dgn filter tanggal, search, gender & product. */
+  async history(query: {
+    from?: string;
+    to?: string;
+    search?: string;
+    gender?: string;
+    product?: string;
+  }) {
     if ((query.from && !DATE_RE.test(query.from)) || (query.to && !DATE_RE.test(query.to))) {
       throw new BadRequestException({
         code: 'INVALID_DATE_FORMAT',
@@ -382,6 +391,13 @@ export class OrdersService {
       throw new BadRequestException({
         code: 'INVALID_DATE_RANGE',
         message: 'Start date cannot be after end date',
+      });
+    }
+
+    if (query.gender && !GENDER_RE.test(query.gender)) {
+      throw new BadRequestException({
+        code: 'INVALID_GENDER',
+        message: 'Gender must be L or P',
       });
     }
 
@@ -397,6 +413,15 @@ export class OrdersService {
         { invoiceNumber: { contains: query.search, mode: 'insensitive' } },
         { customerName: { contains: query.search, mode: 'insensitive' } },
       ];
+    }
+    // Filter equality: customerGender null sengaja ter Exclude saat filter aktif.
+    if (query.gender) {
+      where.customerGender = query.gender as 'L' | 'P';
+    }
+    if (query.product) {
+      where.orderItems = {
+        some: { product: { name: { contains: query.product, mode: 'insensitive' } } },
+      };
     }
 
     return this.prisma.order.findMany({
