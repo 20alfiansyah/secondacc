@@ -34,6 +34,7 @@ export const navGroups: NavGroupData[] = [
       { id: 'account', label: 'Account', icon: 'manage_accounts' },
       { id: 'menu', label: 'Menu', icon: 'restaurant_menu' },
       { id: 'payment', label: 'Payment', icon: 'payments' },
+      { id: 'target', label: 'Target', icon: 'flag' },
       {
         id: 'inventory',
         label: 'Inventory',
@@ -42,9 +43,8 @@ export const navGroups: NavGroupData[] = [
       },
       {
         id: 'reports',
-        label: 'Reports',
+        label: 'History',
         icon: 'analytics',
-        notice: 'Daily sales reports are available in the Admin Dashboard.',
       },
       {
         id: 'setting',

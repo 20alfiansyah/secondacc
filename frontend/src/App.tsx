@@ -2,8 +2,10 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Login from '@/pages/Login'
 import POS from '@/pages/POS'
-import Dashboard from '@/pages/Dashboard'
 import DashboardLayout from '@/pages/dashboard/DashboardLayout'
+import DashboardPage from '@/pages/dashboard/DashboardPage'
+import TargetPage from '@/pages/dashboard/TargetPage'
+import HistoryPage from '@/pages/dashboard/HistoryPage'
 import AccountPage from '@/pages/dashboard/AccountPage'
 import MenuPage from '@/pages/dashboard/MenuPage'
 import PaymentPage from '@/pages/dashboard/PaymentPage'
@@ -25,7 +27,7 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute roles={['ADMIN']}>
         <DashboardLayout page="Dashboard">
-          <Dashboard />
+          <DashboardPage />
         </DashboardLayout>
       </ProtectedRoute>
     ),
@@ -56,6 +58,26 @@ const router = createBrowserRouter([
       <ProtectedRoute roles={['ADMIN']}>
         <DashboardLayout page="Payment">
           <PaymentPage />
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/target',
+    element: (
+      <ProtectedRoute roles={['ADMIN']}>
+        <DashboardLayout page="Target">
+          <TargetPage />
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/history',
+    element: (
+      <ProtectedRoute roles={['ADMIN']}>
+        <DashboardLayout page="History">
+          <HistoryPage />
         </DashboardLayout>
       </ProtectedRoute>
     ),
