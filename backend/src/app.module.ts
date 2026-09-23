@@ -13,6 +13,8 @@ import { OrdersModule } from './orders/orders.module';
 import { UsersModule } from './users/users.module';
 import { PaymentChannelsModule } from './payment-channels/payment-channels.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { TargetsModule } from './targets/targets.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { UploadsModule } from './uploads/uploads.module';
     UsersModule,
     PaymentChannelsModule,
     UploadsModule,
+    DashboardModule,
+    TargetsModule,
   ],
   controllers: [AppController],
   providers: [
