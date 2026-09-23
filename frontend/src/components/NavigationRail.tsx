@@ -96,7 +96,9 @@ export default function NavigationRail({
         (item.id === 'dashboard' && page === 'Dashboard') ||
         (item.id === 'account' && page === 'Account') ||
         (item.id === 'menu' && page === 'Menu') ||
-        (item.id === 'payment' && page === 'Payment'),
+        (item.id === 'payment' && page === 'Payment') ||
+        (item.id === 'target' && page === 'Target') ||
+        (item.id === 'reports' && page === 'History'),
       onClick: () => {
         if (item.notice) {
           handleNotice(item.notice)
@@ -112,6 +114,10 @@ export default function NavigationRail({
           navigate('/dashboard/menu')
         } else if (item.id === 'payment') {
           navigate('/dashboard/payment')
+        } else if (item.id === 'target') {
+          navigate('/dashboard/target')
+        } else if (item.id === 'reports') {
+          navigate('/dashboard/history')
         }
       },
     })),

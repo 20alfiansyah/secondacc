@@ -559,3 +559,60 @@ export async function toggleProductAvailability(id: number): Promise<Product> {
   const { data } = await api.patch<ListResponse<any>>(`/products/${id}/toggle-availability`)
   return toProduct(data.data)
 }
+
+// ===== Dashboard Analytics (Fase 3) =====
+
+/** Ringkasan analitik dashboard admin (GET /api/dashboard/overview) — kontrak §4.4 dokumen Fase 3. */
+export interface DashboardOverview {
+  period: { month: number; year: number }
+  gender: { male: number; female: number; unknown: number }
+  dailyRevenue: Array<{ date: string; revenue: number }>
+  bestSellers: Array<{ productId: number; name: string; quantity: number; revenue: number }>
+  target: {
+    month: number
+    year: number
+    targetAmount: number
+    achievedAmount: number
+    percent: number
+  } | null
+}
+
+/** GET /api/dashboard/overview — agregasi PAID bulan terpilih (default bulan berjalan), admin. */
+export async function fetchDashboardOverview(opts?: {
+  month?: number
+  year?: number
+  tzOffset?: number
+}): Promise<DashboardOverview> {
+  const { data } = await api.get<ListResponse<DashboardOverview>>('/dashboard/overview', {
+    params: opts,
+  })
+  return data.data
+}
+
+// ===== Monthly Targets (Fase 3) =====
+
+/** Target omset bulanan — targetAmount null = belum diset (GET /api/targets). */
+export interface MonthlyTarget {
+  month: number
+  year: number
+  targetAmount: number | null
+}
+
+/** GET /api/targets — baca target bulan terpilih (default bulan berjalan), admin. */
+export async function fetchMonthlyTarget(opts?: {
+  month?: number
+  year?: number
+}): Promise<MonthlyTarget> {
+  const { data } = await api.get<ListResponse<MonthlyTarget>>('/targets', { params: opts })
+  return data.data
+}
+
+/** PUT /api/targets — upsert target omset (bulan+tahun unik), admin. */
+export async function saveMonthlyTarget(input: {
+  month: number
+  year: number
+  targetAmount: number
+}): Promise<MonthlyTarget> {
+  const { data } = await api.put<ListResponse<MonthlyTarget>>('/targets', input)
+  return data.data
+}
