@@ -414,5 +414,64 @@ describe('OrdersService (ACID & finansial server-side)', () => {
       expect(where.createdAt).toBeDefined();
       expect(where.OR).toBeDefined();
     });
+
+    it('memfilter gender L/P (null ter Exclude oleh equality filter)', async () => {
+      await setup();
+      await service.history({ gender: 'L' });
+      await service.history({ gender: 'P' });
+
+      expect(tx.order.findMany.mock.calls[0][0].where.customerGender).toBe('L');
+      expect(tx.order.findMany.mock.calls[1][0].where.customerGender).toBe('P');
+    });
+
+    it('menolak gender invalid dengan INVALID_GENDER', async () => {
+      await setup();
+      await expect(service.history({ gender: 'X' })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      await expect(service.history({ gender: 'X' })).rejects.toMatchObject({
+        response: { code: 'INVALID_GENDER' },
+      });
+    });
+
+    it('memfilter product parsial case-insensitive via orderItems.some', async () => {
+      await setup();
+      await service.history({ product: 'KoPi' });
+
+      expect(tx.order.findMany.mock.calls[0][0].where.orderItems).toEqual({
+        some: { product: { name: { contains: 'KoPi', mode: 'insensitive' } } },
+      });
+    });
+
+    it('kombinasi gender + product + from/to + search', async () => {
+      await setup();
+      await service.history({
+        from: '2026-09-01',
+        to: '2026-09-07',
+        search: 'Rian',
+        gender: 'L',
+        product: 'aren',
+      });
+
+      const where = tx.order.findMany.mock.calls[0][0].where;
+      expect(where.status).toBe(OrderStatus.PAID);
+      expect(where.customerGender).toBe('L');
+      expect(where.orderItems).toEqual({
+        some: { product: { name: { contains: 'aren', mode: 'insensitive' } } },
+      });
+      expect(where.createdAt).toBeDefined();
+      expect(where.OR).toBeDefined();
+    });
+
+    it('tanpa param baru: where persis perilaku lama (regresi drawer POS)', async () => {
+      await setup();
+      await service.history({});
+
+      // Regresi drawer Order History kasir: tanpa gender/product, where hanya
+      // status PAID — tidak ada customerGender/orderItems/createdAt/OR.
+      expect(tx.order.findMany.mock.calls[0][0].where).toEqual({
+        status: OrderStatus.PAID,
+      });
+    });
   });
 });
