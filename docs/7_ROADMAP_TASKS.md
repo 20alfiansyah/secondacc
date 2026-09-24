@@ -175,16 +175,16 @@
 ## 🔵 FASE 3: Dashboard Analitik & Target Omset
 > **Strategi paralel (kontrak-first, sama seperti Fase 2):** kontrak API beku, peta wave FE/BE, dan kepemilikan file untuk Fase 3 ada di `docs/10_PHASE3_IMPLEMENTATION.md` — WAJIB dibaca sebelum koding task 3.x.
 
-- [ ] **Task 3.1: Backend Dashboard Aggregation Service**
+- [x] **Task 3.1: Backend Dashboard Aggregation Service** ✅ `ddd22a4` — `GET /api/dashboard/overview` (PAID-only, gender L/P/null→unknown, dailyRevenue 7 hari zero-fill + tzOffset, best seller top-5, target BigInt→Number; 18 test).
   - Endpoint `GET /api/dashboard/overview` menghitung: Pie gender P/L, Bar omset 7 hari, Best seller menu, dan progress bar target (Merah/Kuning/Hijau).
-- [ ] **Task 3.2: Tampilan Dashboard 4 Grid (`/dashboard`)**
+- [x] **Task 3.2: Tampilan Dashboard 4 Grid (`/dashboard`)** ✅ `5ad2070` — Recharts 3.10.1 (React 19); pie 3 slice (L/P/Unknown), bar 7 hari, list best seller, progress bar abu/<100 merah/==100 kuning/>100 hijau dari `percent`.
   - Grid 1: Pie Chart Recharts (Gender P vs L bulanan).
   - Grid 2: Bar Chart Recharts (Grafik omset harian & filter 7 hari).
   - Grid 3: List peringkat menu Best Seller.
   - Grid 4: Visual Progress Bar Target Omset (🔴 Merah < Target, 🟡 Kuning = Target, 🟢 Hijau > Target).
-- [ ] **Task 3.3: Halaman Setting Target Omset (`/dashboard/target`)**
+- [x] **Task 3.3: Halaman Setting Target Omset (`/dashboard/target`)** ✅ BE `96c5bf1` (`GET/PUT /api/targets` upsert, 11 test) + FE `495c05f` (form prefill/notice).
   - Form input target nominal per bulan (disimpan ke tabel `monthly_targets`).
-- [ ] **Task 3.4: Halaman Riwayat & Laporan (`/dashboard/history`)**
+- [x] **Task 3.4: Halaman Riwayat & Laporan (`/dashboard/history`)** ✅ `e7ee72f` (BE filter gender+product) + `4c33e56` (FE): filter tanggal/produk/gender, Export CSV client-side (BOM UTF-8), reprint struk reuse `ReceiptModal` + `GET /api/orders/:id` (5 test).
   - Filter tabel: Rentang tanggal, nama produk, dan gender (P/L).
   - Fitur Export data ke CSV/Excel.
   - Fitur lihat struk digital & cetak ulang (*reprint receipt*).
