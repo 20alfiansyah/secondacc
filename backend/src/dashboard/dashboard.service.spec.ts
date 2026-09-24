@@ -87,6 +87,66 @@ describe('DashboardService', () => {
       percent: 43, // Math.round(43.03) — pembulatan ke atas/bawah benar
     });
   });
+  it('summary: hanya order bulan terpilih; ATV = Math.round(revenue / orders)', async () => {
+    prisma.order.findMany.mockResolvedValue([
+      order('L', 10000000, '2026-09-20T02:00:00Z'),
+      order('P', 11500000, '2026-09-21T02:00:00Z'),
+      order(null, 5000, '2026-09-22T02:00:00Z'),
+      order('L', 7000, '2026-09-22T03:00:00Z'),
+      order(null, 3000, '2026-09-18T02:00:00Z'),
+      order('P', 999999, '2026-08-02T02:00:00Z'), // luar bulan — tidak masuk.
+    ]);
+    prisma.orderItem.findMany.mockResolvedValue([]);
+    prisma.monthlyTarget.findUnique.mockResolvedValue(null);
+
+    const result = await service.getOverview();
+
+    expect(result.summary).toEqual({
+      totalRevenue: 21515000,
+      totalOrders: 5,
+      averageTicket: Math.round(21515000 / 5),
+    });
+  });
+
+  it('summary: tanpa order bulan itu → totalRevenue/totalOrders/averageTicket 0', async () => {
+    prisma.order.findMany.mockResolvedValue([
+      order('L', 999999, '2026-08-02T02:00:00Z'), // di luar bulan terpilih.
+    ]);
+    prisma.orderItem.findMany.mockResolvedValue([]);
+    prisma.monthlyTarget.findUnique.mockResolvedValue(null);
+
+    const result = await service.getOverview();
+
+    expect(result.summary).toEqual({ totalRevenue: 0, totalOrders: 0, averageTicket: 0 });
+  });
+
+  it('summary: averageTicket dibulatkan Math.round (integer rupiah, tanpa float keluar)', async () => {
+    prisma.order.findMany.mockResolvedValue([
+      order('L', 100001, '2026-09-20T02:00:00Z'),
+      order('P', 100001, '2026-09-21T02:00:00Z'),
+    ]);
+    prisma.orderItem.findMany.mockResolvedValue([]);
+    prisma.monthlyTarget.findUnique.mockResolvedValue(null);
+
+    const result = await service.getOverview();
+
+    // 200002 / 2 = 100001 — bulat pas.
+    expect(result.summary).toEqual({ totalRevenue: 200002, totalOrders: 2, averageTicket: 100001 });
+  });
+
+  it('summary: averageTicket pembulatan ke atas (Math.round)', async () => {
+    prisma.order.findMany.mockResolvedValue([
+      order('L', 100003, '2026-09-20T02:00:00Z'),
+      order('P', 1, '2026-09-21T02:00:00Z'),
+    ]);
+    prisma.orderItem.findMany.mockResolvedValue([]);
+    prisma.monthlyTarget.findUnique.mockResolvedValue(null);
+
+    const result = await service.getOverview();
+
+    // 100004 / 2 = 50001.5 → Math.round → 50002.
+    expect(result.summary.averageTicket).toBe(50002);
+  });
 
   it('dailyRevenue: tepat 7 entri urut naik, zero-fill, default zona UTC', async () => {
     prisma.order.findMany.mockResolvedValue([

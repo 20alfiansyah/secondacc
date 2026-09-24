@@ -95,6 +95,8 @@ export class DashboardService {
     // Pie gender + achieved target: hanya order dalam bulan terpilih.
     const gender = { male: 0, female: 0, unknown: 0 };
     let achieved = 0;
+    let monthOrders = 0;
+    let monthRevenue = 0;
 
     // Bucket omset harian — kunci = indeks hari lokal (epoch day).
     const revenueByIdx = new Map<number, number>();
@@ -106,6 +108,8 @@ export class DashboardService {
         const bucket: 'male' | 'female' | 'unknown' =
           o.customerGender === 'L' ? 'male' : o.customerGender === 'P' ? 'female' : 'unknown';
         gender[bucket]++;
+        monthOrders++;
+        monthRevenue += o.grandTotal;
         achieved += o.grandTotal;
       }
       const dayIdx = Math.floor((at - tzOffset * 60_000) / DAY_MS);
@@ -164,6 +168,13 @@ export class DashboardService {
       };
     }
 
-    return { period: { month, year }, gender, dailyRevenue, bestSellers, target };
+    // KPI ringkasan bulan: total omzet, jumlah order PAID, rata-rata per transaksi (integer rupiah).
+    const summary = {
+      totalRevenue: monthRevenue,
+      totalOrders: monthOrders,
+      averageTicket: monthOrders === 0 ? 0 : Math.round(monthRevenue / monthOrders),
+    };
+
+    return { period: { month, year }, gender, summary, dailyRevenue, bestSellers, target };
   }
 }
