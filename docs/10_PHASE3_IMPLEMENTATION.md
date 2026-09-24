@@ -65,6 +65,7 @@ Query (semua opsional): `month` (1–12), `year`, `tzOffset` (menit, konvensi `D
   "data": {
     "period": { "month": 9, "year": 2026 },
     "gender": { "male": 12, "female": 9, "unknown": 3 },
+    "summary": { "totalRevenue": 21515000, "totalOrders": 5, "averageTicket": 4303000 },
     "dailyRevenue": [ { "date": "2026-09-17", "revenue": 1250000 } ],
     "bestSellers": [ { "productId": 3, "name": "Kopi Susu Gula Aren", "quantity": 42, "revenue": 294000 } ],
     "target": { "month": 9, "year": 2026, "targetAmount": 50000000, "achievedAmount": 21500000, "percent": 43 }
@@ -79,7 +80,8 @@ Semantik terkunci:
 4. `bestSellers`: dari `OrderItem` milik order PAID bulan terpilih; group by `productId`, sum `quantity` & sum `subtotal` (→`revenue`); urut `quantity` desc, tie-break `productId` asc; **maks 5**; `name` dari relasi product.
 5. `target`: target bulan terpilih dari `monthly_targets`. Belum diset → `"target": null` (seluruh objek). `percent` = `Math.round(achieved * 100 / target)`; `target = 0` → `percent: null`.
 6. **BigInt dilarang bocor**: `targetAmount` BigInt → `Number()` di service sebelum respons. Mengembalikan BigInt mentah = `JSON.stringify` crash.
-7. Semua nominal = Number integer rupiah.
+7. `summary`: dari order PAID bulan terpilih — `totalRevenue` (sum grandTotal), `totalOrders` (jumlah order), `averageTicket` = `Math.round(totalRevenue / totalOrders)` (0 bila tanpa order). Integer rupiah.
+8. Semua nominal = Number integer rupiah.
 
 ### 4.2 `GET /api/targets` & `PUT /api/targets` — ADMIN
 

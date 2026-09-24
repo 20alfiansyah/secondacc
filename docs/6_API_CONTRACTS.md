@@ -304,13 +304,14 @@ Format Respons Standar:
     "data": {
       "period": { "month": 9, "year": 2026 },
       "gender": { "male": 12, "female": 9, "unknown": 3 },
+      "summary": { "totalRevenue": 21515000, "totalOrders": 5, "averageTicket": 4303000 },
       "dailyRevenue": [ { "date": "2026-09-17", "revenue": 1250000 } ],
       "bestSellers": [ { "productId": 3, "name": "Kopi Susu Gula Aren", "quantity": 42, "revenue": 294000 } ],
       "target": { "month": 9, "year": 2026, "targetAmount": 50000000, "achievedAmount": 21500000, "percent": 43 }
     }
   }
   ```
-- Semantik terkunci: agregasi **PAID-only**; gender null → `unknown`; `dailyRevenue` tepat 7 entri zero-fill (`YYYY-MM-DD`, sum `grandTotal`); `bestSellers` maks 5 (sum quantity, urut desc, tie-break productId asc); `target` = objek atau `null` bila belum diset (`percent` = Math.round, target 0 → `percent: null`); semua nominal Number integer rupiah (BigInt dikonversi di service).
+- Semantik terkunci: agregasi **PAID-only**; gender null → `unknown`; `summary` = `{ totalRevenue, totalOrders, averageTicket }` bulan terpilih (ATV = Math.round, 0 bila tanpa order); `dailyRevenue` tepat 7 entri zero-fill (`YYYY-MM-DD`, sum `grandTotal`); `bestSellers` maks 5 (sum quantity, urut desc, tie-break productId asc); `target` = objek atau `null` bila belum diset (`percent` = Math.round, target 0 → `percent: null`); semua nominal Number integer rupiah (BigInt dikonversi di service).
 
 ### `GET /api/targets` & `PUT /api/targets` (Admin Only)
 - `GET /api/targets?month=&year=` (default bulan berjalan) → `{ success, data: { month, year, targetAmount: number | null } }`; belum diset = `null`, bukan 404.

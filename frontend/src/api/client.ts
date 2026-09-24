@@ -575,6 +575,7 @@ export async function toggleProductAvailability(id: number): Promise<Product> {
 export interface DashboardOverview {
   period: { month: number; year: number }
   gender: { male: number; female: number; unknown: number }
+  summary: { totalRevenue: number; totalOrders: number; averageTicket: number }
   dailyRevenue: Array<{ date: string; revenue: number }>
   bestSellers: Array<{ productId: number; name: string; quantity: number; revenue: number }>
   target: {

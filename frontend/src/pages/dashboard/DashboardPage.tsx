@@ -83,6 +83,29 @@ export default function DashboardPage() {
         </p>
       )}
 
+      {/* KPI strip: ringkasan bulan berjalan — data.summary dari kontrak §4.1. */}
+      {data && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {[
+            { icon: 'payments', label: 'Revenue this month', value: formatRupiah(data.summary.totalRevenue) },
+            { icon: 'receipt_long', label: 'Paid transactions', value: String(data.summary.totalOrders) },
+            { icon: 'trending_up', label: 'Avg per transaction', value: formatRupiah(data.summary.averageTicket) },
+          ].map((kpi) => (
+            <Card key={kpi.label} className="border-slate-200/80">
+              <CardContent className="flex items-center gap-3 p-4 sm:p-5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-light text-primary">
+                  <Icon name={kpi.icon} className="text-xl" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{kpi.label}</p>
+                  <p className="font-display text-xl font-bold text-slate-900">{kpi.value}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Grid 1: pie gender (3 slice, slice Unknown wajib ada). */}
         <AnalyticsCard
