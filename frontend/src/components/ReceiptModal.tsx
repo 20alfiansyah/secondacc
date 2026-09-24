@@ -58,7 +58,7 @@ export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
   }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-sm overflow-hidden rounded-3xl border border-border/80 bg-card shadow-modal animate-in zoom-in-95 duration-150">
+      <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-border/80 bg-card shadow-modal animate-in zoom-in-95 duration-150">
         {/* Bar aksi (tidak ikut tercetak saat window.print) */}
         <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-3.5">
           <div className="flex items-center gap-2">

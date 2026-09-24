@@ -192,7 +192,7 @@ export default function ManageCategoriesDialog({
                         if (e.key === 'Escape') setRenamingId(null)
                       }}
                       autoFocus
-                      className="h-8 w-full rounded-lg border border-input/80 bg-background px-2.5 text-sm shadow-subtle transition-all focus-visible:border-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                      className="h-8 w-full rounded-xl border border-input/80 bg-background px-2.5 text-sm shadow-subtle transition-all focus-visible:border-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
                       aria-label="Edit category name"
                     />
                   ) : (
