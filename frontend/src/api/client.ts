@@ -628,3 +628,20 @@ export async function saveMonthlyTarget(input: {
   const { data } = await api.put<ListResponse<MonthlyTarget>>('/targets', input)
   return data.data
 }
+
+/** Target bulan + realisasi + persen — baris widget Monthly Target (GET /api/targets/recent). */
+export interface MonthlyTargetRow {
+  month: number
+  year: number
+  targetAmount: number | null
+  achievedAmount: number
+  percent: number | null
+}
+
+/** GET /api/targets/recent?months=3 — N bulan terakhir (lama→baru) utk widget dashboard. */
+export async function fetchRecentTargets(months = 3): Promise<MonthlyTargetRow[]> {
+  const { data } = await api.get<ListResponse<{ months: MonthlyTargetRow[] }>>('/targets/recent', {
+    params: { months },
+  })
+  return data.data.months
+}

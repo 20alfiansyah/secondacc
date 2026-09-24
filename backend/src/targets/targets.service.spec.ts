@@ -8,6 +8,10 @@ describe('TargetsService', () => {
     monthlyTarget: {
       findUnique: jest.Mock;
       upsert: jest.Mock;
+      findMany: jest.Mock;
+    };
+    order: {
+      findMany: jest.Mock;
     };
   };
 
@@ -16,6 +20,10 @@ describe('TargetsService', () => {
       monthlyTarget: {
         findUnique: jest.fn(),
         upsert: jest.fn(),
+        findMany: jest.fn(),
+      },
+      order: {
+        findMany: jest.fn(),
       },
     };
 
@@ -94,6 +102,42 @@ describe('TargetsService', () => {
         response: { code: 'INVALID_YEAR' },
       });
       expect(prisma.monthlyTarget.findUnique).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('recent', () => {
+    it('recent(3): 3 bulan lama→baru, target dari tabel, realisasi sum PAID per bulan, percent Math.round', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-09-24T10:00:00Z'));
+      try {
+        prisma.order.findMany.mockResolvedValue([
+          { grandTotal: 500000, createdAt: new Date('2026-07-10T02:00:00Z') }, // Juli.
+          { grandTotal: 907000, createdAt: new Date('2026-09-19T02:00:00Z') }, // September.
+        ]);
+        prisma.monthlyTarget.findMany.mockResolvedValue([
+          { month: 9, year: 2026, targetAmount: 12000000n },
+        ]);
+
+        const result = await service.recent(3);
+
+        expect(result.months).toHaveLength(3);
+        expect(result.months.map((m) => m.month)).toEqual([7, 8, 9]);
+        const sep = result.months[2];
+        expect(sep).toEqual({ month: 9, year: 2026, targetAmount: 12000000, achievedAmount: 907000, percent: 8 });
+        // Bulan tanpa target → targetAmount null, percent null.
+        expect(result.months[0].targetAmount).toBeNull();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('recent: month tanpa transaksi → achievedAmount 0; count dipatok 1-12', async () => {
+      prisma.order.findMany.mockResolvedValue([]);
+      prisma.monthlyTarget.findMany.mockResolvedValue([]);
+
+      const result = await service.recent(2);
+
+      expect(result.months).toHaveLength(2);
+      expect(result.months.every((m) => m.achievedAmount === 0 && m.targetAmount === null && m.percent === null)).toBe(true);
     });
   });
 

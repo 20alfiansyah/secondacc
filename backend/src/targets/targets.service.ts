@@ -47,6 +47,50 @@ export class TargetsService {
   }
 
   /**
+   * GET /api/targets/recent?count=3 — target + realisasi N bulan terakhir (termasuk bulan
+   * berjalan) untuk widget Monthly Target di dashboard. Khusus ADMIN.
+   * Realisasi = sum grandTotal order PAID bulan tsb; tanpa target → targetAmount null.
+   */
+  async recent(months = 3) {
+    const total = Math.min(Math.max(Number.isInteger(months) ? months : 3, 1), 12);
+    const now = new Date();
+
+    // Daftar N bulan terakhir (termasuk bulan berjalan), lama → baru.
+    const list = Array.from({ length: total }, (_, i) => {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+      return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 };
+    }).reverse();
+
+    // Realisasi: sum grandTotal order PAID per bulan (batas bulan UTC — konsisten overview).
+    const orders = await this.prisma.order.findMany({
+      where: {
+        status: 'PAID',
+        createdAt: { gte: new Date(Date.UTC(list[0].year, list[0].month - 1, 1)) },
+      },
+      select: { grandTotal: true, createdAt: true },
+    });
+    const achievedBy: Record<string, number> = {};
+    for (const o of orders) {
+      const key = `${o.createdAt.getUTCFullYear()}-${o.createdAt.getUTCMonth() + 1}`;
+      achievedBy[key] = (achievedBy[key] ?? 0) + o.grandTotal;
+    }
+
+    const targetRows = await this.prisma.monthlyTarget.findMany({
+      where: { OR: list.map(({ month, year }) => ({ month, year })) },
+    });
+    const targetBy = new Map(targetRows.map((t) => [`${t.year}-${t.month}`, Number(t.targetAmount)]));
+
+    return {
+      months: list.map(({ month, year }) => {
+        const targetAmount = targetBy.get(`${year}-${month}`) ?? null;
+        const achievedAmount = achievedBy[`${year}-${month}`] ?? 0;
+        const percent = targetAmount && targetAmount > 0 ? Math.round((achievedAmount * 100) / targetAmount) : null;
+        return { month, year, targetAmount, achievedAmount, percent };
+      }),
+    };
+  }
+
+  /**
    * PUT /api/targets — simpan (upsert) target omset bulanan (khusus ADMIN).
    * Setting, bukan data transaksional: upsert atomik pada unique [month, year]
    * (update boleh; tidak ada DELETE).

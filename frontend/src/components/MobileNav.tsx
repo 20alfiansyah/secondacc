@@ -13,8 +13,6 @@ interface MobileNavProps {
   onOpenHistory: () => void
   /** Lock register (sama dengan rail desktop). */
   onLockRegister: () => void
-  /** Notifikasi fitur belum tersedia (Inventory/Reports/Settings). */
-  onFeatureNotice?: (featureName: string) => void
   /** Sign out — POS membungkusnya dengan guard perubahan belum disimpan. */
   onSignOut?: () => void
 }
@@ -31,7 +29,6 @@ export default function MobileNav({
   page,
   onOpenHistory,
   onLockRegister,
-  onFeatureNotice,
   onSignOut,
 }: MobileNavProps) {
   const { user } = useAuthStore()
@@ -66,9 +63,7 @@ export default function MobileNav({
         (item.id === 'reports' && page === 'History'),
       onClick: () => {
         setMenuOpen(false)
-        if (item.notice) {
-          onFeatureNotice?.(item.notice)
-        } else if (item.id === 'register') {
+        if (item.id === 'register') {
           navigate('/pos')
         } else if (item.id === 'history') {
           onOpenHistory()
