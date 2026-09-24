@@ -92,6 +92,7 @@ export default function NavigationRail({
         (item.id === 'menu' && page === 'Menu') ||
         (item.id === 'payment' && page === 'Payment') ||
         (item.id === 'target' && page === 'Target') ||
+        (item.id === 'printer' && page === 'Printer') ||
         (item.id === 'reports' && page === 'History'),
       onClick: () => {
         if (item.id === 'register') {
@@ -102,6 +103,8 @@ export default function NavigationRail({
           navigate('/dashboard')
         } else if (item.id === 'account') {
           navigate('/dashboard/account')
+        } else if (item.id === 'printer') {
+          navigate('/dashboard/printer')
         } else if (item.id === 'menu') {
           navigate('/dashboard/menu')
         } else if (item.id === 'payment') {

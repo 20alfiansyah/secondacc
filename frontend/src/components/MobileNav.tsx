@@ -58,8 +58,8 @@ export default function MobileNav({
         (item.id === 'dashboard' && page === 'Dashboard') ||
         (item.id === 'account' && page === 'Account') ||
         (item.id === 'menu' && page === 'Menu') ||
-        (item.id === 'payment' && page === 'Payment') ||
         (item.id === 'target' && page === 'Target') ||
+        (item.id === 'printer' && page === 'Printer') ||
         (item.id === 'reports' && page === 'History'),
       onClick: () => {
         setMenuOpen(false)
@@ -71,6 +71,8 @@ export default function MobileNav({
           navigate('/dashboard')
         } else if (item.id === 'account') {
           navigate('/dashboard/account')
+        } else if (item.id === 'printer') {
+          navigate('/dashboard/printer')
         } else if (item.id === 'menu') {
           navigate('/dashboard/menu')
         } else if (item.id === 'payment') {

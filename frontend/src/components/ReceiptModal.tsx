@@ -1,6 +1,8 @@
 import Icon from '@/components/ui/Icon'
 import type { CheckoutResult, OrderDetail } from '@/api/client'
 import { formatDate, formatRupiah } from '@/utils/format'
+import { buildReceiptEscpos, isBluetoothPrintingSupported, loadSavedPrinter, printEscpos } from '@/utils/escpos'
+import { useState } from 'react'
 
 const CAFE_NAME = 'CAFE POS'
 
@@ -10,7 +12,50 @@ interface ReceiptModalProps {
   onClose: () => void
 }
 
+/** Peta bentuk struk (CheckoutResult | OrderDetail) → data minimal builder ESC/POS. */
+function toReceiptData(order: CheckoutResult | OrderDetail) {
+  return {
+    invoiceNumber: order.invoiceNumber,
+    customerName: order.customerName,
+    cashierName: order.cashierName,
+    subtotal: 'subtotal' in order ? order.subtotal : order.grandTotal,
+    grandTotal: order.grandTotal,
+    items: order.items.map((item) => ({
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      subtotal: item.subtotal,
+    })),
+    payment: { methodName: order.payment?.methodName ?? '-' },
+  }
+}
+
 export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
+  // Printer thermal tersimpan (Web Bluetooth) — null = pakai dialog print OS.
+  const printer = isBluetoothPrintingSupported() ? loadSavedPrinter() : null
+  const [btState, setBtState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [btError, setBtError] = useState<string | null>(null)
+
+  /** Print via Bluetooth LE bila printer tersimpan; gagal → fallback dialog OS. */
+  async function handleBtPrint() {
+    const printer = loadSavedPrinter()
+    if (!printer) {
+      window.print()
+      return
+    }
+    setBtState('sending')
+    setBtError(null)
+    const payload = buildReceiptEscpos(toReceiptData(order))
+    try {
+      await printEscpos(printer.deviceId, payload)
+      setBtState('sent')
+    } catch {
+      // Printer mati/out-of-range → fallback dialog print OS supaya kasir tidak macet.
+      setBtState('error')
+      setBtError('Bluetooth print failed — opening the system print dialog instead.')
+      window.print()
+    }
+  }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-full max-w-sm overflow-hidden rounded-3xl border border-border/80 bg-card shadow-modal animate-in zoom-in-95 duration-150">
@@ -23,11 +68,13 @@ export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => window.print()}
-              className="flex h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 font-display text-xs font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 active:scale-95"
+              onClick={() => void handleBtPrint()}
+              disabled={btState === 'sending'}
+              title={printer ? `Print via ${printer.deviceName}` : 'Print via system dialog'}
+              className="flex h-8 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 font-display text-xs font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 active:scale-95 disabled:opacity-50"
             >
               <Icon name="print" className="text-sm" />
-              Print
+              {btState === 'sending' ? 'Printing...' : printer ? 'Print (BT)' : 'Print'}
             </button>
             <button
               type="button"
@@ -39,6 +86,17 @@ export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
           </div>
         </div>
 
+        {/* Status print bluetooth — di luar area cetak struk. */}
+        {btError && (
+          <p role="alert" className="border-b border-amber-100 bg-amber-50 px-5 py-2 text-[11px] font-semibold text-amber-700">
+            {btError}
+          </p>
+        )}
+        {btState === 'sent' && (
+          <p role="status" className="border-b border-emerald-100 bg-emerald-50 px-5 py-2 text-xs font-semibold text-[#2d7a5f]">
+            Sent to {printer?.deviceName}.
+          </p>
+        )}
         {/* Struk Fisik Thermal (area yang dicetak & dipratinjau) */}
         <div className="p-6 bg-slate-50">
           <div className="receipt rounded-2xl border border-dashed border-border/80 bg-card p-4 shadow-subtle">
