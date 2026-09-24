@@ -189,7 +189,14 @@
   - Fitur Export data ke CSV/Excel.
   - Fitur lihat struk digital & cetak ulang (*reprint receipt*).
 
----
+### Pasca-MVP Fase 3 (enhancements — sudah live)
+
+- [x] **Task 3.6: KPI Summary Strip** ✅ BE `0bad9c2` + FE `6e19b44` — `overview.data.summary {totalRevenue, totalOrders, averageTicket}` + 3 stat card di atas 4 grid dashboard (4 test).
+- [x] **Task 3.7: Filter Riwayat Apply-on-Submit** ✅ `bfc0032` — draft state + tombol Apply Filters/Enter + Reset; tidak ada hit API per keystroke.
+- [x] **Task 3.8: Pencarian Bertipe (searchBy)** ✅ BE `831798b` + FE `a15c5f1` — dropdown Product/Invoice/Customer, param `searchBy=invoice|customer`; tanpa param → OR legacy (drawer kasir aman); 3 test.
+- [x] **Task 3.9: Nav Cleanup + Recent Targets** ✅ BE `bd78cd7` + FE `5a77f8d` — nav dummy (Inventory & Settings) dihapus; `GET /api/targets/recent?months=N` (2 test); widget "LAST 3 MONTHS" dashboard.
+- [x] **Task 3.10: Tabel Recent Months di Target** ✅ `0e24047` — 6 bulan target vs achieved + progress bar berwarna.
+- [x] **Task 3.11: Cetak Thermal Bluetooth (Web Bluetooth + ESC/POS)** ✅ `678a9d9` — `utils/escpos.ts` (pair/connect/print BLE, builder struk 58mm), halaman `/dashboard/printer` (pair/test/forget, admin), tombol Print struk kirim ESC/POS langsung bila printer tersimpan, fallback dialog OS. Browser: Chrome/Edge; printer wajib BLE.
 
 ## 🟣 FASE 4: QR Barcode Meja Pelanggan
 

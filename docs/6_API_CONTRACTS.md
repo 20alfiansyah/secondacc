@@ -317,8 +317,15 @@ Format Respons Standar:
 - `GET /api/targets?month=&year=` (default bulan berjalan) → `{ success, data: { month, year, targetAmount: number | null } }`; belum diset = `null`, bukan 404.
 - `PUT /api/targets` body `{ month, year, targetAmount }` — **upsert** unique `[month, year]`; validasi month 1–12, year 2000–2100, targetAmount 0–1e12; error `INVALID_MONTH`/`INVALID_YEAR`/`INVALID_TARGET_AMOUNT` (400). Tanpa DELETE (setting di-upsert).
 
+### `GET /api/targets/recent?months=N` (Admin Only)
+- `N` default 3, clamp 1–12 → `GET /api/targets/recent?months=6` mengembalikan hingga `N` baris terakhir **berurutan mundur dari bulan berjalan** (bulan tanpa target tetap muncul dengan `targetAmount: null`), urut dari bulan terbaru:
+  ```json
+  { "success": true, "data": [ { "month": 9, "year": 2026, "targetAmount": 12000000, "achievedAmount": 1407000, "percent": 12 } ] }
+  ```
+- `achievedAmount` = omset order PAID bulan tsb; `percent` = Math.round (target 0/null → `percent: null`). Dipakai widget "LAST 3 MONTHS" dashboard dan tabel "Recent months" `/dashboard/target`.
+
 ### `GET /api/orders/history` — param baru (auth, semua role)
 - `&gender=L|P` (nilai lain → `INVALID_GENDER` 400; null gender ter-Exclude saat filter aktif) dan `&product=<nama parsial, insensitive>`.
-- Bentuk baris respons tidak berubah; tanpa param baru perilaku identik (drawer Order History kasir).
+- `&search=<teks>&searchBy=invoice|customer` — `searchBy` menentukan kolom pencarian (`invoiceNumber` | `customerName`, keduanya `contains` insensitive). **Tanpa `searchBy`** perilaku lama tetap: OR keduanya (drawer Order History kasir aman). Kombinasi dipakai dropdown Product/Invoice/Customer di `/dashboard/history`.
 
 **Deviasi dari desain awal §6.6 lama (disadari, terdokumentasi di dok 10):** `POST /api/dashboard/targets` → `PUT /api/targets`; field `targetStatus` enum tidak ada (warna progress = keputusan presentasi FE dari `percent`); `genderDemographics` → `gender{male,female,unknown}`; export CSV dilakukan **client-side** di `/dashboard/history` (tanpa endpoint server).

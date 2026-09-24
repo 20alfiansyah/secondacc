@@ -96,11 +96,14 @@ Belum diset → `targetAmount: null` (bukan 404).
 
 Validasi (DTO class-validator + guard service): `month` int 1–12, `year` int 2000–2100, `targetAmount` int 0–1_000_000_000_000. Error codes baru: `INVALID_MONTH`(400), `INVALID_YEAR`(400), `INVALID_TARGET_AMOUNT`(400). Tidak ada DELETE (upsert menggantikan).
 
-### 4.3 `GET /api/orders/history?from&to&search&gender&product`
+**Tambahan (pasca-MVP):** `GET /api/targets/recent?months=N` (default 3, clamp 1–12) — `N` bulan terakhir berurutan mundur dari bulan berjalan, `targetAmount: null` bila belum diset, plus `achievedAmount` (omset PAID bulan tsb) dan `percent` (Math.round; target 0/null → `null`).
 
-Param baru (keduanya opsional, perilaku lama tidak berubah — drawer Order History kasir aman):
-- `gender`: `L` | `P` → filter `customerGender`. Nilai lain → `INVALID_GENDER`(400). Null gender sengaja ter Exclude saat filter aktif.
+### 4.3 `GET /api/orders/history?from&to&search&searchBy&gender&product`
+
+Param opsional (perilaku lama tidak berubah — drawer Order History kasir aman):
+- `gender`: `L` | `P` → filter `customerGender`. Nilai lain → `INVALID_GENDER`(400). Null gender sengaja ter-Exclude saat filter aktif.
 - `product`: nama produk parsial, case-insensitive → `where.orderItems = { some: { product: { name: { contains, mode: 'insensitive' } } } }`.
+- `search` + `searchBy` (`invoice` | `customer`): `searchBy` memilih kolom (`invoiceNumber` | `customerName`, contains insensitive); **tanpa `searchBy`** → OR keduanya (kompatibilitas drawer kasir).
 
 **Bentuk baris respons TIDAK berubah** (invoiceNumber, customerName, customerGender, grandTotal, createdAt, cashier, payment) — FE memakai mapping `toOrderSummary` yang sudah ada.
 
@@ -113,11 +116,10 @@ export interface DashboardOverview {
   dailyRevenue: Array<{ date: string; revenue: number }>;
   bestSellers: Array<{ productId: number; name: string; quantity: number; revenue: number }>;
   target: { month: number; year: number; targetAmount: number; achievedAmount: number; percent: number } | null;
-}
 export interface MonthlyTarget { month: number; year: number; targetAmount: number | null; }
 ```
 
-Fungsi: `fetchDashboardOverview(opts?: { month?: number; year?: number; tzOffset?: number })`, `fetchMonthlyTarget(opts?: { month?: number; year?: number })`, `saveMonthlyTarget(input: { month: number; year: number; targetAmount: number }): Promise<MonthlyTarget>`; `fetchOrderHistory(params?: { from?: string; to?: string; search?: string; gender?: 'L' | 'P'; product?: string })`.
+Fungsi: `fetchDashboardOverview(opts?: { month?: number; year?: number; tzOffset?: number })`, `fetchMonthlyTarget(opts?: { month?: number; year?: number })`, `saveMonthlyTarget(input: { month: number; year: number; targetAmount: number }): Promise<MonthlyTarget>`, `fetchRecentTargets(months?: number)`; `fetchOrderHistory(params?: { from?: string; to?: string; search?: string; searchBy?: 'invoice' | 'customer'; gender?: 'L' | 'P'; product?: string })`.
 
 ### 4.5 Pemetaan presentasi (FE)
 
