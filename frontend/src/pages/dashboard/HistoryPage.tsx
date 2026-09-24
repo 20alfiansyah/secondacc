@@ -77,7 +77,8 @@ export default function HistoryPage() {
   // Enter pada kolom search memicu fetch (debounce per huruf tidak perlu — dataset kecil).
   function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
-      applyFilters({ ...filters, search: searchDraft })
+      // Kolom ini mencari NAMA PRODUK (kontrak §4.3 param product) — bukan search invoice/customer.
+      applyFilters({ ...filters, product: searchDraft })
     }
   }
 
