@@ -178,7 +178,7 @@ export default function DashboardPage() {
           }
         >
           <ul className="divide-y divide-slate-100">
-            {data!.bestSellers.map((item, index) => (
+            {data?.bestSellers.map((item, index) => (
               <li key={item.productId} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
                 {/* Peringkat: badge kecil, 3 teratas di-highlight teal. */}
                 <span
@@ -206,11 +206,14 @@ export default function DashboardPage() {
           subtitle="Monthly revenue target progress."
           loading={loading}
           empty={
-            noData ?? {
-              icon: 'flag',
-              title: 'No target set',
-              description: 'Set a monthly target on the Target page to track progress here.',
-            }
+            noData ??
+            (data && data.target === null
+              ? {
+                  icon: 'flag',
+                  title: 'No target set',
+                  description: 'Set a monthly target on the Target page to track progress here.',
+                }
+              : null)
           }
         >
           <div className="space-y-3">
