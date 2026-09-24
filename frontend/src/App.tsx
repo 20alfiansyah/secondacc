@@ -6,11 +6,11 @@ import DashboardLayout from '@/pages/dashboard/DashboardLayout'
 import DashboardPage from '@/pages/dashboard/DashboardPage'
 import TargetPage from '@/pages/dashboard/TargetPage'
 import HistoryPage from '@/pages/dashboard/HistoryPage'
+import PrinterPage from '@/pages/dashboard/PrinterPage'
 import AccountPage from '@/pages/dashboard/AccountPage'
 import MenuPage from '@/pages/dashboard/MenuPage'
 import PaymentPage from '@/pages/dashboard/PaymentPage'
 
-// Data router (bukan BrowserRouter) agar useBlocker tersedia di POS —
 // dipakai untuk memblokir navigasi route saat ada perubahan belum disimpan.
 const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
@@ -68,6 +68,16 @@ const router = createBrowserRouter([
       <ProtectedRoute roles={['ADMIN']}>
         <DashboardLayout page="Target">
           <TargetPage />
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/printer',
+    element: (
+      <ProtectedRoute roles={['ADMIN']}>
+        <DashboardLayout page="Printer">
+          <PrinterPage />
         </DashboardLayout>
       </ProtectedRoute>
     ),

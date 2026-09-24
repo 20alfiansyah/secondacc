@@ -35,6 +35,7 @@ export const navGroups: NavGroupData[] = [
       { id: 'menu', label: 'Menu', icon: 'restaurant_menu' },
       { id: 'payment', label: 'Payment', icon: 'payments' },
       { id: 'target', label: 'Target', icon: 'flag' },
+      { id: 'printer', label: 'Printer', icon: 'print' },
       {
         id: 'reports',
         label: 'History',
