@@ -558,14 +558,12 @@ export default function POS() {
         page="Register"
         onOpenHistory={() => setHistoryOpen(true)}
         onLockRegister={lockRegister}
-        onFeatureNotice={(msg) => showFeedback(msg)}
         onSignOut={() => guardUnsaved(logout)}
       />
       <NavigationRail
         className="hidden lg:flex"
         onOpenHistory={() => setHistoryOpen(true)}
         onLockRegister={lockRegister}
-        onFeatureNotice={(msg) => showFeedback(msg)}
         onSignOut={() => guardUnsaved(logout)}
       />
 

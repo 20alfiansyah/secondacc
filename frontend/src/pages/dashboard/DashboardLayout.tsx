@@ -41,7 +41,6 @@ export default function DashboardLayout({ page, children }: DashboardLayoutProps
         page={page}
         onOpenHistory={() => setHistoryOpen(true)}
         onLockRegister={() => setNotice('Lock register only applies on the Register (POS) screen.')}
-        onFeatureNotice={setNotice}
         onSignOut={logout}
       />
       <NavigationRail
@@ -49,7 +48,6 @@ export default function DashboardLayout({ page, children }: DashboardLayoutProps
         page={page}
         onOpenHistory={() => setHistoryOpen(true)}
         onLockRegister={() => setNotice('Lock register only applies on the Register (POS) screen.')}
-        onFeatureNotice={setNotice}
         onSignOut={logout}
       />
 

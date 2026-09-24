@@ -11,8 +11,6 @@ interface NavigationRailProps {
   onOpenHistory: () => void
   /** Lock the register (end current cashier session without logging out). */
   onLockRegister: () => void
-  /** Optional callback when a menu that is not available yet is clicked. */
-  onFeatureNotice?: (featureName: string) => void
   /** Halaman aktif utk penandaan rail (opsional). */
   page?: string
   /** Optional sign-out override — POS wraps it with the unsaved-changes guard. */
@@ -36,7 +34,6 @@ export const SIDEBAR_TOGGLE_EVENT = 'cafe_pos:toggle-sidebar'
 export default function NavigationRail({
   onOpenHistory,
   onLockRegister,
-  onFeatureNotice,
   page,
   onSignOut,
   className,
@@ -82,9 +79,6 @@ export default function NavigationRail({
     })
   }
 
-  function handleNotice(name: string) {
-    onFeatureNotice?.(name)
-  }
   // Menu structure 1:1 dengan Stitch screen1 (role gating di route level,
   // bukan di nav — sesuai desain).
   const groups = navGroups.map((group) => ({
@@ -100,9 +94,7 @@ export default function NavigationRail({
         (item.id === 'target' && page === 'Target') ||
         (item.id === 'reports' && page === 'History'),
       onClick: () => {
-        if (item.notice) {
-          handleNotice(item.notice)
-        } else if (item.id === 'register') {
+        if (item.id === 'register') {
           navigate('/pos')
         } else if (item.id === 'history') {
           onOpenHistory()

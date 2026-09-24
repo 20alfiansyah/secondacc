@@ -12,8 +12,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { fetchDashboardOverview } from '@/api/client'
-import type { DashboardOverview } from '@/api/client'
+import { fetchDashboardOverview, fetchRecentTargets } from '@/api/client'
+import type { DashboardOverview, MonthlyTargetRow } from '@/api/client'
 import EmptyState from '@/components/ui/EmptyState'
 import Icon from '@/components/ui/Icon'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -27,6 +27,7 @@ import { formatRupiah } from '@/utils/format'
  */
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardOverview | null>(null)
+  const [recentRows, setRecentRows] = useState<MonthlyTargetRow[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,6 +48,23 @@ export default function DashboardPage() {
       }
     }
     void load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Riwayat target 3 bulan terakhir untuk grid 4 (gagal → null; widget tetap tampil ringkasan bulan ini).
+  useEffect(() => {
+    let cancelled = false
+    async function loadRecent() {
+      try {
+        const rows = await fetchRecentTargets(3)
+        if (!cancelled) setRecentRows(rows)
+      } catch {
+        if (!cancelled) setRecentRows([])
+      }
+    }
+    void loadRecent()
     return () => {
       cancelled = true
     }
@@ -222,7 +240,7 @@ export default function DashboardPage() {
           </ul>
         </AnalyticsCard>
 
-        {/* Grid 4: progress target omzet — warna sesuai §4.5 (abu/merah/kuning/hijau). */}
+        {/* Grid 4: progress target omzet bulan ini + 3 bulan terakhir — warna §4.5. */}
         <AnalyticsCard
           icon="flag"
           title="Monthly Target"
@@ -230,7 +248,7 @@ export default function DashboardPage() {
           loading={loading}
           empty={
             noData ??
-            (data && (data.target === null || data.target === undefined)
+            (recentRows !== null && recentRows.length > 0 && recentRows.every((r) => r.targetAmount === null)
               ? {
                   icon: 'flag',
                   title: 'No target set',
@@ -239,29 +257,64 @@ export default function DashboardPage() {
               : null)
           }
         >
-          <div className="space-y-3">
-            <div className="flex items-end justify-between gap-2">
-              {/* Label persen; target 0 (percent null) → teks "No target" abu. */}
-              <p
-                className={cn(
-                  'font-display text-2xl font-bold',
-                  !data?.target || data.target.percent === null ? 'text-slate-400' : 'text-slate-900',
-                )}
-              >
-                {!data?.target || data.target.percent === null ? 'No target' : `${data.target.percent}%`}
-              </p>
-              <p className="text-xs text-slate-400">
-                {formatRupiah(data?.target?.achievedAmount ?? 0)} of {formatRupiah(data?.target?.targetAmount ?? 0)}
-              </p>
+          <div className="space-y-4">
+            {/* Ringkasan bulan berjalan. */}
+            <div className="space-y-3">
+              <div className="flex items-end justify-between gap-2">
+                {/* Label persen; target 0 (percent null) → teks "No target" abu. */}
+                <p
+                  className={cn(
+                    'font-display text-2xl font-bold',
+                    !data?.target || data.target.percent === null ? 'text-slate-400' : 'text-slate-900',
+                  )}
+                >
+                  {!data?.target || data.target.percent === null ? 'No target' : `${data.target.percent}%`}
+                </p>
+                <p className="text-xs text-slate-400">
+                  {formatRupiah(data?.target?.achievedAmount ?? 0)} of {formatRupiah(data?.target?.targetAmount ?? 0)}
+                </p>
+              </div>
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className={cn('h-full rounded-full transition-all', targetBarClass(data?.target ? data.target.percent : null))}
+                  style={{
+                    width: `${!data?.target || data.target.percent === null ? 100 : Math.min(data.target.percent, 100)}%`,
+                  }}
+                />
+              </div>
             </div>
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-              <div
-                className={cn('h-full rounded-full transition-all', targetBarClass(data?.target ? data.target.percent : null))}
-                style={{
-                  width: `${!data?.target || data.target.percent === null ? 100 : Math.min(data.target.percent, 100)}%`,
-                }}
-              />
-            </div>
+            {/* Riwayat 3 bulan terakhir: target vs realisasi per bulan. */}
+            {recentRows !== null && recentRows.length > 0 && (
+              <div className="space-y-1.5 border-t border-slate-100 pt-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Last 3 months</p>
+                {recentRows.map((row) => (
+                  <div key={`${row.year}-${row.month}`} className="flex items-center gap-2 text-xs">
+                    <span className="w-16 shrink-0 font-medium text-slate-500">
+                      {monthLabel(row.month)} {row.year}
+                    </span>
+                    <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className={cn('h-full rounded-full transition-all', targetBarClass(row.percent))}
+                        style={{
+                          width: `${row.percent === null ? 100 : Math.min(row.percent, 100)}%`,
+                        }}
+                      />
+                    </div>
+                    <span
+                      className={cn(
+                        'w-11 shrink-0 text-right text-[11px] font-bold',
+                        row.percent === null ? 'text-slate-300' : targetTextClass(row.percent),
+                      )}
+                    >
+                      {row.percent === null ? '—' : `${row.percent}%`}
+                    </span>
+                    <span className="hidden w-36 shrink-0 text-right text-[11px] text-slate-400 sm:block">
+                      {formatRupiah(row.achievedAmount)} / {row.targetAmount === null ? '—' : formatRupiah(row.targetAmount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </AnalyticsCard>
       </div>
@@ -316,6 +369,19 @@ function AnalyticsCard({
 function shortDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { day: '2-digit', month: 'short' })
+}
+
+/** 9 → "Sep" — nama bulan singkat EN untuk baris widget target. */
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const
+function monthLabel(month: number): string {
+  return MONTH_LABELS[month - 1]
+}
+
+/** Warna teks persen baris riwayat target: null abu, <100 merah, ==100 kuning, >100 hijau. */
+function targetTextClass(percent: number): string {
+  if (percent < 100) return 'text-destructive'
+  if (percent === 100) return 'text-warning'
+  return 'text-[#3d8b6f]'
 }
 
 /** Warna bar progress target (§4.5): null abu, <100 merah, ==100 kuning, >100 hijau. */

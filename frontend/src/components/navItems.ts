@@ -36,21 +36,9 @@ export const navGroups: NavGroupData[] = [
       { id: 'payment', label: 'Payment', icon: 'payments' },
       { id: 'target', label: 'Target', icon: 'flag' },
       {
-        id: 'inventory',
-        label: 'Inventory',
-        icon: 'inventory_2',
-        notice: 'Inventory arrives in the stock management phase.',
-      },
-      {
         id: 'reports',
         label: 'History',
         icon: 'analytics',
-      },
-      {
-        id: 'setting',
-        label: 'Settings',
-        icon: 'tune',
-        notice: 'System settings can be configured by an Admin.',
       },
     ],
   },

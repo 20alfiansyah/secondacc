@@ -16,6 +16,13 @@ export class TargetsController {
     const data = await this.targetsService.find(query);
     return { success: true, data };
   }
+  /** GET /api/targets/recent?months=3 — target + realisasi N bulan terakhir (widget dashboard). */
+  @Get('recent')
+  async recent(@Query('months') months?: string) {
+    const parsed = months === undefined || months === '' ? 3 : Number(months);
+    const data = await this.targetsService.recent(parsed);
+    return { success: true, data };
+  }
 
   /** PUT /api/targets — simpan/upsert target omset bulanan. */
   @Put()
