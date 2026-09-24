@@ -682,7 +682,7 @@ export default function AccountPage() {
                             onClick={() => setPasswordTarget(u)}
                             aria-label={`Change password for ${u.username}`}
                             title="Change password"
-                            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition hover:bg-primary-light hover:text-primary"
+                            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-primary-light hover:text-primary"
                           >
                             <Icon name="password" className="text-base" />
                           </button>
@@ -700,7 +700,7 @@ export default function AccountPage() {
                                 : "Activate account"
                             }
                             className={cn(
-                              "flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition hover:bg-destructive/10 hover:text-destructive",
+                              "flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl transition hover:bg-destructive/10 hover:text-destructive",
                               u.isActive
                                 ? "bg-live-light text-live"
                                 : "bg-slate-100 text-slate-400",
@@ -751,7 +751,7 @@ export default function AccountPage() {
                 onClick={() => setPasswordTarget(u)}
                 aria-label={`Change password for ${u.username}`}
                 title="Change password"
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition hover:bg-primary-light hover:text-primary"
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-primary-light hover:text-primary"
               >
                 <Icon name="password" className="text-base" />
               </button>
@@ -767,7 +767,7 @@ export default function AccountPage() {
                   u.isActive ? "Deactivate account" : "Activate account"
                 }
                 className={cn(
-                  "flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition hover:bg-destructive/10 hover:text-destructive",
+                  "flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl transition hover:bg-destructive/10 hover:text-destructive",
                   u.isActive
                     ? "bg-live-light text-live"
                     : "bg-slate-100 text-slate-400",

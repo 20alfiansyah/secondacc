@@ -468,7 +468,7 @@ function ProductActions({
         <button
           type="button"
           onClick={() => onEdit(product)}
-          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-primary"
+          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-primary"
           aria-label={`Edit ${product.name}`}
           title="Edit"
         >
@@ -477,7 +477,7 @@ function ProductActions({
         <button
           type="button"
           onClick={() => onDelete(product)}
-          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-500 transition hover:bg-destructive/10 hover:text-destructive"
+          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl text-slate-500 transition hover:bg-destructive/10 hover:text-destructive"
           aria-label={`Delete ${product.name}`}
           title="Delete"
         >

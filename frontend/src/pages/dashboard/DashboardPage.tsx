@@ -110,7 +110,7 @@ export default function DashboardPage() {
             { icon: 'trending_up', label: 'Avg per transaction', value: formatRupiah(data.summary.averageTicket) },
           ].map((kpi) => (
             <Card key={kpi.label} className="border-slate-200/80">
-              <CardContent className="flex items-center gap-3 p-4 sm:p-5">
+              <CardContent className="flex items-center gap-3 p-4 sm:p-6">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-light text-primary">
                   <Icon name={kpi.icon} className="text-xl" />
                 </span>
