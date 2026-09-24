@@ -114,7 +114,7 @@ export default function MobileNav({
 
       {/* Tengah: brand */}
       <div className="flex min-w-0 items-center gap-2">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-800 bg-slate-950 p-0.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-800 bg-slate-950 p-0.5">
           <img alt="2ND ACC Logo" className="h-full w-full rounded-md object-contain" src="/favicon.svg" />
         </div>
         <span className="truncate font-display text-sm font-bold tracking-tight text-slate-900">
@@ -197,7 +197,7 @@ export default function MobileNav({
             {/* Footer: jam + kartu user + lock/signout */}
             <div className="shrink-0 space-y-2 border-t border-slate-100 bg-slate-50/70 p-3">
               <div className="flex items-center gap-2.5 rounded-xl border border-slate-200/80 bg-white p-2 shadow-xs">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#447C84] font-display text-xs font-bold text-white shadow-xs">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#447C84] font-display text-xs font-bold text-white shadow-xs">
                   {user?.name ? userInitials : <Icon name="person" className="text-base" />}
                 </div>
                 <div className="min-w-0 flex-1 leading-tight">
