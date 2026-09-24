@@ -172,7 +172,7 @@ export default function DashboardPage() {
           loading={loading}
           empty={
             noData ??
-            (data && data.bestSellers.length === 0
+            (data && data.bestSellers?.length === 0
               ? { icon: 'shopping_bag', title: 'No sales yet', description: 'No paid orders recorded this month.' }
               : null)
           }
