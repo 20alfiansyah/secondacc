@@ -207,7 +207,7 @@ export default function DashboardPage() {
           loading={loading}
           empty={
             noData ??
-            (data && data.target === null
+            (data && (data.target === null || data.target === undefined)
               ? {
                   icon: 'flag',
                   title: 'No target set',
@@ -222,20 +222,20 @@ export default function DashboardPage() {
               <p
                 className={cn(
                   'font-display text-2xl font-bold',
-                  data!.target!.percent === null ? 'text-slate-400' : 'text-slate-900',
+                  !data?.target || data.target.percent === null ? 'text-slate-400' : 'text-slate-900',
                 )}
               >
-                {data!.target!.percent === null ? 'No target' : `${data!.target!.percent}%`}
+                {!data?.target || data.target.percent === null ? 'No target' : `${data.target.percent}%`}
               </p>
               <p className="text-xs text-slate-400">
-                {formatRupiah(data!.target!.achievedAmount)} of {formatRupiah(data!.target!.targetAmount)}
+                {formatRupiah(data?.target?.achievedAmount ?? 0)} of {formatRupiah(data?.target?.targetAmount ?? 0)}
               </p>
             </div>
             <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
               <div
-                className={cn('h-full rounded-full transition-all', targetBarClass(data!.target!.percent))}
+                className={cn('h-full rounded-full transition-all', targetBarClass(data?.target ? data.target.percent : null))}
                 style={{
-                  width: `${data!.target!.percent === null ? 100 : Math.min(data!.target!.percent, 100)}%`,
+                  width: `${!data?.target || data.target.percent === null ? 100 : Math.min(data.target.percent, 100)}%`,
                 }}
               />
             </div>
