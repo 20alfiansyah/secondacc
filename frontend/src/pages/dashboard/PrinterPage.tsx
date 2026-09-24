@@ -26,16 +26,18 @@ export default function PrinterPage() {
     setSupported(isBluetoothPrintingSupported())
   }, [])
 
-  /** Pesan error Web Bluetooth yang bisa dipahami kasir (EN). */
-  function describeBtError(err: unknown): string {
+  /** Klasifikasi error Web Bluetooth → pesan ramah + flag "hanya batal" (bukan error sungguhan). */
+  function describeBtError(err: unknown): { message: string; cancelled: boolean } {
     const msg = err instanceof Error ? err.message : String(err)
-    if (err instanceof DOMException && err.name === 'NotFoundError') {
-      return 'No printer selected. Make sure the printer is on and in pairing range.'
+    // User menutup chooser Chrome tanpa memilih printer — bukan error, cukup info.
+    if (/cancel/i.test(msg)) {
+      return { message: 'Pairing cancelled — no printer selected.', cancelled: true }
     }
     if (err instanceof DOMException && err.name === 'NotFoundError') {
-      return 'Printer not found — put it in pairing mode and try again.'
+      return { message: 'Printer not found — make sure it is on and in pairing mode, then try again.', cancelled: false }
     }
-    return `Bluetooth error: ${msg}`
+    // Exception native Bluetooth diberi konteks; error lemparan sendiri sudah ramah.
+    return { message: err instanceof DOMException ? `Bluetooth error: ${msg}` : msg, cancelled: false }
   }
 
   async function handlePair() {
@@ -46,7 +48,10 @@ export default function PrinterPage() {
       setPrinter(printer)
       setNotice(`Printer paired: ${printer.deviceName}`)
     } catch (err) {
-      setError(describeBtError(err))
+      const parsed = describeBtError(err)
+      // Batal pilih printer = info biasa (band hijau), bukan error merah.
+      if (parsed.cancelled) setNotice(parsed.message)
+      else setError(parsed.message)
     } finally {
       setBusy(null)
     }
@@ -69,7 +74,9 @@ export default function PrinterPage() {
       await printEscpos(printer.deviceId, payload)
       setNotice('Test receipt sent to printer.')
     } catch (err) {
-      setError(describeBtError(err))
+      const parsed = describeBtError(err)
+      if (parsed.cancelled) setNotice(parsed.message)
+      else setError(parsed.message)
     } finally {
       setBusy(null)
     }
