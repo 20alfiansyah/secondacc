@@ -378,6 +378,7 @@ export class OrdersService {
     from?: string;
     to?: string;
     search?: string;
+    searchBy?: 'invoice' | 'customer';
     gender?: string;
     product?: string;
   }) {
@@ -409,10 +410,16 @@ export class OrdersService {
       if (query.to) where.createdAt.lte = new Date(`${query.to}T23:59:59.999Z`);
     }
     if (query.search) {
-      where.OR = [
-        { invoiceNumber: { contains: query.search, mode: 'insensitive' } },
-        { customerName: { contains: query.search, mode: 'insensitive' } },
-      ];
+      // searchBy menentukan field: invoice saja atau nama customer saja (kontrak §4.3).
+      // Tanpa searchBy → perilaku lama (OR keduanya) untuk drawer kasir.
+      const like = { contains: query.search, mode: 'insensitive' as const };
+      if (query.searchBy === 'invoice') {
+        where.OR = [{ invoiceNumber: like }];
+      } else if (query.searchBy === 'customer') {
+        where.OR = [{ customerName: like }];
+      } else {
+        where.OR = [{ invoiceNumber: like }, { customerName: like }];
+      }
     }
     // Filter equality: customerGender null sengaja ter Exclude saat filter aktif.
     if (query.gender) {

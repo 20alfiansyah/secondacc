@@ -63,10 +63,11 @@ export class OrdersController {
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('search') search?: string,
+    @Query('searchBy') searchBy?: 'invoice' | 'customer',
     @Query('gender') gender?: string,
     @Query('product') product?: string,
   ) {
-    const data = await this.ordersService.history({ from, to, search, gender, product });
+    const data = await this.ordersService.history({ from, to, search, searchBy, gender, product });
     return { success: true, data };
   }
 

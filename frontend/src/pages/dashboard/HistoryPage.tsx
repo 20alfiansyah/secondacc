@@ -10,16 +10,17 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { formatDateTime, formatRupiah } from '@/utils/format'
 
-/** Filter form — search dipicu onEnter, sisanya langsung memicu fetch ulang. */
+/** Filter form — draft mengikat input; API hanya di-hit lewat tombol Apply (§ pola apply-on-submit). */
 interface HistoryFilters {
   from: string
   to: string
   search: string
+  searchBy: '' | 'invoice' | 'customer'
   gender: 'ALL' | CustomerGender
   product: string
 }
 
-const EMPTY_FILTERS: HistoryFilters = { from: '', to: '', search: '', gender: 'ALL', product: '' }
+const EMPTY_FILTERS: HistoryFilters = { from: '', to: '', search: '', searchBy: '', gender: 'ALL', product: '' }
 
 /**
  * Halaman Riwayat & Laporan (Task 3.4F) — tabel transaksi PAID + filter
@@ -46,6 +47,7 @@ export default function HistoryPage() {
         from: f.from || undefined,
         to: f.to || undefined,
         search: f.search.trim() || undefined,
+        searchBy: f.searchBy || undefined,
         gender: f.gender === 'ALL' ? undefined : f.gender,
         product: f.product.trim() || undefined,
       })
@@ -67,7 +69,7 @@ export default function HistoryPage() {
 
   // Submit tombol/Enter → commit draft ke API sekali (tidak per-karakter).
   function applyDraft() {
-    void loadHistory({ ...draft, product: draft.product.trim() })
+    void loadHistory({ ...draft, product: draft.product.trim(), search: draft.search.trim() })
   }
 
   /** Klik baris → detail order → ReceiptModal (reuse POS); cetak dari tombol Print modal. */
@@ -140,7 +142,7 @@ export default function HistoryPage() {
       <CardContent className="space-y-2.5 p-4 pt-0 sm:p-6 sm:pt-0">
         {/* Filter bar: semua input mengikat draft; API hanya di-hit lewat tombol Apply Filter / Enter. */}
         <form
-          className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-6"
+          className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5"
           onSubmit={(e) => {
             e.preventDefault()
             applyDraft()
@@ -165,15 +167,46 @@ export default function HistoryPage() {
             min={draft.from || undefined}
             onChange={(e) => setDraft({ ...draft, to: e.target.value })}
           />
-          <div className="relative">
-            <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400" />
-            <Input
-              value={draft.product}
-              onChange={(e) => setDraft({ ...draft, product: e.target.value })}
-              placeholder="Search product name..."
-              aria-label="Search product"
-              className="bg-background pl-9 text-sm"
-            />
+          {/* Search bertipe: dropdown menentukan field (product / invoice / customer name). */}
+          <div className="flex gap-2">
+            <select
+              aria-label="Search type"
+              value={draft.searchBy}
+              onChange={(e) => setDraft({ ...draft, searchBy: e.target.value as HistoryFilters['searchBy'] })}
+              className="h-10 shrink-0 rounded-xl border border-input/80 bg-background px-2 text-xs text-foreground shadow-subtle transition-all duration-150 focus-visible:border-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+            >
+              <option value="">Product</option>
+              <option value="invoice">Invoice</option>
+              <option value="customer">Customer</option>
+            </select>
+            <div className="relative w-full">
+              <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400" />
+              <Input
+                value={draft.searchBy === '' ? draft.product : draft.search}
+                onChange={(e) =>
+                  setDraft(
+                    draft.searchBy === ''
+                      ? { ...draft, product: e.target.value }
+                      : { ...draft, search: e.target.value },
+                  )
+                }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    applyDraft()
+                  }
+                }}
+                placeholder={
+                  draft.searchBy === 'invoice'
+                    ? 'Search invoice number...'
+                    : draft.searchBy === 'customer'
+                      ? 'Search customer name...'
+                      : 'Search product name...'
+                }
+                aria-label="Search query"
+                className="bg-background pl-9 text-sm"
+              />
+            </div>
           </div>
           <select
             aria-label="Customer gender"
@@ -186,7 +219,7 @@ export default function HistoryPage() {
             <option value="P">Female</option>
           </select>
           {/* Aksi filter: Apply (submit) + Reset (reset form) — di baris terpisah agar rapi. */}
-          <div className="flex gap-2 sm:col-span-2 lg:col-span-4">
+          <div className="flex gap-2 sm:col-span-2 lg:col-span-5">
             <button
               type="submit"
               disabled={listLoading}
