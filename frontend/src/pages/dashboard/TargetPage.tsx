@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import type { MonthlyTarget } from '@/api/client'
-import { fetchMonthlyTarget, saveMonthlyTarget } from '@/api/client'
+import type { MonthlyTarget, MonthlyTargetRow } from '@/api/client'
+import { fetchMonthlyTarget, fetchRecentTargets, saveMonthlyTarget } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import EmptyState from '@/components/ui/EmptyState'
 import Icon from '@/components/ui/Icon'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 import { formatRupiah } from '@/utils/format'
 
 /** Label bulan (UI English) — index 0 = January, value select = 1..12. */
@@ -40,6 +41,8 @@ export default function TargetPage() {
   const [saved, setSaved] = useState<MonthlyTarget | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  // Riwayat N bulan terakhir untuk tabel di bawah form (target vs realisasi).
+  const [recentRows, setRecentRows] = useState<MonthlyTargetRow[] | null>(null)
 
   // Form: default periode = bulan berjalan; nominal disimpan sebagai teks digit
   // murni lalu dikonversi ke integer saat save (uang wajib integer, bukan float).
@@ -59,9 +62,10 @@ export default function TargetPage() {
       setLoadError(null)
       try {
         // Tanpa param: server memakai default bulan berjalan (kontrak §4.2).
-        const data = await fetchMonthlyTarget()
+        const [data, rows] = await Promise.all([fetchMonthlyTarget(), fetchRecentTargets(6)])
         if (cancelled) return
         setSaved(data)
+        setRecentRows(rows)
         setMonth(data.month)
         setYear(String(data.year))
         setAmount(data.targetAmount === null ? '' : String(data.targetAmount))
@@ -115,9 +119,10 @@ export default function TargetPage() {
     setServerError(null)
     try {
       await saveMonthlyTarget({ month, year: yearNum, targetAmount: amountNum })
-      // Refetch (baca kembali) agar form & ringkasan menampilkan data server.
-      const fresh = await fetchMonthlyTarget({ month, year: yearNum })
+      // Refetch (baca kembali) agar form, ringkasan & tabel riwayat menampilkan data server.
+      const [fresh, rows] = await Promise.all([fetchMonthlyTarget({ month, year: yearNum }), fetchRecentTargets(6)])
       setSaved(fresh)
+      setRecentRows(rows)
       setAmount(fresh.targetAmount === null ? '' : String(fresh.targetAmount))
       setNotice(`Monthly target for ${MONTHS[fresh.month - 1]} ${fresh.year} saved.`)
     } catch (err) {
@@ -273,6 +278,75 @@ export default function TargetPage() {
                 </Button>
               </div>
             </form>
+
+            {/* Riwayat 6 bulan terakhir: target vs realisasi per bulan (GET /api/targets/recent). */}
+            {recentRows !== null && recentRows.length > 0 && (
+              <div className="border-t border-border/70 pt-4">
+                <p className="font-display text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Recent months
+                </p>
+                <div className="mt-2 overflow-hidden rounded-xl border border-border/70">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-400">
+                        <th className="px-3 py-2 font-semibold">Month</th>
+                        <th className="px-3 py-2 text-right font-semibold">Target</th>
+                        <th className="px-3 py-2 text-right font-semibold">Achieved</th>
+                        <th className="w-28 px-3 py-2 font-semibold">Progress</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentRows.map((row) => (
+                        <tr key={`${row.year}-${row.month}`} className="border-t border-border/60">
+                          <td className="px-3 py-2 text-sm font-medium text-foreground">
+                            {MONTHS[row.month - 1]} {row.year}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-slate-500">
+                            {row.targetAmount === null ? 'Not set' : formatRupiah(row.targetAmount)}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-slate-500">{formatRupiah(row.achievedAmount)}</td>
+                          <td className="px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                <div
+                                  className={cn(
+                                    'h-full rounded-full transition-all',
+                                    row.percent === null
+                                      ? 'bg-slate-300'
+                                      : row.percent < 100
+                                        ? 'bg-destructive'
+                                        : row.percent === 100
+                                          ? 'bg-warning'
+                                          : 'bg-[#65AF92]',
+                                  )}
+                                  style={{
+                                    width: `${row.percent === null ? 100 : Math.min(row.percent, 100)}%`,
+                                  }}
+                                />
+                              </div>
+                              <span
+                                className={cn(
+                                  'w-10 shrink-0 text-right text-[11px] font-bold',
+                                  row.percent === null
+                                    ? 'text-slate-300'
+                                    : row.percent < 100
+                                      ? 'text-destructive'
+                                      : row.percent === 100
+                                        ? 'text-warning'
+                                        : 'text-[#3d8b6f]',
+                                )}
+                              >
+                                {row.percent === null ? '—' : `${row.percent}%`}
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </>
         )}
       </CardContent>
