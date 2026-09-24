@@ -225,6 +225,8 @@ export interface OrderHistoryParams {
   from?: string
   to?: string
   search?: string
+  /** Menentukan field 'search': invoice saja / nama customer saja. Tanpa ini = OR keduanya. */
+  searchBy?: 'invoice' | 'customer'
   gender?: CustomerGender
   product?: string
 }

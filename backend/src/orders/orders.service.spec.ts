@@ -473,5 +473,32 @@ describe('OrdersService (ACID & finansial server-side)', () => {
         status: OrderStatus.PAID,
       });
     });
+
+    it('searchBy=invoice: OR hanya invoiceNumber', async () => {
+      await setup();
+      await service.history({ search: 'INV-20260908', searchBy: 'invoice' });
+
+      const where = tx.order.findMany.mock.calls[0][0].where;
+      expect(where.OR).toEqual([{ invoiceNumber: { contains: 'INV-20260908', mode: 'insensitive' } }]);
+    });
+
+    it('searchBy=customer: OR hanya customerName (nama partial insensitive)', async () => {
+      await setup();
+      await service.history({ search: 'Rian', searchBy: 'customer' });
+
+      const where = tx.order.findMany.mock.calls[0][0].where;
+      expect(where.OR).toEqual([{ customerName: { contains: 'Rian', mode: 'insensitive' } }]);
+    });
+
+    it('search tanpa searchBy: OR invoice+customer (regresi perilaku lama)', async () => {
+      await setup();
+      await service.history({ search: 'Rian' });
+
+      const where = tx.order.findMany.mock.calls[0][0].where;
+      expect(where.OR).toEqual([
+        { invoiceNumber: { contains: 'Rian', mode: 'insensitive' } },
+        { customerName: { contains: 'Rian', mode: 'insensitive' } },
+      ]);
+    });
   });
 });
