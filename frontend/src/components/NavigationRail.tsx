@@ -207,7 +207,7 @@ export default function NavigationRail({
           )}
           title={collapsed ? `${user?.name || 'Cashier'} • ${roleLabelText}` : undefined}
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#447C84] font-display text-xs font-bold text-white shadow-xs">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#447C84] font-display text-xs font-bold text-white shadow-xs">
             {user?.name ? initials(user.name) : <Icon name="person" className="text-base" />}
           </div>
           {!collapsed && (
