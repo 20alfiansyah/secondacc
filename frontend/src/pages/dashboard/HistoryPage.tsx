@@ -31,8 +31,8 @@ export default function HistoryPage() {
   const [listLoading, setListLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [filters, setFilters] = useState<HistoryFilters>(EMPTY_FILTERS)
-  const [searchDraft, setSearchDraft] = useState('')
+  // Filter aktif tersimpan di state items hasil load; draft di bawah untuk form Apply.
+  const [draft, setDraft] = useState<HistoryFilters>(EMPTY_FILTERS)
 
   const [exporting, setExporting] = useState(false)
   const [receipt, setReceipt] = useState<OrderDetail | null>(null)
@@ -60,26 +60,14 @@ export default function HistoryPage() {
     }
   }, [])
 
-  // Muat awal sekali; perubahan filter (date/gender/product + Enter pada search) fetch ulang.
+  // Muat awal sekali dengan filter kosong.
   useEffect(() => {
     void loadHistory(EMPTY_FILTERS)
   }, [loadHistory])
 
-  function applyFilters(next: HistoryFilters) {
-    setFilters(next)
-    void loadHistory(next)
-  }
-
-  function updateFilter<K extends keyof HistoryFilters>(key: K, value: HistoryFilters[K]) {
-    applyFilters({ ...filters, [key]: value })
-  }
-
-  // Enter pada kolom search memicu fetch (debounce per huruf tidak perlu — dataset kecil).
-  function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') {
-      // Kolom ini mencari NAMA PRODUK (kontrak §4.3 param product) — bukan search invoice/customer.
-      applyFilters({ ...filters, product: searchDraft })
-    }
+  // Submit tombol/Enter → commit draft ke API sekali (tidak per-karakter).
+  function applyDraft() {
+    void loadHistory({ ...draft, product: draft.product.trim() })
   }
 
   /** Klik baris → detail order → ReceiptModal (reuse POS); cetak dari tombol Print modal. */
@@ -150,28 +138,38 @@ export default function HistoryPage() {
         </PrimaryAction>
       </CardHeader>
       <CardContent className="space-y-2.5 p-4 pt-0 sm:p-6 sm:pt-0">
-        {/* Filter bar: date from/to, search nama produk, gender */}
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Filter bar: semua input mengikat draft; API hanya di-hit lewat tombol Apply Filter / Enter. */}
+        <form
+          className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-6"
+          onSubmit={(e) => {
+            e.preventDefault()
+            applyDraft()
+          }}
+          onReset={(e) => {
+            e.preventDefault()
+            setDraft(EMPTY_FILTERS)
+            void loadHistory(EMPTY_FILTERS)
+          }}
+        >
           <Input
             type="date"
             aria-label="Date from"
-            value={filters.from}
-            max={filters.to || undefined}
-            onChange={(e) => updateFilter('from', e.target.value)}
+            value={draft.from}
+            max={draft.to || undefined}
+            onChange={(e) => setDraft({ ...draft, from: e.target.value })}
           />
           <Input
             type="date"
             aria-label="Date to"
-            value={filters.to}
-            min={filters.from || undefined}
-            onChange={(e) => updateFilter('to', e.target.value)}
+            value={draft.to}
+            min={draft.from || undefined}
+            onChange={(e) => setDraft({ ...draft, to: e.target.value })}
           />
           <div className="relative">
             <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400" />
             <Input
-              value={searchDraft}
-              onChange={(e) => setSearchDraft(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
+              value={draft.product}
+              onChange={(e) => setDraft({ ...draft, product: e.target.value })}
               placeholder="Search product name..."
               aria-label="Search product"
               className="bg-background pl-9 text-sm"
@@ -179,16 +177,32 @@ export default function HistoryPage() {
           </div>
           <select
             aria-label="Customer gender"
-            value={filters.gender}
-            onChange={(e) => updateFilter('gender', e.target.value as HistoryFilters['gender'])}
+            value={draft.gender}
+            onChange={(e) => setDraft({ ...draft, gender: e.target.value as HistoryFilters['gender'] })}
             className="h-10 rounded-xl border border-input/80 bg-background px-3 text-sm text-foreground shadow-subtle transition-all duration-150 focus-visible:border-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
           >
             <option value="ALL">All</option>
             <option value="L">Male</option>
             <option value="P">Female</option>
           </select>
-        </div>
-
+          {/* Aksi filter: Apply (submit) + Reset (reset form) — di baris terpisah agar rapi. */}
+          <div className="flex gap-2 sm:col-span-2 lg:col-span-4">
+            <button
+              type="submit"
+              disabled={listLoading}
+              className="h-10 rounded-xl bg-[#447C84] px-4 text-xs font-semibold text-white transition hover:bg-[#3a6b72] disabled:opacity-50"
+            >
+              {listLoading ? 'Loading...' : 'Apply Filters'}
+            </button>
+            <button
+              type="reset"
+              disabled={listLoading}
+              className="h-10 rounded-xl border border-slate-200/80 px-4 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+            >
+              Reset
+            </button>
+          </div>
+        </form>
         {error && (
           <p
             role="alert"
