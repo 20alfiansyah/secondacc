@@ -342,16 +342,15 @@ export interface CheckoutResult {
   orderType: OrderType
   customerGender: CustomerGender | null
   customerName: string | null
+  /** Sum orderItems.subtotal — dari server (untuk struk web & thermal). */
+  subtotal: number
   grandTotal: number
   amountPaid: number
   changeDue: number
   paidAt: string | null
   cashierName: string | null
   tableNumber: string | null
-  /**
-   * Kompatibilitas ReceiptModal legacy. Backend checkout TIDAK mengembalikan
-   * items/payment — diisi ulang oleh checkoutRequest dari data flat.
-   */
+  /** Rincian item order — dikembalikan backend checkout (bukan kosong lagi). */
   items: OrderItemLine[]
   payment: {
     category: PaymentCategory
@@ -372,10 +371,10 @@ export async function checkoutRequest(
     payload,
   )
   const result = data.data
-  // Enrich data flat backend -> bentuk yang diterima ReceiptModal.
+  // Backend kini mengembalikan items + subtotal; payment masih dirakit dari
+  // data flat (CheckoutResult backend tidak punya objek payment).
   return {
     ...result,
-    items: result.items ?? [],
     payment: result.payment ?? {
       category: payload.paymentCategory,
       methodName: payload.methodName,

@@ -65,11 +65,11 @@ export default function PrinterPage() {
       const payload = buildReceiptEscpos({
         invoiceNumber: 'TEST-0001',
         customerName: null,
-        cashierName: 'Admin',
-        subtotal: 25000,
-        grandTotal: 25000,
+        paidAt: new Date().toISOString(),
+        subtotal: 18000,
+        grandTotal: 20000,
         items: [{ productName: 'Test Print — Kopi Susu Gula Aren', quantity: 1, unitPrice: 18000, subtotal: 18000 }],
-        payment: { methodName: 'Tunai', amountPaid: 20000, changeDue: 2000 },
+        payment: { methodName: 'Cash', amountPaid: 25000, changeDue: 5000 },
       })
       await printEscpos(printer.deviceId, payload)
       setNotice('Test receipt sent to printer.')

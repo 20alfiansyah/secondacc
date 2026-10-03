@@ -12,21 +12,28 @@ interface ReceiptModalProps {
   onClose: () => void
 }
 
-/** Peta bentuk struk (CheckoutResult | OrderDetail) → data minimal builder ESC/POS. */
+/** Peta bentuk struk (CheckoutResult | OrderDetail) → data builder ESC/POS. */
 function toReceiptData(order: CheckoutResult | OrderDetail) {
   return {
     invoiceNumber: order.invoiceNumber,
     customerName: order.customerName,
-    cashierName: order.cashierName,
-    subtotal: 'subtotal' in order ? order.subtotal : order.grandTotal,
+    // Tanggal transaksi (paidAt), BUKAN waktu print — reprint harus tampil
+    // tanggal asli seperti di pratinjau web.
+    paidAt: order.payment?.paidAt ?? null,
+    subtotal: order.subtotal,
     grandTotal: order.grandTotal,
     items: order.items.map((item) => ({
       productName: item.productName,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       subtotal: item.subtotal,
+      notes: item.notes,
     })),
-    payment: { methodName: order.payment?.methodName ?? '-' },
+    payment: {
+      methodName: order.payment?.methodName ?? '-',
+      amountPaid: order.payment?.amountPaid ?? 0,
+      changeDue: order.payment?.changeDue ?? 0,
+    },
   }
 }
 
@@ -140,7 +147,7 @@ export default function ReceiptModal({ order, onClose }: ReceiptModalProps) {
 
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Subtotal</span>
-              <span className="tabular-nums font-medium">{formatRupiah(order.grandTotal)}</span>
+              <span className="tabular-nums font-medium">{formatRupiah(order.subtotal)}</span>
             </div>
             <div className="mt-1 flex justify-between text-sm font-bold text-foreground">
               <span>Grand Total</span>
