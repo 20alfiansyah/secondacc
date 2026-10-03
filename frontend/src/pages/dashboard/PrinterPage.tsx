@@ -68,7 +68,7 @@ export default function PrinterPage() {
         paidAt: new Date().toISOString(),
         subtotal: 18000,
         grandTotal: 20000,
-        items: [{ productName: 'Test Print — Kopi Susu Gula Aren', quantity: 1, unitPrice: 18000, subtotal: 18000 }],
+        items: [{ productName: 'Test Print - Kopi Susu Gula Aren', quantity: 1, unitPrice: 18000, subtotal: 18000 }],
         payment: { methodName: 'Cash', amountPaid: 25000, changeDue: 5000 },
       })
       await printEscpos(printer.deviceId, payload)
