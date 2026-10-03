@@ -24,8 +24,7 @@ const PRINTER_SERVICE_CANDIDATES = [0xff00, 0x18f0, 0xffe0, 0xae00]
 /** Lebar struk 58mm → 32 kolom huruf normal (font A). */
 export const RECEIPT_WIDTH = 32
 
-/** Karakter ESC/POS kunci. */
-const ESC = 0x1b
+/** GS dipakai untuk cut & ukuran font; init (ESC @) ditulis byte literal. */
 const GS = 0x1d
 
 /** Router/printer tidak ikut webhook; cukup cek dukungan browser sekali. */
@@ -142,12 +141,12 @@ export async function printEscpos(deviceId: string, payload: Uint8Array): Promis
 export function buildReceiptEscpos(receipt: ReceiptData): Uint8Array {
   const bytes: number[] = []
 
+  // Skala font aktif: GS ! 0x11 = lebar+tinggi 2x → lebar efektif baris menyusut
+  // jadi RECEIPT_WIDTH / 2 kolom. Dipakai center() agar padding tidak meluber.
+  let fontScale = 1
   const setDouble = (on: boolean): void => {
-    // Besarkan ukuran huruf 2x untuk judul/nominal.
+    fontScale = on ? 2 : 1
     bytes.push(GS, 0x21, on ? 0x11 : 0x00)
-  }
-  const align = (mode: 0 | 1 | 2): void => {
-    bytes.push(ESC, 0x61, mode)
   }
   const text = (s: string): void => {
     for (const ch of s) bytes.push(ch.charCodeAt(0) & 0xff)
@@ -167,7 +166,10 @@ export function buildReceiptEscpos(receipt: ReceiptData): Uint8Array {
     lineFeed()
   }
   const center = (s: string): void => {
-    const pad = Math.max(0, Math.floor((RECEIPT_WIDTH - s.length) / 2))
+    // Centering MANUAL murni (padding spasi) — deterministik di semua printer.
+    // JANGAN digabung ESC a center: teks bergeser dua kali.
+    const width = Math.floor(RECEIPT_WIDTH / fontScale)
+    const pad = Math.max(0, Math.floor((width - s.length) / 2))
     text(' '.repeat(pad) + s)
     lineFeed()
   }
@@ -175,14 +177,10 @@ export function buildReceiptEscpos(receipt: ReceiptData): Uint8Array {
     text('-'.repeat(RECEIPT_WIDTH))
     lineFeed()
   }
-  // Init printer reset state (ESC @) — wajib sebelum command lain.
-  bytes.push(ESC, 0x40)
-  // Judul toko besar di tengah; tagline normal.
-  align(1)
+  // Judul toko besar (double) di tengah; tagline normal di tengah.
   setDouble(true)
   center('2ND ACC')
   setDouble(false)
-  align(0)
   center('Roastery & Coffee')
   dashed()
 
