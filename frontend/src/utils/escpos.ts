@@ -41,6 +41,13 @@ export interface SavedPrinter {
 
 const STORAGE_KEY = 'cafe_pos_printer'
 
+/**
+ * Cache sesi object BluetoothDevice — untuk browser TANPA
+ * navigator.bluetooth.getDevices() (Chrome < 110): pairing tetap bisa
+ * dipakai selama halaman belum di-reload.
+ */
+const sessionDevices = new Map<string, BluetoothDevice>()
+
 export function loadSavedPrinter(): SavedPrinter | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -71,17 +78,26 @@ export async function pairPrinter(): Promise<SavedPrinter> {
     acceptAllDevices: true,
     optionalServices: [...PRINTER_SERVICE_CANDIDATES],
   })
-  device.addEventListener('gattserverdisconnected', () => {
-    // Diputus OS/printer — reconnect otomatis terjadi saat print berikutnya.
-  })
-  const saved: SavedPrinter = { deviceId: device.id ?? '', deviceName: device.name ?? 'Thermal printer' }
+  // Simpan object device di cache sesi — dipakai connectPrinter pada browser
+  // tanpa getDevices().
+  sessionDevices.set(device.id, device)
+  const saved: SavedPrinter = { deviceId: device.id, deviceName: device.name ?? 'Thermal printer' }
   savePrinter(saved)
   return saved
 }
 
-/** Koneksi GATT aktif dari device tersimpan (reconnect otomatis bila putus). */
+/**
+ * Koneksi GATT aktif dari device tersimpan (reconnect otomatis bila putus).
+ * Chrome ≥ 110: device diambil dari getDevices() (persist antar reload).
+ * Chrome lebih lama: pakai cache sesi dari pairPrinter terakhir.
+ */
 export async function connectPrinter(deviceId: string): Promise<BluetoothRemoteGATTServer> {
-  const device = await navigator.bluetooth.getDevices().then((ds) => ds.find((d) => d.id === deviceId))
+  let device: BluetoothDevice | undefined
+  if (typeof navigator.bluetooth.getDevices === 'function') {
+    device = (await navigator.bluetooth.getDevices()).find((d) => d.id === deviceId)
+  } else {
+    device = sessionDevices.get(deviceId)
+  }
   if (!device) throw new Error('Paired printer not found in this browser. Pair again from Printer Setup.')
   const gatt = device.gatt ?? null
   if (!gatt) throw new Error('Printer GATT unavailable.')
