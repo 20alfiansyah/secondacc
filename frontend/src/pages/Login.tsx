@@ -58,7 +58,7 @@ export default function Login() {
           </div>
           <div className="space-y-1">
             <CardTitle className="text-2xl font-extrabold tracking-tight text-foreground">
-              Cafe POS
+              2ND ACC
             </CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
               Sistem kasir dan manajemen transaksi modern
