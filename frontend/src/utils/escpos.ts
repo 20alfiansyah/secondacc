@@ -46,6 +46,8 @@ const STORAGE_KEY = 'cafe_pos_printer'
  * dipakai selama halaman belum di-reload.
  */
 const sessionDevices = new Map<string, BluetoothDevice>()
+/** Event in-page: dipancarkan saat pairing berubah — pill printer di TopBar ikut update. */
+export const PRINTER_CHANGED_EVENT = 'printer-changed'
 
 export function loadSavedPrinter(): SavedPrinter | null {
   try {
@@ -58,10 +60,12 @@ export function loadSavedPrinter(): SavedPrinter | null {
 
 export function savePrinter(printer: SavedPrinter): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(printer))
+  window.dispatchEvent(new Event(PRINTER_CHANGED_EVENT))
 }
 
 export function clearSavedPrinter(): void {
   localStorage.removeItem(STORAGE_KEY)
+  window.dispatchEvent(new Event(PRINTER_CHANGED_EVENT))
 }
 
 /**

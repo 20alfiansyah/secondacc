@@ -1,13 +1,30 @@
+import { useEffect, useState } from 'react'
 import Icon from '@/components/ui/Icon'
-
+import { cn } from '@/lib/utils'
+import type { SavedPrinter } from '@/utils/escpos'
+import { isBluetoothPrintingSupported, loadSavedPrinter, PRINTER_CHANGED_EVENT } from '@/utils/escpos'
 
 /**
  * TopBar — header card di dalam main content (Stitch screen1 markup 1:1).
- * Kiri: breadcrumb POS • Register. Kanan: status pill printer, sync info,
- * dan tombol Sync. Semua status di kanan masih display-only statis:
- * integrasi printer/sync backend menyusul (keputusan user: compatibility nanti).
+ * Kiri: breadcrumb POS • <page>. Kanan: pill status printer (MENGIKUTI pairing
+ * nyata — sinkron via event + storage), sync info, dan tombol Sync (display-only).
  */
 export default function TopBar({ page }: { page: string }) {
+  // Pairing tersimpan di localStorage — dibaca saat mount & saat pairing berubah.
+  const [printer, setPrinter] = useState<SavedPrinter | null>(() =>
+    isBluetoothPrintingSupported() ? loadSavedPrinter() : null,
+  )
+
+  useEffect(() => {
+    const sync = () => setPrinter(isBluetoothPrintingSupported() ? loadSavedPrinter() : null)
+    window.addEventListener(PRINTER_CHANGED_EVENT, sync) // tab yang sama (pair/forget)
+    window.addEventListener('storage', sync) // sinkron lintas tab
+    return () => {
+      window.removeEventListener(PRINTER_CHANGED_EVENT, sync)
+      window.removeEventListener('storage', sync)
+    }
+  }, [])
+
   return (
     <header className="flex h-12 flex-shrink-0 items-center justify-between rounded-xl border border-slate-200/80 bg-white px-4 shadow-xs">
       <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
@@ -20,10 +37,23 @@ export default function TopBar({ page }: { page: string }) {
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Display-only: printer & cloud sync belum ada backend-nya. */}
-        <div className="flex items-center gap-2 rounded-full border border-[#65AF92]/40 bg-[#edf7f3] px-2.5 py-1 text-xs shadow-xs">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-[#65AF92]" />
-          <span className="text-[11px] font-semibold text-[#2d5258]">Printer: Ready</span>
+        {/* Pill printer: hijau bila printer sudah dipasangkan, abu bila belum. */}
+        <div
+          className={cn(
+            'flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs shadow-xs',
+            printer ? 'border-[#65AF92]/40 bg-[#edf7f3]' : 'border-slate-200 bg-slate-50',
+          )}
+          title={printer ? `Paired: ${printer.deviceName}` : 'No printer paired — set up in Printer menu'}
+        >
+          <span className={cn('h-2 w-2 rounded-full', printer ? 'animate-pulse bg-[#65AF92]' : 'bg-slate-300')} />
+          <span
+            className={cn(
+              'max-w-[160px] truncate text-[11px] font-semibold',
+              printer ? 'text-[#2d5258]' : 'text-slate-400',
+            )}
+          >
+            {printer ? `Printer: ${printer.deviceName}` : 'Printer: Not paired'}
+          </span>
         </div>
         <div className="hidden items-center gap-1.5 text-xs text-slate-500 sm:flex">
           <Icon name="cloud_done" className="text-[16px] text-[#447C84]" />
