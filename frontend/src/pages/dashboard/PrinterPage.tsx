@@ -165,10 +165,12 @@ export default function PrinterPage() {
           )}
 
           <p className="text-xs leading-relaxed text-slate-400">
-            How it works: press <b>Pair Printer</b> and pick your thermal printer in the Chrome chooser — the
-            receipt is sent as raw ESC/POS commands over Bluetooth LE (paper cut included). The pairing is
-            remembered in this browser. Bluetooth CLASSIC (SPP-only) printers are not reachable from browsers;
-            for those, keep using the OS print dialog.
+            How it works: press <b>Pair Printer</b> — the chooser lists <b>all nearby Bluetooth LE devices</b>,
+            pick your thermal printer by name (make sure it is not connected to another device). The pairing is
+            remembered in this browser, and receipts are sent as raw ESC/POS commands (paper cut included).
+            <br />
+            Printer never appears in the chooser? It is likely Bluetooth CLASSIC (SPP-only) — browsers cannot
+            reach it; keep using the OS print dialog from the receipt screen.
           </p>
         </CardContent>
       </Card>

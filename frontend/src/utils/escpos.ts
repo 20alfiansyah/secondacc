@@ -12,11 +12,14 @@ import { formatDate } from './format'
  * Printer bluetooth CLASSIC (SPP) tidak didukung browser — jalur itu pakai print dialog OS.
  */
 
-/** Service + characteristic standar printer thermal BLE (ESC/POS over BLE). */
-const PRINTER_SERVICE_UUID = 0xff00
-const PRINTER_CHARACTERISTIC_UUID = 0xff02
-/** Fallback: beberapa printer pakai Nordic UART-style service 0x18f0/0x2af1. */
-const PRINTER_SERVICE_ALT_UUID = 0x18f0
+/**
+ * Kandidat service printer thermal BLE (ESC/POS over BLE):
+ * - 0xff00/0xff02: umum di printer China
+ * - 0x18f0/0x2af1: Nordic UART-style
+ * - 0xffe0/0xffe1: modul HM-10/BLE umum di printer murah
+ * - 0xae00: beberapa printer generasi baru
+ */
+const PRINTER_SERVICE_CANDIDATES = [0xff00, 0x18f0, 0xffe0, 0xae00]
 
 /** Lebar struk 58mm → 32 kolom huruf normal (font A). */
 export const RECEIPT_WIDTH = 32
@@ -56,16 +59,20 @@ export function clearSavedPrinter(): void {
 }
 
 /**
- * Pasangkan printer thermal via chooser Chrome. Device tetap tersimpan di
- * localStorage (allowedDevices) sehingga print berikutnya tanpa dialog.
+ * Pasangkan printer thermal via chooser Chrome. Semua perangkat BLE tampil
+ * (acceptAllDevices) karena service UUID jarang diiklankan; device tetap
+ * tersimpan di localStorage (allowedDevices) → print berikutnya tanpa dialog.
  */
 export async function pairPrinter(): Promise<SavedPrinter> {
   const device = await navigator.bluetooth.requestDevice({
-    filters: [{ services: [PRINTER_SERVICE_UUID] }],
-    optionalServices: [PRINTER_SERVICE_UUID, PRINTER_SERVICE_ALT_UUID],
+    // Tampilkan SEMUA perangkat BLE di chooser — kebanyakan printer tidak
+    // mengiklankan service UUID di advertisement, filter [0xff00] membuatnya
+    // tidak pernah muncul. Service dicocokkan saat print (kandidat di atas).
+    acceptAllDevices: true,
+    optionalServices: [...PRINTER_SERVICE_CANDIDATES],
   })
   device.addEventListener('gattserverdisconnected', () => {
-    // Hanya state runtime — device tersimpan tetap dipakai lagi saat print berikutnya.
+    // Diputus OS/printer — reconnect otomatis terjadi saat print berikutnya.
   })
   const saved: SavedPrinter = { deviceId: device.id ?? '', deviceName: device.name ?? 'Thermal printer' }
   savePrinter(saved)
@@ -82,22 +89,31 @@ export async function connectPrinter(deviceId: string): Promise<BluetoothRemoteG
 }
 
 /**
- * Kirim payload ESC/POS ke printer. Menulis per chunk 20 byte (MTU BLE aman)
- * dengan delay kecil — printer murah sering kehilangan byte pada tulisan besar.
+ * Kirim payload ESC/POS ke printer. Menulis per chunk 100 byte dengan delay
+ * kecil — printer murah sering kehilangan byte pada tulisan besar sekaligus.
  */
 export async function printEscpos(deviceId: string, payload: Uint8Array): Promise<void> {
   const server = await connectPrinter(deviceId)
-  let service: BluetoothRemoteGATTService | null = null
-  try {
-    service = await server.getPrimaryService(PRINTER_SERVICE_UUID)
-  } catch {
-    service = await server.getPrimaryService(PRINTER_SERVICE_ALT_UUID)
+  // Cocokkan service dari kandidat; pilih characteristic pertama yang writable.
+  // (Nama service/char berbeda antar merk — jangan pinjam satu UUID keras.)
+  let target: BluetoothRemoteGATTCharacteristic | null = null
+  for (const uuid of PRINTER_SERVICE_CANDIDATES) {
+    try {
+      const service = await server.getPrimaryService(uuid)
+      const chars = await service.getCharacteristics()
+      target = chars.find((c) => c.properties.write || c.properties.writeWithoutResponse) ?? null
+      if (target) break
+    } catch {
+      // Printer ini tidak punya service kandidat tsb — coba berikutnya.
+    }
   }
-  const characteristic = await service.getCharacteristic(PRINTER_CHARACTERISTIC_UUID)
+  if (!target) {
+    throw new Error('Printer service not found — the paired device may not be an ESC/POS BLE printer.')
+  }
 
   const CHUNK = 100
   for (let i = 0; i < payload.length; i += CHUNK) {
-    await characteristic.writeValue(payload.slice(i, i + CHUNK))
+    await target.writeValue(payload.slice(i, i + CHUNK))
     // Beri napas BLE antar chunk — printer murah drop karakter tanpa ini.
     await new Promise((resolve) => setTimeout(resolve, 20))
   }
