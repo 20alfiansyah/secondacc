@@ -4,7 +4,7 @@ import { formatDate, formatRupiah } from '@/utils/format'
 import { buildReceiptEscpos, isBluetoothPrintingSupported, loadSavedPrinter, printEscpos } from '@/utils/escpos'
 import { useState } from 'react'
 
-const CAFE_NAME = 'CAFE POS'
+const CAFE_NAME = '2ND ACC'
 
 interface ReceiptModalProps {
   /** CheckoutResult (alur bayar) atau OrderDetail (re-print dari riwayat). */

@@ -180,14 +180,13 @@ export function buildReceiptEscpos(receipt: ReceiptData): Uint8Array {
   // Judul toko besar di tengah; tagline normal.
   align(1)
   setDouble(true)
-  center('CAFE POS')
+  center('2ND ACC')
   setDouble(false)
   align(0)
   center('Roastery & Coffee')
   dashed()
 
   for (const l of [
-    `Invoice: ${receipt.invoiceNumber}`,
     `Date   : ${formatDate(new Date().toISOString())}`,
     `Cashier: ${receipt.cashierName ?? '-'}`,
     `Customer: ${receipt.customerName ?? '-'}`,
