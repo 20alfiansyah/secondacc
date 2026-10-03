@@ -44,7 +44,7 @@ describe('OrdersService (ACID & finansial server-side)', () => {
     subtotal: 50000,
     grandTotal: 50000,
     cashier: { id: 2, name: 'Siti' },
-    orderItems: [{ productId: 10, quantity: 2, unitPrice: 25000, subtotal: 50000 }],
+    orderItems: [{ productId: 10, quantity: 2, unitPrice: 25000, subtotal: 50000, notes: null, product: { name: 'Kopi Susu Gula Aren' } }],
   };
 
   const defaults: Record<string, MockImpl> = {
@@ -252,6 +252,11 @@ describe('OrdersService (ACID & finansial server-side)', () => {
       expect(r.amountPaid).toBe(100000);
       expect(r.changeDue).toBe(50000);
       expect(r.grandTotal).toBe(50000);
+      // Struk butuh rincian item + subtotal asli (dari orderItems tersimpan).
+      expect(r.subtotal).toBe(50000);
+      expect(r.items).toEqual([
+        { productId: 10, productName: 'Kopi Susu Gula Aren', quantity: 2, unitPrice: 25000, subtotal: 50000, notes: null },
+      ]);
       // Klaim atomik: filter status di WHERE, set PAID di data
       expect(tx.order.updateMany).toHaveBeenCalledWith({
         where: { id: 45, status: OrderStatus.OPEN_BILL },

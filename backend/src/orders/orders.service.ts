@@ -301,7 +301,7 @@ export class OrdersService {
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.order.findUnique({
         where: { id },
-        include: { orderItems: true },
+        include: { orderItems: { include: { product: { select: { name: true } } } } },
       });
       if (!order) {
         throw new NotFoundException({
@@ -363,6 +363,17 @@ export class OrdersService {
         orderType: updated.orderType,
         customerGender: updated.customerGender,
         customerName: updated.customerName,
+        // Subtotal & items dikembalikan agar struk (web & thermal) menampilkan
+        // rincian item + subtotal asli, bukan fallback grandTotal.
+        subtotal: order.orderItems.reduce((s, i) => s + i.subtotal, 0),
+        items: order.orderItems.map((i) => ({
+          productId: i.productId,
+          productName: i.product.name,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          subtotal: i.subtotal,
+          notes: i.notes ?? null,
+        })),
         grandTotal: updated.grandTotal,
         amountPaid: input.amountPaid,
         changeDue,

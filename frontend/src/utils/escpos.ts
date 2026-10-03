@@ -186,30 +186,36 @@ export function buildReceiptEscpos(receipt: ReceiptData): Uint8Array {
   center('Roastery & Coffee')
   dashed()
 
+  // Metadata — persis pratinjau web: invoice, customer (bila ada), tanggal transaksi.
   for (const l of [
-    `Date   : ${formatDate(new Date().toISOString())}`,
-    `Cashier: ${receipt.cashierName ?? '-'}`,
-    `Customer: ${receipt.customerName ?? '-'}`,
+    `Invoice: ${receipt.invoiceNumber}`,
+    ...(receipt.customerName ? [`Customer: ${receipt.customerName}`] : []),
+    ...(receipt.paidAt ? [formatDate(receipt.paidAt)] : []),
   ]) {
     text(l)
     lineFeed()
   }
   dashed()
 
-  // Item: nama 1 baris; qty x harga (kiri) & subtotal (kanan).
+  // Item: nama 1 baris; dim line "qty x harga (catatan)" (kiri) & line total (kanan).
   for (const item of receipt.items) {
     text(item.productName.slice(0, RECEIPT_WIDTH))
     lineFeed()
-    row(`  ${item.quantity} x ${item.unitPrice.toLocaleString('id-ID')}`, item.subtotal.toLocaleString('id-ID'))
+    const dim = `  ${item.quantity} x ${item.unitPrice.toLocaleString('id-ID')}${item.notes ? ` (${item.notes})` : ''}`
+    row(dim.slice(0, RECEIPT_WIDTH), item.subtotal.toLocaleString('id-ID'))
   }
   dashed()
 
+  // Total & pembayaran — label sama dengan pratinjau web.
   row('Subtotal', formatRupiahPlain(receipt.subtotal))
-  row('Total', formatRupiahPlain(receipt.grandTotal))
-  row(receipt.payment.methodName, formatRupiahPlain(receipt.payment.amountPaid ?? 0))
-  row('Change', formatRupiahPlain(receipt.payment.changeDue ?? 0))
+  row('Grand Total', formatRupiahPlain(receipt.grandTotal))
+  row('Payment Method', receipt.payment.methodName)
+  row('Cash Received', formatRupiahPlain(receipt.payment.amountPaid ?? 0))
+  if ((receipt.payment.changeDue ?? 0) > 0) {
+    row('Change', formatRupiahPlain(receipt.payment.changeDue ?? 0))
+  }
   dashed()
-  center('Thank you! Please come again.')
+  center('Thank you for your visit!')
   lineFeed(3)
   cut()
 
@@ -221,13 +227,20 @@ function formatRupiahPlain(value: number): string {
   return value.toLocaleString('id-ID')
 }
 
-/** Bentuk data minimal untuk struk (CheckoutResult | OrderDetail dipetakan ke sini). */
+/** Bentuk data struk (CheckoutResult | OrderDetail dipetakan via toReceiptData). */
 export interface ReceiptData {
   invoiceNumber: string
   customerName: string | null
-  cashierName: string | null
+  /** Tanggal transaksi (payment.paidAt) — reprint tampil tanggal asli. */
+  paidAt: string | null
   subtotal: number
   grandTotal: number
-  items: Array<{ productName: string; quantity: number; unitPrice: number; subtotal: number }>
+  items: Array<{
+    productName: string
+    quantity: number
+    unitPrice: number
+    subtotal: number
+    notes?: string | null
+  }>
   payment: { methodName: string; amountPaid?: number; changeDue?: number }
 }
