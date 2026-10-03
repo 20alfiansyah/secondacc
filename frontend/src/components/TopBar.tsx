@@ -48,7 +48,8 @@ export default function TopBar({ page }: { page: string }) {
           <span className={cn('h-2 w-2 rounded-full', printer ? 'animate-pulse bg-[#65AF92]' : 'bg-slate-300')} />
           <span
             className={cn(
-              'max-w-[160px] truncate text-[11px] font-semibold',
+              // Truncate agresif di layar sempit — cegah pill menabrak crumb/Sync.
+              'max-w-[110px] truncate text-[11px] font-semibold sm:max-w-[160px]',
               printer ? 'text-[#2d5258]' : 'text-slate-400',
             )}
           >
@@ -59,10 +60,12 @@ export default function TopBar({ page }: { page: string }) {
           <Icon name="cloud_done" className="text-[16px] text-[#447C84]" />
           <span className="text-[11px] font-medium">Sync: Up to date</span>
         </div>
+        {/* Sync display-only (belum ada backend) — disembunyikan di layar sempit
+            agar pill printer tidak terdorong keluar viewport. */}
         <button
           type="button"
           title="Force Cloud Sync"
-          className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 shadow-xs transition active:scale-95 hover:bg-slate-100 hover:text-slate-900"
+          className="hidden h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-700 shadow-xs transition active:scale-95 hover:bg-slate-100 hover:text-slate-900 sm:flex"
         >
           <Icon name="sync" className="text-[15px] text-slate-500" />
           <span className="text-[11px] font-medium">Sync</span>
